@@ -1,0 +1,20 @@
+stages:
+  - build
+  - test
+
+python-build:
+  image: ${CI_REGISTRY}/dockers/ci/debian-build:10
+  stage: build
+  script:
+    - make
+  artifacts:
+    expire_in: 2 days
+    paths:
+      - dist/
+
+python-linter:
+  image: ${CI_REGISTRY}/dockers/ci/centos-build:8
+  stage: test
+  script:
+    - make linter
+  allow_failure: true
