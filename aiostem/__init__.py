@@ -4,6 +4,7 @@
 Asynchronous Tor controller library for asyncio and Python.
 """
 
+from aiostem.controller import Controller
 from aiostem.version import version
 from typing import Tuple
 
@@ -13,5 +14,6 @@ __license__ = 'MIT'
 __version__ = version
 
 __all__: Tuple[str, ...] = (
+    "Controller",
     "version",
 )
