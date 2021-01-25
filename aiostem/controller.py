@@ -116,7 +116,7 @@ class Controller:
         """ Execute command 'PROTOCOLINFO'.
         """
         command = Command('PROTOCOLINFO')
-        command.add_argument(str(version))
+        command.add_arg(str(version))
         return await self.request(command)
 
     async def connect(self) -> None:

@@ -6,8 +6,12 @@ class AiostemError(Exception):
 
 
 class ControllerError(AiostemError):
-    'Base error raised by the controller'
+    'Base error raised by the controller.'
 
 
 class ProtocolError(AiostemError):
     'Base error for communication issues with the controller.'
+
+
+class MessageError(AiostemError):
+    'Results of a bad manipulation of a received Message.'

@@ -1,92 +1,8 @@
 # -*- coding: utf-8 -*-
 
-import re
-
 from typing import List
 
-
-class BaseArgument:
-    """ Base class for any kind of command argument.
-    """
-
-    @staticmethod
-    def quote(value) -> str:
-        """ Quote `value` so it can be used by Tor's controller.
-        """
-        return re.sub(r'([\\"])', r'\\\1', value)
-
-    def __str__(self) -> str:
-        raise NotImplementedError('__str__() must be implemented by BaseArgument subclass')
-# End of class BaseArgument.
-
-
-class Argument(BaseArgument):
-    """ Represents a single non-quoted argument.
-    """
-
-    def __init__(self, value: str) -> None:
-        self._value = value
-
-    @property
-    def value(self) -> str:
-        """ Value of this argument.
-        """
-        return self._value
-
-    def __str__(self) -> str:
-        """ This is how this argument appears on the wire.
-        """
-        return self.value
-# End of class Argument.
-
-
-class QuotedArgument(Argument):
-    """ Same as Argument but enclosed in double quotes.
-    """
-
-    def __str__(self) -> str:
-        """ This is how this argument appears on the wire.
-        """
-        return '"{}"'.format(self.quote(self.value))
-# End of class QuotedArgument.
-
-
-class KeyArgument(BaseArgument):
-    """ Represents a key/value argument.
-    """
-
-    def __init__(self, key: str, value: str) -> None:
-        self._key = key
-        self._value = value
-
-    @property
-    def key(self) -> str:
-        """ Name of the `key` provided in constructor.
-        """
-        return self._key
-
-    @property
-    def value(self) -> str:
-        """ Value provided in the constructor.
-        """
-        return self._value
-
-    def __str__(self) -> str:
-        """ This is how this argument appears on the wire.
-        """
-        return '{0}={1}'.format(self.key, self.value)
-# End of class KeyArgument.
-
-
-class QuotedKeyArgument(KeyArgument):
-    """ Same as KeyArgument but value is enclosed in double quotes.
-    """
-
-    def __str__(self) -> str:
-        """ This is how this argument appears on the wire.
-        """
-        return '{0}={1}'.format(self.key, self.quote(self.value))
-# End of class QuotedKeyArgument.
+from aiostem.argument import BaseArgument, SingleArgument, KeywordArgument
 
 
 class Command:
@@ -142,19 +58,17 @@ class Command:
         lines = map(lambda l: l.rstrip('\r'), text.split('\n'))
         self._data.extend(lines)
 
-    def add_argument(self, value: str, quoted: bool = False) -> None:
-        """ Add a single argument (potentially quoted).
+    def add_arg(self, value: str, quoted: bool = False) -> None:
+        """ Add a single argument (can be quoted).
         """
-        cls = QuotedArgument if quoted else Argument
-        self.add_raw_argument(cls(value))
+        self.add_rawarg(SingleArgument(value, quoted))
 
-    def add_key_argument(self, key: str, value: str, quoted: bool = False) -> None:
-        """ Add a single key/value argument (potentially quoted).
+    def add_kwarg(self, key: str, value: str, quoted: bool = False) -> None:
+        """ Add a single keyword argument (can be quoted).
         """
-        cls = QuotedKeyArgument if quoted else KeyArgument
-        self.add_raw_argument(cls(key, value))
+        self.add_rawarg(KeywordArgument(key, value, quoted))
 
-    def add_raw_argument(self, arg: BaseArgument) -> None:
+    def add_rawarg(self, arg: BaseArgument) -> None:
         """ Add any kind of argument to the list of arguments.
         """
         self._args.append(arg)

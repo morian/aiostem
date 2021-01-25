@@ -1,7 +1,66 @@
 # -*- coding: utf-8 -*-
 
+import re
+
 from typing import List
-from aiostem.exception import ProtocolError
+
+from aiostem.argument import SingleArgument, KeywordArgument
+from aiostem.exception import MessageError, ProtocolError
+
+
+class MessageLine:
+    """ Helper used to parse arguments on a message line.
+    """
+
+    REGEX_SINGLE_N = re.compile(r'^([^\s]+)')
+    REGEX_SINGLE_Q = re.compile(r'^"((?:\\[\\"]|[^"])+)"')
+    REGEX_KEYWORD_N = re.compile(r'^([^\s=]+)=([^\s]+)')
+    REGEX_KEYWORD_Q = re.compile(r'^([^\s=]+)="((?:\\[\\"]|[^"])+)"')
+
+    def __init__(self, line) -> None:
+        self._raw_line = line
+        self._cur_line = line
+
+    def __str__(self) -> str:
+        """ Just return the raw line.
+        """
+        return self._raw_line
+
+    @property
+    def at_end(self) -> bool:
+        """ Whether we are done parsing this line.
+        """
+        return bool(self._cur_line)
+
+    def pop_arg(self, quoted: bool = False) -> SingleArgument:
+        """ Parse the next argument as a single argument.
+        """
+        pattern = self.REGEX_SINGLE_Q if quoted else self.REGEX_SINGLE_N
+        match = pattern.match(self._cur_line)
+        if match is None:
+            raise MessageError("No matching argument in provided line.")
+
+        self._cur_line = self._cur_line[match.end(0):].lstrip()
+        text = match.group(1)
+        if quoted:
+            text = re.sub(r'\\([\\"])', r'\1', text)
+        return SingleArgument(text, quoted)
+
+    def pop_kwarg(self, quoted: bool = False) -> KeywordArgument:
+        """ Parse the next argument as a keyword argument.
+        """
+        pattern = self.REGEX_KEYWORD_Q if quoted else self.REGEX_KEYWORD_N
+        match = pattern.match(self._cur_line)
+        if match is None:
+            raise MessageError("No matching keyword argument in provided line.")
+        self._cur_line = self._cur_line[match.end(0):].lstrip()
+
+        keyword = match.group(1)
+        value = match.group(2)
+        if quoted:
+            value = re.sub(r'\\([\\"])', r'\1', value)
+        return KeywordArgument(keyword, value, quoted)
+# End of class MessageLine.
 
 
 class Message:
@@ -63,9 +122,12 @@ class Message:
         """
         return self._status
 
-    def add_line(self, line) -> None:
+    def add_line(self, line: str) -> None:
         """ Add a new line from the controller.
         """
+        if self.parsed:
+            raise MessageError("Cannot append an already parsed message.")
+
         if line.endswith('\r\n'):
             line = line[:-2]
 
@@ -81,7 +143,7 @@ class Message:
             self._datlines.append(line)
         else:
             if len(line) < 4:
-                raise ProtocolError("Received line is too short!")
+                raise ProtocolError("Received line is too short: '{}'!".format(line))
 
             code = line[0:3]
             kind = line[3]
@@ -97,5 +159,5 @@ class Message:
             elif kind == '-':
                 self._midlines.append(data)
             else:
-                raise ProtocolError("Received an invalid line '{}'".format(line))
+                raise ProtocolError("Unable to parse line '{}'".format(line))
 # End of class Message.
