@@ -12,8 +12,8 @@ class MessageLine:
     """ Helper used to parse arguments on a message line.
     """
 
-    REGEX_SINGLE_N = re.compile(r'^([^\s]+)')
-    REGEX_SINGLE_Q = re.compile(r'^"((?:\\[\\"]|[^"])+)"')
+    REGEX_SINGLE_N  = re.compile(r'^([^\s]+)')
+    REGEX_SINGLE_Q  = re.compile(r'^"((?:\\[\\"]|[^"])+)"')
     REGEX_KEYWORD_N = re.compile(r'^([^\s=]+)=([^\s]+)')
     REGEX_KEYWORD_Q = re.compile(r'^([^\s=]+)="((?:\\[\\"]|[^"])+)"')
 

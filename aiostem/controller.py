@@ -16,9 +16,8 @@ from aiostem.connector import (
 )
 from aiostem.exception import ControllerError
 from aiostem.message import Message
-
-
-DEFAULT_PROTOCOL_VERSION: int = 1
+from aiostem.response import ProtocolInfoReply
+from aiostem.question import ProtocolInfoQuery
 
 
 class Controller:
@@ -67,7 +66,7 @@ class Controller:
         """
         await self.close()
 
-    async def _reader_task(self, reader):
+    async def _reader_task(self, reader) -> None:
         """ Read from the socket and dispatch all contents.
         """
         try:
@@ -112,12 +111,14 @@ class Controller:
             raise ControllerError("Controller has disconnected!")
         return rep
 
-    async def protocol_info(self, version: int = DEFAULT_PROTOCOL_VERSION) -> Message:
-        """ Execute command 'PROTOCOLINFO'.
+    async def protocol_info(self, version: int = ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
+                            ) -> ProtocolInfoReply:
+        """ Get control protocol information from the remote Tor process.
+            Default version is 1, this is the only version supported by Tor.
         """
-        command = Command('PROTOCOLINFO')
-        command.add_arg(str(version))
-        return await self.request(command)
+        query = ProtocolInfoQuery(version)
+        message = await self.request(query.command)
+        return ProtocolInfoReply(query, message)
 
     async def connect(self) -> None:
         """ Connect Tor's control socket.
