@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from aiostem.exception import ResponseError
 from aiostem.question import Query
 from aiostem.message import Message
 
@@ -16,6 +17,7 @@ class BaseResponse:
         """ Parse the received message and build this response according to the type.
         """
         self._status = message.status
+        self.raise_for_status()
 
     @property
     def status(self) -> int:
@@ -28,6 +30,12 @@ class BaseResponse:
         """ Get the raw message received from the control socket.
         """
         return self._message
+
+    def raise_for_status(self):
+        """ Raise a reponse error!
+        """
+        if self.status >= 400:
+            raise ResponseError(self.status, self.message.endline)
 # End of class BaseResponse.
 
 

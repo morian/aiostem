@@ -15,3 +15,18 @@ class ProtocolError(AiostemError):
 
 class MessageError(AiostemError):
     'Results of a bad manipulation of a received Message.'
+
+
+class ResponseError(AiostemError):
+    'Response message is an error (status is provided).'
+
+    def __init__(self, status, message) -> None:
+        super().__init__(message)
+        self._status = status
+
+    @property
+    def status(self) -> int:
+        """ Response status that generated this message.
+        """
+        return self._status
+# End of class ResponseError.

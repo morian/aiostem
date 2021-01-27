@@ -4,6 +4,7 @@
 Asynchronous Tor controller library for asyncio and Python.
 """
 
+from aiostem.exception import ResponseError
 from aiostem.controller import Controller
 from aiostem.version import version
 from typing import Tuple
@@ -15,5 +16,6 @@ __version__ = version
 
 __all__: Tuple[str, ...] = (
     "Controller",
+    "ResponseError",
     "version",
 )

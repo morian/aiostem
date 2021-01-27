@@ -46,6 +46,14 @@ class MessageLine:
             text = re.sub(r'\\([\\"])', r'\1', text)
         return SingleArgument(text, quoted)
 
+    def pop_arg_checked(self, name: str, quoted: bool = False) -> KeywordArgument:
+        """ Same as pop_arg() but also check that the returned value is `name`.
+        """
+        arg = self.pop_arg(quoted)
+        if arg.value != name:
+            raise MessageError("expected argument '{}', got '{}'.".format(name, arg.value))
+        return arg
+
     def pop_kwarg(self, quoted: bool = False) -> KeywordArgument:
         """ Parse the next argument as a keyword argument.
         """
@@ -60,6 +68,14 @@ class MessageLine:
         if quoted:
             value = re.sub(r'\\([\\"])', r'\1', value)
         return KeywordArgument(keyword, value, quoted)
+
+    def pop_kwarg_checked(self, name: str, quoted: bool = False) -> KeywordArgument:
+        """ Same as pop_kwarg() but also check that `keyword` is `name`.
+        """
+        arg = self.pop_kwarg(quoted)
+        if arg.keyword != name:
+            raise MessageError("expected argument '{}', got '{}'.".format(name, arg.keyword))
+        return arg
 # End of class MessageLine.
 
 

@@ -20,6 +20,9 @@ from aiostem.response import ProtocolInfoReply
 from aiostem.question import ProtocolInfoQuery
 
 
+DEFAULT_PROTOCOL_VERSION = ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
+
+
 class Controller:
     """ Client controller for Tor's control socket.
     """
@@ -111,8 +114,7 @@ class Controller:
             raise ControllerError("Controller has disconnected!")
         return rep
 
-    async def protocol_info(self, version: int = ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
-                            ) -> ProtocolInfoReply:
+    async def protocol_info(self, version: int = DEFAULT_PROTOCOL_VERSION) -> ProtocolInfoReply:
         """ Get control protocol information from the remote Tor process.
             Default version is 1, this is the only version supported by Tor.
         """
