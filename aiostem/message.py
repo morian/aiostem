@@ -30,7 +30,7 @@ class MessageLine:
     def at_end(self) -> bool:
         """ Whether we are done parsing this line.
         """
-        return bool(self._cur_line)
+        return bool(not self._cur_line)
 
     def pop_arg(self, quoted: bool = False) -> SingleArgument:
         """ Parse the next argument as a single argument.

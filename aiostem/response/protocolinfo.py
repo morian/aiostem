@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from aiostem.response.base import Reply
+import aiofiles
+
+from aiostem.response.simple import SimpleReply
 from aiostem.message import Message, MessageLine
 from typing import Optional, Tuple
 
 
-class ProtocolInfoReply(Reply):
+class ProtocolInfoReply(SimpleReply):
     """ Parse a protocol info reply.
     """
 
@@ -13,15 +15,14 @@ class ProtocolInfoReply(Reply):
         self._cookie_file = None  # type: Optional[str]
         self._methods = ()        # type: Tuple[str, ...]
         self._proto_version = 0   # type: int
-        self._status_text = ''    # type: str
         self._tor_version = ''    # type: str
         super().__init__(*args, **kwargs)
 
     def __repr__(self) -> str:
-        """ Protocol reply!
+        """ Reply from a ProtocolInfo Query.
         """
-        return "<ProtocolInfoReply version='{}' methods='{}'>"  \
-               .format(self.proto_version, ','.join(self.methods))
+        return "<{} version='{}' methods='{}'>"  \
+               .format(type(self).__name__, self.proto_version, ','.join(self.methods))
 
     def _message_resp_parse(self, parser: MessageLine) -> None:
         """ Parse the PROTOCOLINFO mid-line.
@@ -36,7 +37,7 @@ class ProtocolInfoReply(Reply):
 
         if not parser.at_end:
             cookie = parser.pop_kwarg_checked('COOKIEFILE', quoted=True)
-            self._cookie_file = cookie
+            self._cookie_file = cookie.value
 
     def _message_vers_parse(self, parser: MessageLine) -> None:
         """ Parse the VERSION mid-line.
@@ -62,14 +63,6 @@ class ProtocolInfoReply(Reply):
             if func is not None:
                 func(parser)
 
-        self._status_text = message.endline
-
-    @property
-    def status_text(self) -> str:
-        """ Text version of the `status` code.
-        """
-        return self._status_text
-
     @property
     def cookie_file(self) -> Optional[str]:
         """ Cookie file that can be used for authentication.
@@ -93,4 +86,10 @@ class ProtocolInfoReply(Reply):
         """ Version of the Tor daemon we are communicating with.
         """
         return self._tor_version
+
+    async def cookie_file_read(self) -> bytes:
+        """ Read the content of the cookie file.
+        """
+        async with aiofiles.open(self.cookie_file, 'rb') as fp:
+            return await fp.read()
 # End of class ProtocolInfoReply.
