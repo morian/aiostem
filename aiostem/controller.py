@@ -141,7 +141,9 @@ class Controller:
             token = token.hex()
         query = AuthenticateQuery(token)
         message = await self.request(query.command)
-        return AuthenticateReply(query, message)
+        reply = AuthenticateReply(query, message)
+        self._authenticated = bool(reply.status == 250)
+        return reply
 
     async def request(self, command: Command) -> Message:
         """ Send any kind of command to the controller.
