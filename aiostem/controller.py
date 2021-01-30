@@ -16,8 +16,8 @@ from aiostem.connector import (
 )
 from aiostem.exception import ControllerError
 from aiostem.message import Message
-from aiostem.response import ProtocolInfoReply
-from aiostem.question import ProtocolInfoQuery
+from aiostem.response import ProtocolInfoReply, QuitReply
+from aiostem.question import ProtocolInfoQuery, QuitQuery
 
 
 DEFAULT_PROTOCOL_VERSION = ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
@@ -29,26 +29,32 @@ class Controller:
 
     def __init__(self, connector: ControlConnector) -> None:
         self._request_lock = asyncio.Lock()
+        self._authenticated = False
         self._connected = False
         self._connector = connector
-        self._rqueue = None  # type: Optional[asyncio.Queue]
-        self._rdtask = None  # type: Optional[asyncio.Task]
-        self._writer = None  # type: Optional[asyncio.StreamWriter]
+        self._protoinfo = None  # type: Optional[ProtocolInfoReply]
+        self._rqueue = None     # type: Optional[asyncio.Queue]
+        self._rdtask = None     # type: Optional[asyncio.Task]
+        self._writer = None     # type: Optional[asyncio.StreamWriter]
 
     @classmethod
     def from_port(cls, host: str = DEFAULT_CONTROL_HOST,
                   port: int = DEFAULT_CONTROL_PORT) -> 'Controller':
         """ Create a new Controller from a TCP port.
         """
-        connector = ControlConnectorPort(host, port)
-        return cls(connector)
+        return cls(ControlConnectorPort(host, port))
 
     @classmethod
     def from_path(cls, path: str = DEFAULT_CONTROL_PATH) -> 'Controller':
         """ Create a new Controller from a UNIX socket path.
         """
-        connector = ControlConnectorPath(path)
-        return cls(connector)
+        return cls(ControlConnectorPath(path))
+
+    @property
+    def authenticated(self) -> bool:
+        """ Whether we are correctly authenticated.
+        """
+        return bool(self.connected and self._authenticated)
 
     @property
     def connected(self) -> bool:
@@ -118,9 +124,11 @@ class Controller:
         """ Get control protocol information from the remote Tor process.
             Default version is 1, this is the only version supported by Tor.
         """
-        query = ProtocolInfoQuery(version)
-        message = await self.request(query.command)
-        return ProtocolInfoReply(query, message)
+        if self.authenticated or not self._protoinfo:
+            query = ProtocolInfoQuery(version)
+            message = await self.request(query.command)
+            self._protoinfo = ProtocolInfoReply(query, message)
+        return self._protoinfo
 
     async def connect(self) -> None:
         """ Connect Tor's control socket.
@@ -133,6 +141,13 @@ class Controller:
         self._rqueue = rqueue
         self._rdtask = rdtask
         self._writer = writer
+
+    async def quit(self) -> None:
+        """ Send a QUIT command to the controller.
+        """
+        query = QuitQuery()
+        message = await self.request(query.command)
+        return QuitReply(query, message)
 
     async def close(self) -> None:
         """ Close this connection and reset the controller.
@@ -154,7 +169,9 @@ class Controller:
             except asyncio.CancelledError:
                 pass
 
+        self._authenticated = False
         self._connected = False
+        self._protoinfo = None
         self._rdtask = None
         self._rqueue = None
 # End of class Controller.
