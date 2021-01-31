@@ -2,7 +2,7 @@
 
 import re
 
-from typing import List
+from typing import List, Optional
 
 from aiostem.argument import SingleArgument, KeywordArgument
 from aiostem.exception import MessageError, ProtocolError
@@ -90,6 +90,7 @@ class Message:
         self._statline = ''
         self._midlines = []  # type: List[str]
         self._datlines = []  # type: List[str]
+        self._evttype = None # type: Optional[str]
         self._indata = False
 
     @property
@@ -112,6 +113,12 @@ class Message:
         """ Whether this message is an asynchronous event.
         """
         return bool(self.status == 650)
+
+    @property
+    def event_type(self) -> Optional[str]:
+        """ Event type (when this message is an event).
+        """
+        return self._evttype
 
     @property
     def dataline(self) -> str:
@@ -137,6 +144,19 @@ class Message:
         """ Status code of this message.
         """
         return self._status
+
+    def _event_type_set(self) -> None:
+        """ Find the event type of the current event.
+        """
+        if self.is_event:
+            if self.dataline:
+                line = self.dataline
+            elif self.midlines:
+                line = self.midlines[0]
+            else:
+                line = self.endline
+
+            self._evttype = MessageLine(line).pop_arg()
 
     def add_line(self, line: str) -> None:
         """ Add a new line from the controller.
@@ -169,6 +189,7 @@ class Message:
                 self._parsed = True
                 self._status = int(code)
                 self._statline = data
+                self._event_type_set()
             elif kind == '+':
                 self._dataline = data
                 self._indata = True

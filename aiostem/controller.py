@@ -3,7 +3,7 @@
 import asyncio
 
 from types import TracebackType
-from typing import Optional, List, Type
+from typing import Callable, Dict, List, Optional, Type
 
 from aiostem.command import Command
 from aiostem.connector import (
@@ -14,7 +14,7 @@ from aiostem.connector import (
     DEFAULT_CONTROL_PATH,
     DEFAULT_CONTROL_PORT,
 )
-from aiostem.exception import ControllerError
+from aiostem.exception import AiostemError, ControllerError
 from aiostem.message import Message
 from aiostem.question import (
     AuthChallengeQuery,
@@ -22,6 +22,7 @@ from aiostem.question import (
     HsFetchQuery,
     ProtocolInfoQuery,
     QuitQuery,
+    SetEventsQuery,
     SignalQuery,
 )
 from aiostem.response import (
@@ -30,6 +31,7 @@ from aiostem.response import (
     HsFetchReply,
     ProtocolInfoReply,
     QuitReply,
+    SetEventsReply,
     SignalReply,
 )
 
@@ -42,14 +44,16 @@ class Controller:
     """
 
     def __init__(self, connector: ControlConnector) -> None:
+        self._evt_callbacks = {}  # type: Dict[str, List[Callable]]
         self._request_lock = asyncio.Lock()
+        self._events_lock = asyncio.Lock()
         self._authenticated = False
         self._connected = False
         self._connector = connector
-        self._protoinfo = None  # type: Optional[ProtocolInfoReply]
-        self._rqueue = None     # type: Optional[asyncio.Queue]
-        self._rdtask = None     # type: Optional[asyncio.Task]
-        self._writer = None     # type: Optional[asyncio.StreamWriter]
+        self._protoinfo = None    # type: Optional[ProtocolInfoReply]
+        self._rqueue = None       # type: Optional[asyncio.Queue]
+        self._rdtask = None       # type: Optional[asyncio.Task]
+        self._writer = None       # type: Optional[asyncio.StreamWriter]
 
     @classmethod
     def from_port(cls, host: str = DEFAULT_CONTROL_HOST,
@@ -104,7 +108,7 @@ class Controller:
                 message.add_line(line)
                 if message.parsed:
                     if message.is_event:
-                        print("READER: skipping event message")
+                        print("== READER: skipping event {}".format(message.event_type))
                     else:
                         await self._rqueue.put(message)
                     message = Message()
@@ -208,6 +212,7 @@ class Controller:
             except asyncio.CancelledError:
                 pass
 
+        self._evt_callbacks = {}
         self._authenticated = False
         self._connected = False
         self._protoinfo = None
@@ -225,6 +230,46 @@ class Controller:
         self._rqueue = rqueue
         self._rdtask = rdtask
         self._writer = writer
+
+    async def set_events(self, events: List[str], extended: bool = False) -> SetEventsReply:
+        """ Set the list of events that we subscribe to.
+            This method should probably not be called directly, see event_subscribe.
+        """
+        query = SetEventsQuery(list(events), extended)
+        message = await self.request(query.command)
+        return SetEventsReply(query, message)
+
+    async def event_subscribe(self, event: str, callback: Callable) -> None:
+        """ Register a callback to be called when `event` triggers.
+        """
+        async with self._events_lock:
+            listeners = self._evt_callbacks.setdefault(event, [])
+            try:
+                evtlist = list(self._evt_callbacks.keys())
+                await self.set_events(evtlist)
+                listeners.append(callback)
+            except AiostemError:
+                if not len(listeners):
+                    self._evt_callbacks.pop(event)
+                raise
+
+    async def event_unsubscribe(self, event: str, callback: Callable) -> None:
+        """ Unsubscribe `callable` from the event handler for `event`.
+        """
+        async with self._events_lock:
+            listeners = self._evt_callbacks.get(event, [])
+            if callback in listeners:
+                backup_listeners = listeners.copy()
+                listeners.remove(callback)
+
+                try:
+                    if not len(listeners):
+                        self._evt_callbacks.pop(event)
+                        evtlist = list(self._evt_callbacks.keys())
+                        await self.set_events(evtlist)
+                except AiostemError:
+                    self._evt_callbacks[event] = backup_listeners
+                    raise
 
     async def protocol_info(self, version: int = DEFAULT_PROTOCOL_VERSION) -> ProtocolInfoReply:
         """ Get control protocol information from the remote Tor process.
