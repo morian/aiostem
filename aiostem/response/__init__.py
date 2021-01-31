@@ -4,12 +4,13 @@ from typing import Dict, Tuple, Type
 
 from aiostem.response.base import Event, Reply
 from aiostem.response.authentication import AuthChallengeReply, AuthenticateReply
-from aiostem.response.events import SetEventsReply, SignalEvent
+from aiostem.response.events import NetworkLivenessEvent, SetEventsReply, SignalEvent, UnknownEvent
 from aiostem.response.protocolinfo import ProtocolInfoReply
 from aiostem.response.simple import HsFetchReply, QuitReply, SignalReply
 
 
 EVENT_MAP: Dict[str, Type[Event]] = {
+    'NETWORK_LIVENESS': NetworkLivenessEvent,
     'SIGNAL': SignalEvent,
 }
 
@@ -35,4 +36,5 @@ __all__: Tuple[str, ...] = (
     "Event",
     "REPLY_MAP",
     "Reply",
+    "UnknownEvent",
 )

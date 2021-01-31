@@ -34,6 +34,7 @@ from aiostem.response import (
     SetEventsReply,
     SignalReply,
     EVENT_MAP,
+    UnknownEvent,
 )
 
 
@@ -94,22 +95,19 @@ class Controller:
         """
         await self.close()
 
-    async def _event_handle(self, message: Message) -> None:
-        """ Handle the new received event.
+    async def _handle_event(self, message: Message) -> None:
+        """ Handle the new received event (find and call the callbacks).
         """
         evttype = message.event_type
-        parser = EVENT_MAP.get(evttype)
-        if parser is not None:
-            event = parser(message)
-            for callback in self._evt_callbacks.get(evttype, []):
-                # We do not care about exceptions in the event callback.
-                try:
-                    await callback(event)
-                except Exception:
-                    pass
-        else:
-            # XXX: this needs to be removed!
-            print("No handler for event type '{}'".format(evttype))
+        parser = EVENT_MAP.get(evttype, UnknownEvent)
+        event = parser(message)
+
+        for callback in self._evt_callbacks.get(evttype, []):
+            # We do not care about exceptions in the event callback.
+            try:
+                await callback(event)
+            except Exception:
+                pass
 
     async def _reader_task(self, reader: asyncio.StreamReader) -> None:
         """ Read from the socket and dispatch all contents.
@@ -126,7 +124,7 @@ class Controller:
                 message.add_line(line)
                 if message.parsed:
                     if message.is_event:
-                        await self._event_handle(message)
+                        await self._handle_event(message)
                     else:
                         await self._rqueue.put(message)
                     message = Message()

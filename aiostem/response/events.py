@@ -17,7 +17,7 @@ class SignalEvent(Event):
         return "<{} '{}'>".format(type(self).__name__, self.signal)
 
     def _message_parse(self, message: Message) -> None:
-        """ Handle the signal event parsing.
+        """ Handle parsing on the signal event.
         """
         super()._message_parse(message)
 
@@ -31,6 +31,41 @@ class SignalEvent(Event):
         """
         return self._signal
 # End of class SignalEvent.
+
+
+class NetworkLivenessEvent(Event):
+    """ Notification of network liveness change.
+    """
+
+    EVENT_NAME: str = 'NETWORK_LIVENESS'
+
+    def _message_parse(self, message: Message) -> None:
+        """ Parse this event message.
+        """
+        super()._message_parse(message)
+
+        parser = MessageLine(message.endline)
+        parser.pop_arg_checked(self.EVENT_NAME)
+        self._network_status = parser.pop_arg().value
+
+    @property
+    def network_status(self) -> str:
+        """ Returns the network status received with this event.
+        """
+        return self._network_status
+
+    @property
+    def is_connected(self) -> bool:
+        """ Whether this event tells that the network is UP.
+        """
+        return bool(self.network_status == 'UP')
+# End of class NetworkLivenessEvent.
+
+
+class UnknownEvent(Event):
+    """ Any kind of event that we could not handle.
+    """
+# End of class UnknownEvent.
 
 
 class SetEventsReply(SimpleReply):
