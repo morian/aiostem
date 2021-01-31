@@ -139,11 +139,16 @@ class Controller:
 
         # These methods are expose here by preference order.
         #   NULL            (no authentication, take it when available)
+        #   HASHEDPASSWORD  (password authentication)
         #   SAFECOOKIE      (proof that we can read to cookie)
         #   COOKIE          (found a cookie, please take it)
-        #   HASHEDPASSWORD  (password authentication)
+        #
+        # Here we suppose that the user prefers a password authentication when
+        # a password is provided (the cookie file may not be readable!).
         if 'NULL' in methods:
             token = None
+        elif 'HASHEDPASSWORD' in methods:
+            token = password.encode()
         elif 'SAFECOOKIE' in methods:
             cookie = await protoinfo.cookie_file_read()
             challenge = await self.auth_challenge()
@@ -151,8 +156,6 @@ class Controller:
             token = challenge.client_token_build(cookie)
         elif 'COOKIE' in methods:
             token = await protoinfo.cookie_file_read()
-        elif 'HASHEDPASSWORD' in methods:
-            token = password.encode()
         else:
             raise ControllerError("No compatible authentication method found!")
 
@@ -176,10 +179,10 @@ class Controller:
         """ Send any kind of command to the controller.
             A reply is dequeued and expected.
         """
-        if not self.connected:
-            raise ControllerError("Controller is not connected!")
-
         async with self._request_lock:
+            if not self.connected:
+                raise ControllerError("Controller is not connected!")
+
             payload = str(command).encode('ascii')
             self._writer.write(payload)
             await self._writer.drain()
@@ -216,12 +219,12 @@ class Controller:
                 await rdtask
             except asyncio.CancelledError:
                 pass
+        self._rdtask = None
 
         self._evt_callbacks = {}
         self._authenticated = False
         self._connected = False
         self._protoinfo = None
-        self._rdtask = None
         self._rqueue = None
 
     async def connect(self) -> None:

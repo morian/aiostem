@@ -182,7 +182,7 @@ class Message:
                 raise ProtocolError("Received line is too short: '{}'!".format(line))
 
             code = line[0:3]
-            kind = line[3]
+            kind = line[3:4]
             data = line[4:]
 
             if kind == ' ':

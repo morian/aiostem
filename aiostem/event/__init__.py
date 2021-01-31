@@ -3,6 +3,7 @@
 from aiostem.message import Message
 
 from aiostem.response.base import Event, UnknownEvent
+from aiostem.event.hsdesc import HsDescContentEvent
 from aiostem.event.network import NetworkLivenessEvent
 from aiostem.event.signal import SignalEvent
 
@@ -10,6 +11,7 @@ from typing import Dict, Tuple, Type
 
 EVENT_MAP: Dict[str, Type[Event]] = {
     'NETWORK_LIVENESS': NetworkLivenessEvent,
+    'HS_DESC_CONTENT': HsDescContentEvent,
     'SIGNAL': SignalEvent,
 }
 
@@ -26,5 +28,6 @@ __all__: Tuple[str, ...] = (
     "NetworkLivenessEvent",
     "SignalEvent",
 
+    "Event",
     "event_parser",
 )
