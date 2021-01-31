@@ -5,6 +5,10 @@ import asyncio
 from types import TracebackType
 from typing import Callable, Dict, List, Optional, Type
 
+import aiostem.event as e
+import aiostem.question as q
+import aiostem.response as r
+
 from aiostem.command import Command
 from aiostem.connector import (
     ControlConnector,
@@ -16,29 +20,9 @@ from aiostem.connector import (
 )
 from aiostem.exception import AiostemError, ControllerError
 from aiostem.message import Message
-from aiostem.question import (
-    AuthChallengeQuery,
-    AuthenticateQuery,
-    HsFetchQuery,
-    ProtocolInfoQuery,
-    QuitQuery,
-    SetEventsQuery,
-    SignalQuery,
-)
-from aiostem.response import (
-    AuthChallengeReply,
-    AuthenticateReply,
-    HsFetchReply,
-    ProtocolInfoReply,
-    QuitReply,
-    SetEventsReply,
-    SignalReply,
-    EVENT_MAP,
-    UnknownEvent,
-)
 
 
-DEFAULT_PROTOCOL_VERSION = ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
+DEFAULT_PROTOCOL_VERSION = q.ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
 
 
 class Controller:
@@ -52,7 +36,7 @@ class Controller:
         self._authenticated = False
         self._connected = False
         self._connector = connector
-        self._protoinfo = None    # type: Optional[ProtocolInfoReply]
+        self._protoinfo = None    # type: Optional[r.ProtocolInfoReply]
         self._rqueue = None       # type: Optional[asyncio.Queue]
         self._rdtask = None       # type: Optional[asyncio.Task]
         self._writer = None       # type: Optional[asyncio.StreamWriter]
@@ -98,11 +82,10 @@ class Controller:
     async def _handle_event(self, message: Message) -> None:
         """ Handle the new received event (find and call the callbacks).
         """
-        evttype = message.event_type
-        parser = EVENT_MAP.get(evttype, UnknownEvent)
-        event = parser(message)
+        name = message.event_type
+        event = e.event_parser(message)
 
-        for callback in self._evt_callbacks.get(evttype, []):
+        for callback in self._evt_callbacks.get(name, []):
             # We do not care about exceptions in the event callback.
             try:
                 await callback(event)
@@ -135,14 +118,16 @@ class Controller:
             except asyncio.QueueFull:
                 pass
 
-    async def auth_challenge(self, nonce: Optional[bytes] = None) -> AuthChallengeReply:
+    async def auth_challenge(self, nonce: Optional[bytes] = None) -> r.AuthChallengeReply:
         """ Query Tor's controller so we perform a SAFECOOKIE authentication method.
-        """
-        query = AuthChallengeQuery(nonce)
-        message = await self.request(query.command)
-        return AuthChallengeReply(query, message)
 
-    async def authenticate(self, password: Optional[str] = None) -> AuthenticateReply:
+            This method is not meant to be called directly but is used by `authenticate`
+            when 'SAFECOOKIE' is the chosen authentication method.
+        """
+        query = q.AuthChallengeQuery(nonce)
+        return await self.request(query)
+
+    async def authenticate(self, password: Optional[str] = None) -> r.AuthenticateReply:
         """ Authenticate to Tor's controller.
             When no password is provided, cookie authentications are attempted.
         """
@@ -173,23 +158,21 @@ class Controller:
 
         if token is not None:
             token = token.hex()
-        query = AuthenticateQuery(token)
-        message = await self.request(query.command)
-        reply = AuthenticateReply(query, message)
+        query = q.AuthenticateQuery(token)
+        reply = await self.request(query)
         self._authenticated = bool(reply.status == 250)
         return reply
 
-    async def hs_fetch(self, address: str, servers: List[str] = []) -> HsFetchReply:
+    async def hs_fetch(self, address: str, servers: List[str] = []) -> r.HsFetchReply:
         """ Request a hidden service descriptor fetch.
 
             The result does not contain the descriptor, which is provided asynchronously
             through events (HS_DESC and HS_DESC_CONTENT).
         """
-        query = HsFetchQuery(address, servers)
-        message = await self.request(query.command)
-        return HsFetchReply(query, message)
+        query = q.HsFetchQuery(address, servers)
+        return await self.request(query)
 
-    async def request(self, command: Command) -> Message:
+    async def request_command(self, command: Command) -> Message:
         """ Send any kind of command to the controller.
             A reply is dequeued and expected.
         """
@@ -207,6 +190,12 @@ class Controller:
         if rep is None:
             raise ControllerError("Controller has disconnected!")
         return rep
+
+    async def request(self, query: q.Query) -> r.Reply:
+        """ Perform a provided `query` and returns the appropriate response.
+        """
+        message = await self.request_command(query.command)
+        return r.reply_parser(query, message)
 
     async def close(self) -> None:
         """ Close this connection and reset the controller.
@@ -247,13 +236,12 @@ class Controller:
         self._rdtask = rdtask
         self._writer = writer
 
-    async def set_events(self, events: List[str], extended: bool = False) -> SetEventsReply:
+    async def set_events(self, events: List[str], extended: bool = False) -> r.SetEventsReply:
         """ Set the list of events that we subscribe to.
             This method should probably not be called directly, see event_subscribe.
         """
-        query = SetEventsQuery(list(events), extended)
-        message = await self.request(query.command)
-        return SetEventsReply(query, message)
+        query = q.SetEventsQuery(list(events), extended)
+        return await self.request(query)
 
     async def event_subscribe(self, event: str, callback: Callable) -> None:
         """ Register a callback to be called when `event` triggers.
@@ -287,27 +275,22 @@ class Controller:
                     self._evt_callbacks[event] = backup_listeners
                     raise
 
-    async def protocol_info(self, version: int = DEFAULT_PROTOCOL_VERSION) -> ProtocolInfoReply:
+    async def protocol_info(self, version: int = DEFAULT_PROTOCOL_VERSION) -> r.ProtocolInfoReply:
         """ Get control protocol information from the remote Tor process.
             Default version is 1, this is the only version supported by Tor.
         """
         if self.authenticated or not self._protoinfo:
-            query = ProtocolInfoQuery(version)
-            message = await self.request(query.command)
-            self._protoinfo = ProtocolInfoReply(query, message)
+            query = q.ProtocolInfoQuery(version)
+            self._protoinfo = await self.request(query)
         return self._protoinfo
 
-    async def signal(self, signal: str) -> SignalReply:
+    async def signal(self, signal: str) -> r.SignalReply:
         """ Send a SIGNAL command to the controller.
         """
-        query = SignalQuery(signal)
-        message = await self.request(query.command)
-        return SignalReply(query, message)
+        return await self.request(q.SignalQuery(signal))
 
-    async def quit(self) -> None:
+    async def quit(self) -> r.QuitReply:
         """ Send a QUIT command to the controller.
         """
-        query = QuitQuery()
-        message = await self.request(query.command)
-        return QuitReply(query, message)
+        return await self.request(q.QuitQuery())
 # End of class Controller.

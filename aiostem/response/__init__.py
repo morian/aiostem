@@ -2,17 +2,14 @@
 
 from typing import Dict, Tuple, Type
 
-from aiostem.response.base import Event, Reply
+from aiostem.message import Message
+from aiostem.question import Query
+
+from aiostem.response.base import Reply, UnknownReply
 from aiostem.response.authentication import AuthChallengeReply, AuthenticateReply
-from aiostem.response.events import NetworkLivenessEvent, SetEventsReply, SignalEvent, UnknownEvent
 from aiostem.response.protocolinfo import ProtocolInfoReply
-from aiostem.response.simple import HsFetchReply, QuitReply, SignalReply
+from aiostem.response.simple import HsFetchReply, QuitReply, SetEventsReply, SignalReply
 
-
-EVENT_MAP: Dict[str, Type[Event]] = {
-    'NETWORK_LIVENESS': NetworkLivenessEvent,
-    'SIGNAL': SignalEvent,
-}
 
 REPLY_MAP: Dict[str, Type[Reply]] = {
     'AUTHENTICATE': AuthenticateReply,
@@ -25,16 +22,23 @@ REPLY_MAP: Dict[str, Type[Reply]] = {
 }
 
 
+def reply_parser(query: Query, message: Message) -> Reply:
+    """ Find the appropriate reply class to parse message for the provided query.
+    """
+    parser = REPLY_MAP.get(query.COMMAND_NAME, UnknownReply)
+    return parser(query, message)
+# End of function reply_parser.
+
+
 __all__: Tuple[str, ...] = (
-    "AuthenticateReply",
     "AuthChallengeReply",
+    "AuthenticateReply",
+    "HsFetchReply",
     "ProtocolInfoReply",
     "QuitReply",
     "SetEventsReply",
     "SignalReply",
-    "EVENT_MAP",
-    "Event",
-    "REPLY_MAP",
+
     "Reply",
-    "UnknownEvent",
+    "reply_parser",
 )

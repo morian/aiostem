@@ -60,9 +60,23 @@ class Reply(BaseResponse):
 # End of class Reply.
 
 
+class UnknownReply(Reply):
+    """ A reply with no specific class.
+    """
+    pass
+# End of class UnknownReply.
+
+
 class Event(BaseResponse):
     """ Base class for any kind of event received asynchronously.
     """
 
     EVENT_NAME: str = 'UNKNOWN'
 # End of class Event.
+
+
+class UnknownEvent(Event):
+    """ Any kind of event that we could not handle.
+    """
+    pass
+# End of class UnknownEvent.
