@@ -1,20 +1,52 @@
 stages:
-  - build
+  - package
   - test
+  - deploy
 
-python-build:
+debian10-package:
   image: ${CI_REGISTRY}/dockers/ci/debian-build:10
-  stage: build
+  stage: package
+  variables:
+    DEBIAN_FRONTEND: noninteractive
+  before_script:
+    - mkdir --parents dist/
   script:
-    - make
+    - make deb
+  after_script:
+    - mv --verbose ../*.deb dist/
   artifacts:
-    expire_in: 2 days
+    expire_in: 7 days
     paths:
       - dist/
 
-python-linter:
+python3-package:
+  image: ${CI_REGISTRY}/dockers/ci/centos-build:8
+  stage: package
+  script:
+    - make
+  artifacts:
+    expire_in: 7 days
+    paths:
+      - dist/
+
+python3-linter:
   image: ${CI_REGISTRY}/dockers/ci/centos-build:8
   stage: test
   script:
     - make linter
   allow_failure: true
+
+python3-deploy:
+  image: ${CI_REGISTRY}/dockers/ci/centos-build:8
+  stage: deploy
+  variables:
+    TWINE_REPOSITORY_URL: ${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/packages/pypi
+    TWINE_USERNAME: gitlab-ci-token
+    TWINE_PASSWORD: ${CI_JOB_TOKEN}
+  dependencies:
+    - python3-package
+  script:
+    - twine upload dist/*.whl
+  only:
+    - tags
+  when: manual

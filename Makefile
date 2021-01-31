@@ -1,5 +1,6 @@
-FLAKE8  ?= /usr/bin/flake8
-PYTHON  ?= /usr/bin/python3
+DEBUILD   ?= /usr/bin/debuild
+FLAKE8    ?= /usr/bin/flake8
+PYTHON    ?= /usr/bin/python3
 
 PHONY += all
 all: wheel sdist
@@ -19,5 +20,9 @@ clean:
 PHONY += linter
 linter:
 	$(FLAKE8) --show-source aiostem/
+
+PHONY += deb
+deb: debian/changelog
+	$(DEBUILD) -i -us -uc -b
 
 .PHONY: $(PHONY)
