@@ -3,7 +3,7 @@
 import asyncio
 
 from types import TracebackType
-from typing import Optional, Type
+from typing import Optional, List, Type
 
 from aiostem.command import Command
 from aiostem.connector import (
@@ -19,6 +19,7 @@ from aiostem.message import Message
 from aiostem.question import (
     AuthChallengeQuery,
     AuthenticateQuery,
+    HsFetchQuery,
     ProtocolInfoQuery,
     QuitQuery,
     SignalQuery,
@@ -26,6 +27,7 @@ from aiostem.question import (
 from aiostem.response import (
     AuthChallengeReply,
     AuthenticateReply,
+    HsFetchReply,
     ProtocolInfoReply,
     QuitReply,
     SignalReply,
@@ -156,6 +158,16 @@ class Controller:
         reply = AuthenticateReply(query, message)
         self._authenticated = bool(reply.status == 250)
         return reply
+
+    async def hs_fetch(self, address: str, servers: List[str] = []) -> HsFetchReply:
+        """ Request a hidden service descriptor fetch.
+
+            The result does not contain the descriptor, which is provided asynchronously
+            through events (HS_DESC and HS_DESC_CONTENT).
+        """
+        query = HsFetchQuery(address, servers)
+        message = await self.request(query.command)
+        return HsFetchReply(query, message)
 
     async def request(self, command: Command) -> Message:
         """ Send any kind of command to the controller.

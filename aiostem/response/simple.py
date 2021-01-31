@@ -42,3 +42,9 @@ class SignalReply(SimpleReply):
     """ A reply parser for the SIGNAL command.
     """
 # End of class SignalReply.
+
+
+class HsFetchReply(SimpleReply):
+    """ A reply parser for the HSFETCH command.
+    """
+# End of class HsFetchReply.

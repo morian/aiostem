@@ -5,7 +5,7 @@ from typing import Dict, Tuple, Type
 from aiostem.response.base import Event, Reply
 from aiostem.response.authentication import AuthChallengeReply, AuthenticateReply
 from aiostem.response.protocolinfo import ProtocolInfoReply
-from aiostem.response.simple import QuitReply, SignalReply
+from aiostem.response.simple import HsFetchReply, QuitReply, SignalReply
 
 
 EVENT_MAP: Dict[str, Type[Event]] = {}
@@ -13,6 +13,7 @@ EVENT_MAP: Dict[str, Type[Event]] = {}
 REPLY_MAP: Dict[str, Type[Reply]] = {
     'AUTHENTICATE': AuthenticateReply,
     'AUTHCHALLENGE': AuthChallengeReply,
+    'HSFETCH': HsFetchReply,
     'PROTOCOLINFO': ProtocolInfoReply,
     'QUIT': QuitReply,
     'SIGNAL': SignalReply,
