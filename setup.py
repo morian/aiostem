@@ -17,7 +17,7 @@ with io.open('README.md', 'r') as fp:
 setuptools.setup(
     name             = 'aiostem',
     version          = version,
-    author           = 'Mòrian',
+    author           = 'Romain Bezut',
     author_email     = 'morian@xdec.net',
     description      = 'Asynchronous Tor controller library for asyncio and Python',
     license          = 'MIT',

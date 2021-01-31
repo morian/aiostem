@@ -2,4 +2,4 @@ python3-aiostem (0.1.0) unstable; urgency=low
 
   * Initial debian release.
 
- -- Mòrian <morian@xdec.net>  Sun, 31 Jan 2021 18:55:00 +0000
+ -- Romain Bezut <morian@xdec.net>  Sun, 31 Jan 2021 18:55:00 +0000
