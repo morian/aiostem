@@ -48,9 +48,3 @@ class HsFetchReply(SimpleReply):
     """ A reply parser for the HSFETCH command.
     """
 # End of class HsFetchReply.
-
-
-class SetEventsReply(SimpleReply):
-    """ A reply parser for the SETEVENTS command.
-    """
-# End of class SetEventsReply.

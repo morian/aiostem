@@ -33,6 +33,7 @@ from aiostem.response import (
     QuitReply,
     SetEventsReply,
     SignalReply,
+    EVENT_MAP,
 )
 
 
@@ -93,7 +94,24 @@ class Controller:
         """
         await self.close()
 
-    async def _reader_task(self, reader) -> None:
+    async def _event_handle(self, message: Message) -> None:
+        """ Handle the new received event.
+        """
+        evttype = message.event_type
+        parser = EVENT_MAP.get(evttype)
+        if parser is not None:
+            event = parser(message)
+            for callback in self._evt_callbacks.get(evttype, []):
+                # We do not care about exceptions in the event callback.
+                try:
+                    await callback(event)
+                except Exception:
+                    pass
+        else:
+            # XXX: this needs to be removed!
+            print("No handler for event type '{}'".format(evttype))
+
+    async def _reader_task(self, reader: asyncio.StreamReader) -> None:
         """ Read from the socket and dispatch all contents.
         """
         try:
@@ -108,7 +126,7 @@ class Controller:
                 message.add_line(line)
                 if message.parsed:
                     if message.is_event:
-                        print("== READER: skipping event {}".format(message.event_type))
+                        await self._event_handle(message)
                     else:
                         await self._rqueue.put(message)
                     message = Message()

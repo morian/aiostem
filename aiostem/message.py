@@ -88,9 +88,9 @@ class Message:
         self._status = 0
         self._dataline = ''
         self._statline = ''
-        self._midlines = []  # type: List[str]
-        self._datlines = []  # type: List[str]
-        self._evttype = None # type: Optional[str]
+        self._midlines = []   # type: List[str]
+        self._datlines = []   # type: List[str]
+        self._evttype = None  # type: Optional[str]
         self._indata = False
 
     @property
@@ -156,7 +156,7 @@ class Message:
             else:
                 line = self.endline
 
-            self._evttype = MessageLine(line).pop_arg()
+            self._evttype = MessageLine(line).pop_arg().value
 
     def add_line(self, line: str) -> None:
         """ Add a new line from the controller.
