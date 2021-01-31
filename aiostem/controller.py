@@ -16,8 +16,20 @@ from aiostem.connector import (
 )
 from aiostem.exception import ControllerError
 from aiostem.message import Message
-from aiostem.question import AuthChallengeQuery, AuthenticateQuery, ProtocolInfoQuery, QuitQuery
-from aiostem.response import AuthChallengeReply, AuthenticateReply, ProtocolInfoReply, QuitReply
+from aiostem.question import (
+    AuthChallengeQuery,
+    AuthenticateQuery,
+    ProtocolInfoQuery,
+    QuitQuery,
+    SignalQuery,
+)
+from aiostem.response import (
+    AuthChallengeReply,
+    AuthenticateReply,
+    ProtocolInfoReply,
+    QuitReply,
+    SignalReply,
+)
 
 
 DEFAULT_PROTOCOL_VERSION = ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
@@ -211,6 +223,13 @@ class Controller:
             message = await self.request(query.command)
             self._protoinfo = ProtocolInfoReply(query, message)
         return self._protoinfo
+
+    async def signal(self, signal: str) -> SignalReply:
+        """ Send a SIGNAL command to the controller.
+        """
+        query = SignalQuery(signal)
+        message = await self.request(query.command)
+        return SignalReply(query, message)
 
     async def quit(self) -> None:
         """ Send a QUIT command to the controller.

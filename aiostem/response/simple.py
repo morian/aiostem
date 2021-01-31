@@ -36,3 +36,9 @@ class QuitReply(SimpleReply):
     """ A reply parser for the QUIT command.
     """
 # End of class QuitReply.
+
+
+class SignalReply(SimpleReply):
+    """ A reply parser for the SIGNAL command.
+    """
+# End of class SignalReply.

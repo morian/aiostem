@@ -4,6 +4,7 @@ from typing import Tuple
 from aiostem.question.base import Query
 from aiostem.question.authentication import AuthChallengeQuery, AuthenticateQuery
 from aiostem.question.protocolinfo import ProtocolInfoQuery
+from aiostem.question.signal import SignalQuery
 from aiostem.question.simple import QuitQuery
 
 
@@ -12,5 +13,6 @@ __all__: Tuple[str, ...] = (
     "AuthenticateQuery",
     "ProtocolInfoQuery",
     "QuitQuery",
+    "SignalQuery",
     "Query",
 )
