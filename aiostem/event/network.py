@@ -17,7 +17,7 @@ class NetworkLivenessEvent(Event):
 
         parser = MessageLine(message.endline)
         parser.pop_arg_checked(self.EVENT_NAME)
-        self._network_status = parser.pop_arg().value
+        self._network_status = parser.pop_arg()
 
     @property
     def network_status(self) -> str:

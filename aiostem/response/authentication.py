@@ -38,8 +38,8 @@ class AuthChallengeReply(Reply):
         server_hash = parser.pop_kwarg_checked('SERVERHASH')
         server_nonce = parser.pop_kwarg_checked('SERVERNONCE')
 
-        self._server_hash = bytes.fromhex(server_hash.value)
-        self._server_nonce = bytes.fromhex(server_nonce.value)
+        self._server_hash = bytes.fromhex(server_hash)
+        self._server_nonce = bytes.fromhex(server_nonce)
 
     @property
     def server_hash(self) -> bytes:

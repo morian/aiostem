@@ -2,9 +2,8 @@
 
 import re
 
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
-from aiostem.argument import SingleArgument, KeywordArgument
 from aiostem.exception import MessageError, ProtocolError
 
 
@@ -32,8 +31,8 @@ class MessageLine:
         """
         return bool(not self._cur_line)
 
-    def pop_arg(self, quoted: bool = False) -> SingleArgument:
-        """ Parse the next argument as a single argument.
+    def pop_arg(self, quoted: bool = False) -> str:
+        """ Parse the next argument as a single argument (returns the content)
         """
         pattern = self.REGEX_SINGLE_Q if quoted else self.REGEX_SINGLE_N
         match = pattern.match(self._cur_line)
@@ -44,18 +43,20 @@ class MessageLine:
         text = match.group(1)
         if quoted:
             text = re.sub(r'\\([\\"])', r'\1', text)
-        return SingleArgument(text, quoted)
+        return text
 
-    def pop_arg_checked(self, name: str, quoted: bool = False) -> KeywordArgument:
+    def pop_arg_checked(self, name: str, quoted: bool = False) -> str:
         """ Same as pop_arg() but also check that the returned value is `name`.
+            Raises an error when the next argument is not what was expected.
         """
-        arg = self.pop_arg(quoted)
-        if arg.value != name:
-            raise MessageError("expected argument '{}', got '{}'.".format(name, arg.value))
-        return arg
+        value = self.pop_arg(quoted)
+        if value != name:
+            raise MessageError("expected argument '{}', got '{}'.".format(name, value))
+        return value
 
-    def pop_kwarg(self, quoted: bool = False) -> KeywordArgument:
+    def pop_kwarg(self, quoted: bool = False) -> Tuple[str, str]:
         """ Parse the next argument as a keyword argument.
+            This returns a tuple with keyword and value.
         """
         pattern = self.REGEX_KEYWORD_Q if quoted else self.REGEX_KEYWORD_N
         match = pattern.match(self._cur_line)
@@ -67,15 +68,15 @@ class MessageLine:
         value = match.group(2)
         if quoted:
             value = re.sub(r'\\([\\"])', r'\1', value)
-        return KeywordArgument(keyword, value, quoted)
+        return (keyword, value)
 
-    def pop_kwarg_checked(self, name: str, quoted: bool = False) -> KeywordArgument:
-        """ Same as pop_kwarg() but also check that `keyword` is `name`.
+    def pop_kwarg_checked(self, name: str, quoted: bool = False) -> str:
+        """ Get the next keyword argument and ensures that `keyword` is `name`.
         """
-        arg = self.pop_kwarg(quoted)
-        if arg.keyword != name:
-            raise MessageError("expected argument '{}', got '{}'.".format(name, arg.keyword))
-        return arg
+        keyword, value = self.pop_kwarg(quoted)
+        if keyword != name:
+            raise MessageError("expected argument '{}', got '{}'.".format(name, keyword))
+        return value
 # End of class MessageLine.
 
 
@@ -156,7 +157,7 @@ class Message:
             else:
                 line = self.endline
 
-            self._evttype = MessageLine(line).pop_arg().value
+            self._evttype = MessageLine(line).pop_arg()
 
     def add_line(self, line: str) -> None:
         """ Add a new line from the controller.

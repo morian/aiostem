@@ -33,17 +33,17 @@ class ProtocolInfoReply(SimpleReply):
         """ Parse the AUTH mid-line.
         """
         methods = parser.pop_kwarg_checked('METHODS')
-        self._methods = tuple(methods.value.split(','))
+        self._methods = tuple(methods.split(','))
 
         if not parser.at_end:
             cookie = parser.pop_kwarg_checked('COOKIEFILE', quoted=True)
-            self._cookie_file = cookie.value
+            self._cookie_file = cookie
 
     def _message_vers_parse(self, parser: MessageLine) -> None:
         """ Parse the VERSION mid-line.
         """
         version = parser.pop_kwarg_checked('Tor', quoted=True)
-        self._tor_version = version.value
+        self._tor_version = version
 
     def _message_parse(self, message: Message) -> None:
         """ Parse this whole message!
@@ -58,7 +58,7 @@ class ProtocolInfoReply(SimpleReply):
         }
 
         for parser in map(MessageLine, message.midlines):
-            verb = parser.pop_arg().value
+            verb = parser.pop_arg()
             func = parser_fn.get(verb)
             if func is not None:
                 func(parser)

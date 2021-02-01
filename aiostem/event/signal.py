@@ -22,7 +22,7 @@ class SignalEvent(Event):
 
         parser = MessageLine(message.endline)
         parser.pop_arg_checked(self.EVENT_NAME)
-        self._signal = parser.pop_arg().value
+        self._signal = parser.pop_arg()
 
     @property
     def signal(self) -> str:
