@@ -20,6 +20,7 @@ from aiostem.connector import (
 )
 from aiostem.exception import AiostemError, ControllerError
 from aiostem.message import Message
+from aiostem.util import hs_address_strip_tld
 
 
 DEFAULT_PROTOCOL_VERSION = q.ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
@@ -172,6 +173,7 @@ class Controller:
             The result does not contain the descriptor, which is provided asynchronously
             through events (HS_DESC and HS_DESC_CONTENT).
         """
+        address = hs_address_strip_tld(address.lower())
         query = q.HsFetchQuery(address, servers)
         return await self.request(query)
 

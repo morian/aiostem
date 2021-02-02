@@ -12,21 +12,21 @@ class HsDescEvent(Event):
     EVENT_NAME: str = 'HS_DESC'
 
     def __init__(self, *args, **kwargs) -> None:
-        self._action = ''               # type: str
-        self._address = ''              # type: str
-        self._authentication_type = ''  # type: str
-        self._hs_dir = ''               # type: str
-        self._reason = None             # type: Optional[str]
-        self._descriptor_id = None      # type: Optional[str]
-        self._hs_dir_index = None       # type: Optional[str]
-        self._replica = 0               # type: int
+        self._action = ''            # type: str
+        self._address = ''           # type: str
+        self._auth_type = ''         # type: str
+        self._directory = ''         # type: str
+        self._reason = None          # type: Optional[str]
+        self._descriptor_id = None   # type: Optional[str]
+        self._index = None           # type: Optional[str]
+        self._replica = None         # type: Optional[int]
         super().__init__(*args, **kwargs)
 
     def __repr__(self) -> str:
         """ Representation of this event.
         """
-        return "<{} address='{}' action='{}'>" \
-               .format(type(self).__name__, self.address, self.action)
+        return "<{} address='{}' directory='{}' action='{}'>" \
+               .format(type(self).__name__, self.address, self.directory, self.action)
 
     def _message_parse(self, message: Message) -> None:
         """ Parse this event message.
@@ -38,10 +38,32 @@ class HsDescEvent(Event):
 
         self._action = parser.pop_arg()
         self._address = parser.pop_arg()
-        self._authentication_type = parser.pop_arg()
-        self._hs_dir = parser.pop_arg()
+        self._auth_type = parser.pop_arg()
+        self._directory = parser.pop_arg()
 
-        # To be continued with optional stuff...
+        if not parser.at_end:
+            self._descriptor_id = parser.pop_arg()
+
+        def reason_set(val):
+            self._reason = val
+
+        def replica_set(val):
+            self._replica = int(val)
+
+        def index_set(val):
+            self._index = val
+
+        keyword_fn = {
+            'REASON':      reason_set,
+            'REPLICA':     replica_set,
+            'HSDIR_INDEX': index_set,
+        }
+
+        while not parser.at_end:
+            key, val = parser.pop_kwarg()
+            handler = keyword_fn.get(key)
+            if handler is not None:
+                handler(val)
 
     @property
     def action(self) -> str:
@@ -57,16 +79,34 @@ class HsDescEvent(Event):
         return self._address
 
     @property
-    def authentication_type(self) -> str:
+    def auth_type(self) -> str:
         """ Type of authentication with the HS.
         """
-        return self._authentication_type
+        return self._auth_type
 
     @property
-    def hs_dir(self) -> str:
-        """ Hidden service directory (or UNKNOWN)
+    def directory(self) -> str:
+        """ Hidden service directory (or 'UNKNOWN')
         """
-        return self._hs_dir
+        return self._directory
+
+    @property
+    def index(self) -> Optional[str]:
+        """ Directory index (if any).
+        """
+        return self._index
+
+    @property
+    def reason(self) -> Optional[str]:
+        """ Reason why this descriptor failed.
+        """
+        return self._reason
+
+    @property
+    def replica(self) -> Optional[int]:
+        """ Replica number of the generated descriptor.
+        """
+        return self._replica
 # End of class HsDescEvent.
 
 
@@ -80,14 +120,14 @@ class HsDescContentEvent(Event):
         self._address = ''              # type: str
         self._descriptor_id = ''        # type: str
         self._descriptor_raw = ''       # type: str
-        self._hs_dir = ''               # type: str
+        self._directory = ''            # type: str
         super().__init__(*args, **kwargs)
 
     def __repr__(self) -> str:
         """ Representation of this event.
         """
-        return "<{} address='{}' descid='{}'>" \
-               .format(type(self).__name__, self.address, self.descriptor_id)
+        return "<{} address='{}' directory='{}' descid='{}'>" \
+               .format(type(self).__name__, self.address, self.directory, self.descriptor_id)
 
     def _message_parse(self, message: Message) -> None:
         """ Parse this event message.
@@ -100,7 +140,7 @@ class HsDescContentEvent(Event):
         self._address = parser.pop_arg()
         self._descriptor_id = parser.pop_arg()
         self._descriptor_raw = message.data
-        self._hs_dir = parser.pop_arg()
+        self._directory = parser.pop_arg()
 
     @property
     def address(self) -> str:
@@ -121,8 +161,8 @@ class HsDescContentEvent(Event):
         return self._descriptor_raw
 
     @property
-    def hs_dir(self) -> str:
+    def directory(self) -> str:
         """ Hidden service directory that provided this descriptor.
         """
-        return self._hs_dir
+        return self._directory
 # End of class NetworkLivenessEvent.

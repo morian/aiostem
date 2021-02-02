@@ -174,7 +174,7 @@ class Message:
                 self._indata = False
                 return
 
-            # Ignore the leading dot (escape mechanism).
+            # Ignore the leading dot (this is an escape mechanism).
             if line.startswith('.'):
                 line = line[1:]
             self._datlines.append(line)

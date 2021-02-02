@@ -26,6 +26,8 @@ def event_parser(message: Message) -> Event:
 
 
 __all__: Tuple[str, ...] = (
+    "HsDescEvent",
+    "HsDescContentEvent",
     "NetworkLivenessEvent",
     "SignalEvent",
 
