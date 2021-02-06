@@ -26,7 +26,7 @@ setuptools.setup(
     long_description_content_type = 'text/markdown',
     install_requires = [
         'aiofiles',
-        'stem',
+        'stem >= 1.8.0',
     ],
     classifiers      = [
         "Operating System :: POSIX :: Linux",
