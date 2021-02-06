@@ -110,16 +110,10 @@ class Message:
         return '\n'.join(self._datlines)
 
     @property
-    def is_event(self) -> bool:
-        """ Whether this message is an asynchronous event.
+    def datalines(self) -> List[str]:
+        """ List of data lines received.
         """
-        return bool(self.status == 650)
-
-    @property
-    def event_type(self) -> Optional[str]:
-        """ Event type (when this message is an event).
-        """
-        return self._evttype
+        return self._datlines
 
     @property
     def dataline(self) -> str:
@@ -129,16 +123,28 @@ class Message:
         return self._dataline
 
     @property
-    def midlines(self) -> List[str]:
-        """ Get the list of middle lines.
+    def is_event(self) -> bool:
+        """ Whether this message is an asynchronous event.
         """
-        return self._midlines
+        return bool(self.status == 650)
 
     @property
     def endline(self) -> str:
         """ Get the raw text content of the end line.
         """
         return self._statline
+
+    @property
+    def event_type(self) -> Optional[str]:
+        """ Event type (when this message is an event).
+        """
+        return self._evttype
+
+    @property
+    def midlines(self) -> List[str]:
+        """ Get the list of middle lines.
+        """
+        return self._midlines
 
     @property
     def status(self) -> int:

@@ -2,7 +2,20 @@
 
 from aiostem.message import Message, MessageLine
 from aiostem.response.base import Event
-from typing import Optional
+from aiostem.util import hs_address_version
+
+from stem.descriptor.hidden_service import (
+    BaseHiddenServiceDescriptor,
+    HiddenServiceDescriptorV2,
+    HiddenServiceDescriptorV3,
+)
+from typing import Dict, Type, Optional
+
+
+_DESCRIPTOR_CLASS_MAP: Dict[int, Type[BaseHiddenServiceDescriptor]] = {
+    2: HiddenServiceDescriptorV2,
+    3: HiddenServiceDescriptorV3,
+}
 
 
 class HsDescEvent(Event):
@@ -147,6 +160,13 @@ class HsDescContentEvent(Event):
         """ Hidden Service address related to this event.
         """
         return self._address
+
+    @property
+    def descriptor(self) -> BaseHiddenServiceDescriptor:
+        """ Get either a V2 or V3 hidden service descriptor.
+        """
+        version = hs_address_version(self.address)
+        return _DESCRIPTOR_CLASS_MAP[version](self.descriptor_raw)
 
     @property
     def descriptor_id(self) -> str:

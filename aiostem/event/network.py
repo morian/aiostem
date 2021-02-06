@@ -10,6 +10,10 @@ class NetworkLivenessEvent(Event):
 
     EVENT_NAME: str = 'NETWORK_LIVENESS'
 
+    def __init__(self, *args, **kwargs) -> None:
+        self._network_status = ''    # type: str
+        super().__init__(*args, **kwargs)
+
     def _message_parse(self, message: Message) -> None:
         """ Parse this event message.
         """

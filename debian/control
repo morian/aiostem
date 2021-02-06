@@ -9,6 +9,6 @@ Build-Depends: debhelper,
 
 Package: python3-aiostem
 Architecture: all
-Depends: ${python3:Depends}, ${misc:Depends}, python3-aiofiles
+Depends: ${python3:Depends}, ${misc:Depends}, python3-aiofiles, python3-stem >= 1.8.0
 Description: Asynchronous Tor controller library for asyncio and Python.
  Aiostem is a simple asynchronous controller library for Tor.

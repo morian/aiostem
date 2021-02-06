@@ -3,17 +3,22 @@
 from aiostem.message import Message
 
 from aiostem.response.base import Event, UnknownEvent
-from aiostem.event.hsdesc import HsDescEvent, HsDescContentEvent
+from aiostem.event.hsdesc import HsDescContentEvent, HsDescEvent
 from aiostem.event.network import NetworkLivenessEvent
 from aiostem.event.signal import SignalEvent
+from aiostem.event.status import StatusClientEvent, StatusGeneralEvent, StatusServerEvent
 
 from typing import Dict, Tuple, Type
+
 
 EVENT_MAP: Dict[str, Type[Event]] = {
     'HS_DESC': HsDescEvent,
     'HS_DESC_CONTENT': HsDescContentEvent,
     'NETWORK_LIVENESS': NetworkLivenessEvent,
     'SIGNAL': SignalEvent,
+    'STATUS_CLIENT': StatusClientEvent,
+    'STATUS_GENERAL': StatusGeneralEvent,
+    'STATUS_SERVER': StatusServerEvent,
 }
 
 

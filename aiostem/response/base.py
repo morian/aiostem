@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from aiostem.exception import ResponseError
+from aiostem.exception import MessageError, ResponseError
 from aiostem.question import Query
-from aiostem.message import Message
+from aiostem.message import Message, MessageLine
+
+from typing import Dict
 
 
 class BaseResponse:
@@ -12,6 +14,22 @@ class BaseResponse:
     def __init__(self, message: Message) -> None:
         self._message = message
         self._message_parse(message)
+
+    @staticmethod
+    def _keyword_parse(self, parser: MessageLine) -> Dict[str, str]:
+        """ Parse keyword arguments from the provided MessageLine.
+            This first try to parse as quoted, otherwise as non-quoted.
+        """
+        keywords = {}
+
+        while not parser.at_end:
+            try:
+                key, value = parser.pop_kwarg(quoted=True)
+                keywords[key] = value
+            except MessageError:
+                key, value = parser.pop_kwarg(quoted=False)
+                keywords[key] = value
+        return keywords
 
     def _message_parse(self, message: Message) -> None:
         """ Parse the received message and build this response according to the type.
