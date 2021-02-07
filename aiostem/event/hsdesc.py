@@ -98,6 +98,12 @@ class HsDescEvent(Event):
         return self._auth_type
 
     @property
+    def descriptor_id(self) -> Optional[str]:
+        """ Descriptor ID
+        """
+        return self._descriptor_id
+
+    @property
     def directory(self) -> str:
         """ Hidden service directory (or 'UNKNOWN')
         """
