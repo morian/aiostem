@@ -36,6 +36,12 @@ On the event side, the following ones are parsed in dedicated structures:
 Additionally, a helper is provided to allow for fast hidden service descriptor fetching in
 package `aiostem.extra`. An example application is provided in `aiostem-hsscan`.
 
+Do note that for convenience, this package uses `stem` to parse descriptors.
+This is already something that cannot block, which means there is little interest to reinvent
+what already exists (and this is not the funny part, trust me).
+
+On compatibility, just ensure you have a recent version of Tor (something like 0.4.1 or greater).
+
 
 # Installation
 
@@ -83,7 +89,6 @@ async def aio_hs_callback(event):
     print(event.address)
     print(event.descriptor)
 
-
 async def main():
     # Create a new controller with the default port (9051).
     async with aiostem.Controller.from_port() as controller:
@@ -102,7 +107,6 @@ async def main():
         # Wait a little bit until the descriptor is fetched.
         await asyncio.sleep(10)
 
-
 if __name__ == '__main__':
     asyncio.run(main())
 ```
@@ -113,11 +117,11 @@ if __name__ == '__main__':
 The goal of this tool is to provide a way to rescan a huge list of onion domains provided
 in `--input` through Tor's controller located at `--control` (authenticated with `--password`).
 All the descriptors related to these onion domains are scanned concurrently with a maximum
-of `--workers`, each with a timeout of `--timeout`. Successful domains (the ones that are alive)
-are written to `--output` (if any).
+of `--workers`, each with a timeout of `--timeout`. Successful domains (the ones alive) are
+reported to `--output`.
 
-We advise not to increase `--workers` too much as Tor seems to suffer (take a lot of CPU)
-when this value is too high (we recommend 10 to 15 workers).
+We advise not to increase `--workers` too much as Tor seems to use a lot of CPU when this
+value is too high (we recommend 10 to 15 workers).
 
 ```console
 (venv) $ aiostem-hsscan --help
