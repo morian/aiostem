@@ -3,7 +3,7 @@
 
 from aiostem import Controller
 from aiostem.event import HsDescContentEvent
-from aiostem.extra import HiddenServiceChecker, HiddenServiceFetchRequest
+from aiostem.extra import HiddenServiceChecker, HiddenServiceFetchError, HiddenServiceFetchRequest
 from aiostem.util import is_valid_hs_address
 from typing import Optional, Set, Tuple, Union
 
@@ -15,7 +15,7 @@ import os
 import sys
 
 
-HsCallbackResponseType = Union[HsDescContentEvent, BaseException]
+HsCallbackResponseType = Union[HsDescContentEvent, Exception]
 
 
 class HelpFormatter(argparse.HelpFormatter):
@@ -92,14 +92,16 @@ class HiddenServiceScanner:
                            output: Optional[aiofiles.threadpool.text.AsyncTextIOWrapper]) -> None:
         """ The real callback triggered when we get a scan result.
         """
-        if isinstance(res, BaseException):
-            print("[-] failed to scan {}: {}='{}'"
+        if isinstance(res, HiddenServiceFetchError):
+            print("[-] failed to fetch {}.onion (reason: {})".format(req.address, str(res)))
+        elif isinstance(res, Exception):
+            print("[-] unexpected error while fetching {}.onion: {}='{}'"
                   .format(req.address, type(res).__name__, str(res)))
         else:
+            print("[+] success scanning {}.onion (from directory '{}')"
+                  .format(req.address, res.directory))
             if output:
                 await output.write('{}.onion\n'.format(req.address))
-            print("[+] success scanning {} (from directory '{}')"
-                  .format(req.address, res.directory))
 
     async def start(self, args) -> None:
         options = self.parser.parse_args(args)

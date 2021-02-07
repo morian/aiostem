@@ -3,12 +3,19 @@
 import asyncio
 import contextlib
 
+from asyncio import CancelledError
 from aiostem.event import HsDescEvent, HsDescContentEvent
 from aiostem.exception import AiostemError
 from aiostem.controller import Controller
 from aiostem.util import hs_address_strip_tld, hs_address_version
 from types import TracebackType
 from typing import Callable, Dict, Optional, Type
+
+
+class HiddenServiceFetchError(AiostemError):
+    """ An error that occured when fetching a Hidden Service descriptor.
+    """
+# End of class HiddenServiceFetchError.
 
 
 class HiddenServiceDirRequest:
@@ -73,7 +80,7 @@ class HiddenServiceCheckEntry:
         fail_count = self._fail_count + 1
         if not req or fail_count >= self.FAIL_COUNT_LIMIT:
             if not self._future.done():
-                exc = AiostemError(self._fail_reason)
+                exc = HiddenServiceFetchError(self._fail_reason)
                 self._future.set_exception(exc)
         self._fail_count = fail_count
 
@@ -216,13 +223,25 @@ class HiddenServiceChecker:
                     res = await asyncio.wait_for(entry.future, req.timeout)
                 finally:
                     self._request_discard(req.address, entry)
+            # These handlers are here to convert expected errors to HiddenServiceFetchError.
+            except TimeoutError:
+                res = HiddenServiceFetchError('TIMEOUT')
+            except CancelledError:
+                res = HiddenServiceFetchError('CANCELLED')
+                raise
             except Exception as exc:
                 res = exc
             finally:
-                with contextlib.suppress(Exception):
+                try:
                     if callable(req.callback):
                         await req.callback(req, res)
-                self.queue.task_done()
+                # CancelledError is based on Exception on Python3.7.
+                except CancelledError:
+                    raise
+                except Exception:
+                    pass
+                finally:
+                    self.queue.task_done()
 
     async def begin(self) -> None:
         """ Start the worker tasks, subscribe to the controller.

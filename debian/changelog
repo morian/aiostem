@@ -1,5 +1,8 @@
 python3-aiostem (0.1.0) unstable; urgency=low
 
-  * Initial debian release.
+  * Initial release with a minimal library
+  * Can connect to the controller and subscribe to events
+  * Handle HS descriptor events and use stem to parse descriptors
+  * Provide a descriptor checker helper and an example program
 
- -- Romain Bezut <morian@xdec.net>  Sun, 31 Jan 2021 18:55:00 +0000
+ -- Romain Bezut <morian@xdec.net>  Sun,  7 Feb 2021 20:30:00 +0000
