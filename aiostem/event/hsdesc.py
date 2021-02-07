@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from aiostem.exception import MessageError
 from aiostem.message import Message, MessageLine
 from aiostem.response.base import Event
 from aiostem.util import hs_address_version
@@ -53,9 +54,20 @@ class HsDescEvent(Event):
         self._address = parser.pop_arg()
         self._auth_type = parser.pop_arg()
         self._directory = parser.pop_arg()
+        keywords = {}
 
         if not parser.at_end:
-            self._descriptor_id = parser.pop_arg()
+            # Maybe this is a keyword, or a descriptor id.
+            try:
+                key, val = parser.pop_kwarg()
+                keywords[key] = val
+            except MessageError:
+                self._descriptor_id = parser.pop_arg()
+
+        # Parse the remaining keyword arguments.
+        while not parser.at_end:
+            key, val = parser.pop_kwarg()
+            keywords[key] = val
 
         def reason_set(val):
             self._reason = val
@@ -72,8 +84,7 @@ class HsDescEvent(Event):
             'HSDIR_INDEX': index_set,
         }
 
-        while not parser.at_end:
-            key, val = parser.pop_kwarg()
+        for key, val in keywords.items():
             handler = keyword_fn.get(key)
             if handler is not None:
                 handler(val)
