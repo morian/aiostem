@@ -148,6 +148,7 @@ class HsDescContentEvent(Event):
 
     def __init__(self, *args, **kwargs) -> None:
         self._address = ''              # type: str
+        self._descriptor = None         # type: Optional[BaseHiddenServiceDescriptor]
         self._descriptor_id = ''        # type: str
         self._descriptor_raw = ''       # type: str
         self._directory = ''            # type: str
@@ -182,8 +183,10 @@ class HsDescContentEvent(Event):
     def descriptor(self) -> BaseHiddenServiceDescriptor:
         """ Get either a V2 or V3 hidden service descriptor.
         """
-        version = hs_address_version(self.address)
-        return _DESCRIPTOR_CLASS_MAP[version](self.descriptor_raw)
+        if self._descriptor is None:
+            version = hs_address_version(self.address)
+            self._descriptor = _DESCRIPTOR_CLASS_MAP[version](self.descriptor_raw)
+        return self._descriptor
 
     @property
     def descriptor_id(self) -> str:
