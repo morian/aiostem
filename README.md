@@ -121,7 +121,7 @@ of `--workers`, each with a timeout of `--timeout`. Successful domains (the ones
 reported to `--output`.
 
 We advise not to increase `--workers` too much as Tor seems to use a lot of CPU when this
-value is too high (we recommend 10 to 15 workers).
+value is too high (we recommend 10 workers).
 
 ```console
 (venv) $ aiostem-hsscan --help

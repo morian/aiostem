@@ -39,7 +39,7 @@ class HiddenServiceScanner:
     DESCRIPTION = "Check onion domains liveness by requesting directories."
     DEFAULT_CONTROLLER = "127.0.0.1:9051"
     DEFAULT_TIMEOUT = 60.0
-    DEFAULT_WORKERS = 15
+    DEFAULT_WORKERS = 10
 
     def __init__(self, prog: str) -> None:
         self.options = None
