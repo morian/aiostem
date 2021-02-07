@@ -3,7 +3,7 @@
 import asyncio
 import contextlib
 
-from asyncio import CancelledError
+from asyncio import CancelledError, TimeoutError
 from aiostem.event import HsDescEvent, HsDescContentEvent
 from aiostem.exception import AiostemError
 from aiostem.controller import Controller
