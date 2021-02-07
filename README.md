@@ -125,7 +125,7 @@ value is too high (we recommend 10 to 15 workers).
 
 ```console
 (venv) $ aiostem-hsscan --help
-aiostem-hsscan [-h] -i FILE [-o FILE] [-c SOCK] [-p PASS] [-t SECS] [-w NUM]
+aiostem-hsscan [-h] -i FILE [-o FILE] [-c SOCK] [-p PASS] [-t SECS] [-w NUM] [-f]
 
 Check onion domains liveness by requesting directories.
 
@@ -137,4 +137,5 @@ optional arguments:
   -p PASS, --password PASS  optional password to connect to Tor's controller
   -t SECS, --timeout SECS   how long to wait for each descriptor to be fetched
   -w NUM, --workers NUM     maximum number of concurrent descriptor fetches
+  -f, --flush               flush to output file after each write
 ```
