@@ -24,6 +24,9 @@ setuptools.setup(
     packages         = setuptools.find_packages(),
     long_description = description,
     long_description_content_type = 'text/markdown',
+    scripts          = [
+        'bin/aiostem-hsscan',
+    ],
     install_requires = [
         'aiofiles',
         'stem >= 1.8.0',

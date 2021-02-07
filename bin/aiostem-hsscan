@@ -1,0 +1,157 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+
+from aiostem import Controller
+from aiostem.event import HsDescContentEvent
+from aiostem.extra import HiddenServiceChecker, HiddenServiceFetchRequest
+from aiostem.util import is_valid_hs_address
+from typing import Optional, Set, Tuple, Union
+
+import aiofiles
+import argparse
+import asyncio
+import contextlib
+import os
+import sys
+
+
+HsCallbackResponseType = Union[HsDescContentEvent, BaseException]
+
+
+class HelpFormatter(argparse.HelpFormatter):
+    """ Change the style of the default help formatter.
+    """
+
+    DEFAULT_MAX_HELP_POSITION: int = 35
+    DEFAULT_WIDTH: int = 100
+
+    def __init__(self, *args, **kwargs) -> None:
+        kwargs.setdefault('max_help_position', self.DEFAULT_MAX_HELP_POSITION)
+        kwargs.setdefault('width', self.DEFAULT_WIDTH)
+        super().__init__(*args, **kwargs)
+# End of class HelpFormatter.
+
+
+class HiddenServiceScanner:
+    """ Example application used to mass-scan hidden service descriptors.
+    """
+
+    DESCRIPTION = "Check onion domains liveness by requesting directories."
+    DEFAULT_CONTROLLER = "127.0.0.1:9050"
+    DEFAULT_TIMEOUT = 60.0
+    DEFAULT_WORKERS = 15
+
+    def __init__(self, prog: str) -> None:
+        self.options = None
+        self.parser = self._parser_get(prog)
+
+    @classmethod
+    def _parser_get(cls, prog: str) -> argparse.ArgumentParser:
+        """ Option parser for this application.
+        """
+        parser = argparse.ArgumentParser(prog=prog, description=cls.DESCRIPTION,
+                                         formatter_class=HelpFormatter)
+        parser.add_argument('-i', '--input', metavar='FILE', required=True,
+                            help="input onion domains to scan (one per line)")
+        parser.add_argument('-o', '--output', metavar='FILE',
+                            help="output list of successfully scanned domains")
+        parser.add_argument('-c', '--control', metavar='SOCK',
+                            type=str, default=cls.DEFAULT_CONTROLLER,
+                            help="location of Tor's controller (ip:port or path)")
+        parser.add_argument('-p', '--password', metavar='PASS',
+                            help="optional password to connect to Tor's controller")
+        parser.add_argument('-t', '--timeout', metavar='SECS',
+                            type=float, default=cls.DEFAULT_TIMEOUT,
+                            help="how long to wait for each descriptor to be fetched")
+        parser.add_argument('-w', '--workers', metavar='NUM',
+                            type=int, default=cls.DEFAULT_WORKERS,
+                            help="maximum number of concurrent descriptor fetches")
+        return parser
+
+    @staticmethod
+    def _sock_split(sock: str) -> Tuple[str, int]:
+        """ Parses host:port and return both.
+        """
+        items = sock.split(':', 1)
+        if len(items) == 1:
+            items.insert(0, "127.0.0.1")
+        return items[0], int(items[1])
+
+    async def _onions_load(self, filepath: str) -> Set[str]:
+        """ Load the input list of onion domains to scan.
+        """
+        async with aiofiles.open(filepath, 'r') as fp:
+            contents = await fp.read()
+
+        # This generator iterates on all the lines (stripped).
+        # It then filters to only keep valid onion domains (suffixed or not).
+        lines = map(str.strip, contents.split('\n'))
+        return set(filter(lambda x: is_valid_hs_address(x, allow_suffix=True), lines))
+
+    async def _hs_callback(self, req: HiddenServiceFetchRequest, res: HsCallbackResponseType,
+                           output: Optional[aiofiles.threadpool.text.AsyncTextIOWrapper]) -> None:
+        """ The real callback triggered when we get a scan result.
+        """
+        if isinstance(res, BaseException):
+            print("[-] failed to scan {}: {}='{}'"
+                  .format(req.address, type(res).__name__, str(res)))
+        else:
+            if output:
+                await output.write('{}.onion\n'.format(req.address))
+            print("[+] success scanning {} (from directory '{}')"
+                  .format(req.address, res.directory))
+
+    async def start(self, args) -> None:
+        options = self.parser.parse_args(args)
+        await self.run(options)
+
+    async def run(self, options) -> Optional[int]:
+        """ Check every valid onion domain and write results to an output file.
+        """
+        onions = await self._onions_load(options.input)
+        output = None
+
+        print("[+] Loaded a list of {} onion domains.".format(len(onions)))
+
+        async with contextlib.AsyncExitStack() as stack:
+            # Open the output file if this was requested.
+            if options.output:
+                output = await stack.enter_async_context(aiofiles.open(options.output, 'w'))
+
+            # Find out how we need to connect to our controller.
+            if os.path.exists(options.control):
+                controller = Controller.from_path(options.control)
+            else:
+                host, port = self._sock_split(options.control)
+                controller = Controller.from_port(host, port)
+            controller = await stack.enter_async_context(controller)
+
+            # Authenticate to our Tor controller and request a new identity.
+            # This flushes everything left in cache from previous sessions.
+            # XXX: We might want to wait that the new identity to be effective before going on.
+            await controller.authenticate(options.password)
+            await controller.signal('NEWNYM')
+
+            # Create the hidden service checker instance on our brand new controller.
+            # Queue is defined here so we don't enqueue everything we have in queue at once.
+            chkqueue = asyncio.Queue(maxsize=1000)
+            checker = HiddenServiceChecker(controller, concurrency=options.workers, queue=chkqueue)
+            checker = await stack.enter_async_context(checker)
+
+            async def hs_callback(req: HiddenServiceFetchRequest,
+                                  res: HsCallbackResponseType) -> None:
+                """ Callback wrapper used to provide `output` to our real callback. """
+                await self._hs_callback(req, res, output)
+            # End of inner function hs_callback.
+
+            for address in onions:
+                req = HiddenServiceFetchRequest(address, hs_callback, timeout=options.timeout)
+                await checker.queue.put(req)
+            await checker.queue.join()
+# End of class HiddenServiceScanner.
+
+
+if __name__ == '__main__':
+    app = HiddenServiceScanner(sys.argv[0])
+    res = asyncio.run(app.start(sys.argv[1:]))
+    raise SystemExit(res)
