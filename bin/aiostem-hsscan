@@ -37,12 +37,13 @@ class HiddenServiceScanner:
     """
 
     DESCRIPTION = "Check onion domains liveness by requesting directories."
-    DEFAULT_CONTROLLER = "127.0.0.1:9050"
+    DEFAULT_CONTROLLER = "127.0.0.1:9051"
     DEFAULT_TIMEOUT = 60.0
     DEFAULT_WORKERS = 15
 
     def __init__(self, prog: str) -> None:
         self.options = None
+        self.output = None
         self.parser = self._parser_get(prog)
 
     @classmethod
@@ -66,6 +67,8 @@ class HiddenServiceScanner:
         parser.add_argument('-w', '--workers', metavar='NUM',
                             type=int, default=cls.DEFAULT_WORKERS,
                             help="maximum number of concurrent descriptor fetches")
+        parser.add_argument('-f', '--flush', action='store_true',
+                            help="flush to output file after each write")
         return parser
 
     @staticmethod
@@ -88,9 +91,10 @@ class HiddenServiceScanner:
         lines = map(str.strip, contents.split('\n'))
         return set(filter(lambda x: is_valid_hs_address(x, allow_suffix=True), lines))
 
-    async def _hs_callback(self, req: HiddenServiceFetchRequest, res: HsCallbackResponseType,
-                           output: Optional[aiofiles.threadpool.text.AsyncTextIOWrapper]) -> None:
-        """ The real callback triggered when we get a scan result.
+    async def _hs_callback(self, req: HiddenServiceFetchRequest,
+                           res: HsCallbackResponseType) -> None:
+        """ The callback triggered when we get a scan result.
+            Result can either be an exception or the HS_DESC_CONTENT event.
         """
         if isinstance(res, HiddenServiceFetchError):
             print("[-] failed to fetch {}.onion (reason: {})".format(req.address, str(res)))
@@ -100,8 +104,10 @@ class HiddenServiceScanner:
         else:
             print("[+] success scanning {}.onion (from directory '{}')"
                   .format(req.address, res.directory))
-            if output:
-                await output.write('{}.onion\n'.format(req.address))
+            if self.output:
+                await self.output.write('{}.onion\n'.format(req.address))
+                if self.options.flush:
+                    await self.output.flush()
 
     async def start(self, args) -> None:
         options = self.parser.parse_args(args)
@@ -111,14 +117,15 @@ class HiddenServiceScanner:
         """ Check every valid onion domain and write results to an output file.
         """
         onions = await self._onions_load(options.input)
-        output = None
+        self.options = options
 
         print("[+] Loaded a list of {} onion domains.".format(len(onions)))
 
         async with contextlib.AsyncExitStack() as stack:
             # Open the output file if this was requested.
             if options.output:
-                output = await stack.enter_async_context(aiofiles.open(options.output, 'w'))
+                coro = aiofiles.open(options.output, 'w')
+                self.output = await stack.enter_async_context(coro)
 
             # Find out how we need to connect to our controller.
             if os.path.exists(options.control):
@@ -140,14 +147,8 @@ class HiddenServiceScanner:
             checker = HiddenServiceChecker(controller, concurrency=options.workers, queue=chkqueue)
             checker = await stack.enter_async_context(checker)
 
-            async def hs_callback(req: HiddenServiceFetchRequest,
-                                  res: HsCallbackResponseType) -> None:
-                """ Callback wrapper used to provide `output` to our real callback. """
-                await self._hs_callback(req, res, output)
-            # End of inner function hs_callback.
-
             for address in onions:
-                req = HiddenServiceFetchRequest(address, hs_callback, timeout=options.timeout)
+                req = HiddenServiceFetchRequest(address, self._hs_callback, timeout=options.timeout)
                 await checker.queue.put(req)
             await checker.queue.join()
 # End of class HiddenServiceScanner.
