@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 from aiostem import Controller
-from aiostem.event import HsDescContentEvent
+from aiostem.event import DisconnectEvent, HsDescContentEvent
+from aiostem.exception import AiostemError
 from aiostem.extra import HiddenServiceChecker, HiddenServiceFetchError, HiddenServiceFetchRequest
 from aiostem.util import is_valid_hs_address
 from typing import Optional, Set, Tuple, Union
@@ -109,6 +110,20 @@ class HiddenServiceScanner:
                 if self.options.flush:
                     await self.output.flush()
 
+    async def _hs_check_task(self, controller: Controller, onions: Set[str]) -> None:
+        """ This task is used to check all the provided onions in parallel way.
+        """
+        # Create the hidden service checker instance on our brand new controller.
+        # Queue is defined here so we don't enqueue everything we have in queue at once.
+        checker = HiddenServiceChecker(controller, concurrency=self.options.workers,
+                                       queue=asyncio.Queue(maxsize=1000))
+        async with checker:
+            for address in onions:
+                req = HiddenServiceFetchRequest(address, self._hs_callback,
+                                                timeout=self.options.timeout)
+                await checker.queue.put(req)
+            await checker.queue.join()
+
     async def start(self, args) -> None:
         options = self.parser.parse_args(args)
         await self.run(options)
@@ -137,20 +152,20 @@ class HiddenServiceScanner:
 
             # Authenticate to our Tor controller and request a new identity.
             # This flushes everything left in cache from previous sessions.
-            # XXX: We might want to wait that the new identity to be effective before going on.
             await controller.authenticate(options.password)
             await controller.signal('NEWNYM')
 
-            # Create the hidden service checker instance on our brand new controller.
-            # Queue is defined here so we don't enqueue everything we have in queue at once.
-            chkqueue = asyncio.Queue(maxsize=1000)
-            checker = HiddenServiceChecker(controller, concurrency=options.workers, queue=chkqueue)
-            checker = await stack.enter_async_context(checker)
+            async def _hs_check_task_cancel(event: DisconnectEvent):
+                """ Callback used to be notified when this instance get disconnected
+                    from the remote Tor controller.
+                """
+                print("[!] Controller is disconnected from the control socket!")
+                task.cancel()
+            # End of inner function _hs_check_task_cancel.
 
-            for address in onions:
-                req = HiddenServiceFetchRequest(address, self._hs_callback, timeout=options.timeout)
-                await checker.queue.put(req)
-            await checker.queue.join()
+            task = asyncio.create_task(self._hs_check_task(controller, onions))
+            await controller.event_subscribe('DISCONNECT', _hs_check_task_cancel)
+            await asyncio.gather(task, return_exceptions=True)
 # End of class HiddenServiceScanner.
 
 
