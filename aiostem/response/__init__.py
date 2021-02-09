@@ -39,6 +39,7 @@ __all__: Tuple[str, ...] = (
     "SetEventsReply",
     "SignalReply",
 
+    "REPLY_MAP",
     "Reply",
     "reply_parser",
 )

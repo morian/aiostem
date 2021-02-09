@@ -2,7 +2,7 @@
 
 from aiostem.command import Command
 from aiostem.question.base import Query
-from typing import List
+from typing import Iterable, List
 
 
 class SetEventsQuery(Query):
@@ -11,8 +11,8 @@ class SetEventsQuery(Query):
 
     COMMAND_NAME: str = 'SETEVENTS'
 
-    def __init__(self, events: List[str], extended: bool = False) -> None:
-        self._events = events
+    def __init__(self, events: Iterable[str], extended: bool = False) -> None:
+        self._events = list(events)
         self._extended = extended
 
     @property

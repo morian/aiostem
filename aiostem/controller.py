@@ -3,7 +3,7 @@
 import asyncio
 
 from types import TracebackType
-from typing import Callable, Dict, List, Optional, Type
+from typing import Callable, Dict, Iterable, List, Optional, Type
 
 import aiostem.event as e
 import aiostem.question as q
@@ -93,6 +93,13 @@ class Controller:
             except Exception:
                 pass
 
+    async def _notify_disconnect(self) -> None:
+        """ Generate a DISCONNECT event to tell everyone that we are now disconnected.
+        """
+        message = Message()
+        message.add_line('650 DISCONNECT\r\n')
+        await self._handle_event(message)
+
     async def _reader_task(self, reader: asyncio.StreamReader) -> None:
         """ Read from the socket and dispatch all contents.
         """
@@ -116,6 +123,7 @@ class Controller:
             try:
                 self._connected = False
                 self._rqueue.put_nowait(None)
+                await self._notify_disconnect()
             except asyncio.QueueFull:
                 pass
 
@@ -241,11 +249,13 @@ class Controller:
         self._rdtask = rdtask
         self._writer = writer
 
-    async def set_events(self, events: List[str], extended: bool = False) -> r.SetEventsReply:
+    async def set_events(self, events: Iterable[str], extended: bool = False) -> r.SetEventsReply:
         """ Set the list of events that we subscribe to.
             This method should probably not be called directly, see event_subscribe.
         """
-        query = q.SetEventsQuery(list(events), extended)
+        # Remove internal events from the list in our request to the controller.
+        events = set(events).difference(e.EVENTS_INTERNAL)
+        query = q.SetEventsQuery(events, extended)
         return await self.request(query)
 
     async def event_subscribe(self, event: str, callback: Callable) -> None:
@@ -254,8 +264,8 @@ class Controller:
         async with self._events_lock:
             listeners = self._evt_callbacks.setdefault(event, [])
             try:
-                evtlist = list(self._evt_callbacks.keys())
-                await self.set_events(evtlist)
+                if not listeners and event not in e.EVENTS_INTERNAL:
+                    await self.set_events(self._evt_callbacks.keys())
                 listeners.append(callback)
             except AiostemError:
                 if not len(listeners):
@@ -274,8 +284,8 @@ class Controller:
                 try:
                     if not len(listeners):
                         self._evt_callbacks.pop(event)
-                        evtlist = list(self._evt_callbacks.keys())
-                        await self.set_events(evtlist)
+                        if event not in e.EVENTS_INTERNAL:
+                            await self.set_events(self._evt_callbacks.keys())
                 except AiostemError:
                     self._evt_callbacks[event] = backup_listeners
                     raise

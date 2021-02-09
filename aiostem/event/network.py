@@ -4,6 +4,17 @@ from aiostem.message import Message, MessageLine
 from aiostem.response.base import Event
 
 
+class DisconnectEvent(Event):
+    """ Disconnect notification from the controller.
+
+        This pseudo-event is generated from the controller when an
+        EOF is encountered while reading on the control socket.
+    """
+
+    EVENT_NAME: str = 'DISCONNECT'
+# End of class DisconnectEvent.
+
+
 class NetworkLivenessEvent(Event):
     """ Notification of network liveness change.
     """
