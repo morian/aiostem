@@ -1,3 +1,9 @@
+python3-aiostem (0.1.1) unstable; urgency=low
+
+  * Add an internal 'DISCONNECT' event handler and notifier (EOF on socket)
+
+ -- Romain Bezut <morian@xdec.net>  Tue,  9 Feb 2021 21:39:00 +0000
+
 python3-aiostem (0.1.0) unstable; urgency=low
 
   * Initial release with a minimal library
