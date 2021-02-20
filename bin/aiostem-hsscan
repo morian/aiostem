@@ -3,7 +3,6 @@
 
 from aiostem import Controller
 from aiostem.event import DisconnectEvent, HsDescContentEvent
-from aiostem.exception import AiostemError
 from aiostem.extra import HiddenServiceChecker, HiddenServiceFetchError, HiddenServiceFetchRequest
 from aiostem.util import is_valid_hs_address
 from typing import Optional, Set, Tuple, Union
