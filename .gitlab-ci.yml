@@ -1,37 +1,46 @@
 stages:
   - package
-  - test
+  - linter
   - deploy
 
-debian10-package:
-  image: ${CI_REGISTRY}/dockers/ci/debian-build:10
+.deb-common:
   stage: package
   variables:
     DEBIAN_FRONTEND: noninteractive
-  before_script:
+  after_script:
     - mkdir --parents dist/
+    - mv --verbose ../*.deb dist/
   script:
     - make deb
-  after_script:
-    - mv --verbose ../*.deb dist/
   artifacts:
-    expire_in: 7 days
+    expire_in: 8 days
     paths:
-      - dist/
+      - dist/python3-aiostem_*.deb
 
 python3-package:
   image: ${CI_REGISTRY}/dockers/ci/centos-build:8
   stage: package
+  before_script:
+    - pip3 install build
   script:
-    - make
+    - python3 -m build --sdist --wheel
   artifacts:
     expire_in: 7 days
     paths:
       - dist/
 
+debian10-package:
+  image: ${CI_REGISTRY}/dockers/ci/debian-build:10
+  extends: .deb-common
+
+debian11-package:
+  image: ${CI_REGISTRY}/dockers/ci/debian-build:11
+  extends: .deb-common
+
 python3-linter:
   image: ${CI_REGISTRY}/dockers/ci/centos-build:8
-  stage: test
+  stage: linter
+  needs: []
   script:
     - make linter
   allow_failure: true
@@ -43,10 +52,10 @@ python3-deploy:
     TWINE_REPOSITORY_URL: ${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/packages/pypi
     TWINE_USERNAME: gitlab-ci-token
     TWINE_PASSWORD: ${CI_JOB_TOKEN}
-  dependencies:
+  needs:
     - python3-package
   script:
-    - twine upload dist/*.whl
+    - twine upload dist/aiostem-*.whl
   only:
     - tags
   when: manual

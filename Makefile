@@ -5,9 +5,9 @@ PYTHON    ?= /usr/bin/python3
 PHONY += all
 all: wheel sdist
 
-PHONY += sdist
-sdist:
-	$(PYTHON) setup.py sdist
+PHONY += bdist sdist
+bdist sdist:
+	$(PYTHON) setup.py $@
 
 PHONY += wheel
 wheel:

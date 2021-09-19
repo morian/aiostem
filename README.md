@@ -45,15 +45,15 @@ On compatibility, just ensure you have a recent version of Tor (something like 0
 
 # Installation
 
-Aiostem was tested successfully with Python 3.7 and Python 3.8.
+Aiostem was tested successfully with Python 3.7, Python 3.8 and Python 3.9.
 
-The best way to install it is by creating a dedicated `virtualenv` using the `virtualenv`
-package from python. Note that this might require the installation of distribution specific
-packages such as `python3-virtualenv` or `python3-pip`.
+The best way to install it is by creating a dedicated `venv` using the `venv` package from python.
+Note that this might require the installation of distribution specific packages such as
+`python3-venv` and `python3-pip`.
 
-First create the target `virtualenv` and source the environment:
+First create the target `venv` and source the environment:
 ```console
-$ python3 -m virtualenv venv/
+$ python3 -m venv venv
 $ source venv/bin/activate
 ```
 

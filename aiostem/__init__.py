@@ -15,7 +15,7 @@ __license__ = 'MIT'
 __version__ = version
 
 __all__: Tuple[str, ...] = (
-    "Controller",
-    "ResponseError",
-    "version",
+    'Controller',
+    'ResponseError',
+    'version',
 )
