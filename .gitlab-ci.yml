@@ -20,8 +20,6 @@ stages:
 python3-package:
   image: ${CI_REGISTRY}/dockers/ci/centos-build:8
   stage: package
-  before_script:
-    - pip3 install build
   script:
     - python3 -m build --sdist --wheel
   artifacts:
