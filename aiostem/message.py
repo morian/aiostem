@@ -16,7 +16,7 @@ class MessageLine:
     REGEX_KEYWORD_N = re.compile(r'^([^\s=]+)=([^\s]+)')
     REGEX_KEYWORD_Q = re.compile(r'^([^\s=]+)="((?:\\[\\"]|[^"])+)"')
 
-    def __init__(self, line) -> None:
+    def __init__(self, line: str) -> None:
         self._raw_line = line
         self._cur_line = line
 

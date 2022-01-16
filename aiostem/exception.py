@@ -20,7 +20,7 @@ class MessageError(AiostemError):
 class ResponseError(AiostemError):
     'Response message is an error (status is provided).'
 
-    def __init__(self, status, message) -> None:
+    def __init__(self, status: int, message: str) -> None:
         super().__init__(message)
         self._status = status
 

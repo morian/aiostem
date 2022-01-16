@@ -19,7 +19,7 @@ clean:
 
 PHONY += linter
 linter:
-	$(FLAKE8) --show-source aiostem/ bin/aiostem-hsscan
+	$(FLAKE8) aiostem/ bin/aiostem-hsscan
 
 PHONY += deb
 deb: debian/changelog

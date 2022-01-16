@@ -14,7 +14,7 @@ class SimpleQuery(Query):
         return "<{}>".format(type(self).__name__)
 
     @property
-    def command(self) -> str:
+    def command(self) -> Command:
         """ Build this very simple query.
         """
         return Command(self.COMMAND_NAME)

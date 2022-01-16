@@ -1,5 +1,7 @@
-aiostem.egg-info/
-aiostem/__pycache__/
-build/
-dist/
-venv/
+*.py[cod]
+/*.egg-info/
+/.coverage
+/build/
+/coverage.xml
+/dist/
+/venv/

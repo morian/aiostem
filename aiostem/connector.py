@@ -55,6 +55,7 @@ class ControlConnectorPath(ControlConnector):
     def __init__(self, path: str = DEFAULT_CONTROL_PATH) -> None:
         self._path = path
 
+    @property
     def path(self) -> str:
         """ Get the path provided to connect to Tor's control port.
         """

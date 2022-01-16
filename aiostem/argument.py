@@ -3,7 +3,7 @@
 import re
 
 
-def add_quotes(value) -> str:
+def add_quotes(value: str) -> str:
     """ Quote `value` so it can be used by Tor's controller.
     """
     return re.sub(r'([\\"])', r'\\\1', value)

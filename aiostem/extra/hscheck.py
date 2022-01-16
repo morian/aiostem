@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+from __future__ import annotations
 
 import asyncio
 import contextlib
@@ -9,7 +9,7 @@ from aiostem.exception import AiostemError
 from aiostem.controller import Controller
 from aiostem.util import hs_address_strip_tld, hs_address_version
 from types import TracebackType
-from typing import Callable, Dict, Optional, Type
+from typing import Callable, Dict, List, Optional, Type
 
 
 class HiddenServiceFetchError(AiostemError):
@@ -146,9 +146,9 @@ class HiddenServiceChecker:
 
         self._concurrency = concurrency
         self._controller = controller
-        self._requests = {}  # type: Dict[str, HiddenServiceCheckEntry]
+        self._requests = {}  # type: Dict[str, List[HiddenServiceCheckEntry]]
         self._queue = queue
-        self._workers = []   # type: Optional[asyncio.Task]
+        self._workers = []   # type: List[asyncio.Task]
 
     @property
     def controller(self) -> Controller:
@@ -268,15 +268,18 @@ class HiddenServiceChecker:
         finally:
             self._workers.clear()
 
-    async def __aenter__(self) -> 'HiddenServiceChecker':
+    async def __aenter__(self) -> HiddenServiceChecker:
         """ Spawn the workers and start the show.
         """
         await self.begin()
         return self
 
-    async def __aexit__(self, etype: Optional[Type[BaseException]],
-                        evalue: Optional[BaseException],
-                        traceback: Optional[TracebackType]) -> None:
+    async def __aexit__(
+        self,
+        exc_cls: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType]
+    ) -> None:
         """ Exit Checker's context.
         """
         await self.close()
@@ -290,8 +293,12 @@ class HiddenServiceFetchRequest:
 
     DEFAULT_TIMEOUT: int = 60
 
-    def __init__(self, address: str, callback: Optional[Callable],
-                 timeout: int = DEFAULT_TIMEOUT) -> None:
+    def __init__(
+        self,
+        address: str,
+        callback: Optional[Callable],
+        timeout: int = DEFAULT_TIMEOUT
+    ) -> None:
         address = hs_address_strip_tld(address)
         version = hs_address_version(address)
         self._address = address
