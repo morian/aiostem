@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
-
 import secrets
+from typing import Optional
 
 from aiostem.command import Command
 from aiostem.question.base import Query
-from typing import Optional
 
 
 class AuthChallengeQuery(Query):

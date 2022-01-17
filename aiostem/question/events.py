@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
+from typing import Iterable, List
 
 from aiostem.command import Command
 from aiostem.question.base import Query
-from typing import Iterable, List
 
 
 class SetEventsQuery(Query):

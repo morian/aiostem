@@ -1,7 +1,5 @@
-# -*- coding: utf-8 -*-
-
-from aiostem.response.base import Reply
 from aiostem.message import Message
+from aiostem.response.base import Reply
 
 
 class SimpleReply(Reply):

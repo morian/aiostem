@@ -1,9 +1,5 @@
-# -*- coding: utf-8 -*-
-
 import asyncio
-
 from typing import Tuple
-
 
 DEFAULT_CONTROL_PATH: str = '/var/run/tor/control'
 DEFAULT_CONTROL_HOST: str = '127.0.0.1'

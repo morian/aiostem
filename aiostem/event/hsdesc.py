@@ -1,17 +1,15 @@
-# -*- coding: utf-8 -*-
-
-from aiostem.exception import MessageError
-from aiostem.message import Message, MessageLine
-from aiostem.response.base import Event
-from aiostem.util import hs_address_version
+from typing import Dict, Optional, Type
 
 from stem.descriptor.hidden_service import (
     BaseHiddenServiceDescriptor,
     HiddenServiceDescriptorV2,
     HiddenServiceDescriptorV3,
 )
-from typing import Dict, Type, Optional
 
+from aiostem.exception import MessageError
+from aiostem.message import Message, MessageLine
+from aiostem.response.base import Event
+from aiostem.util import hs_address_version
 
 _DESCRIPTOR_CLASS_MAP: Dict[int, Type[BaseHiddenServiceDescriptor]] = {
     2: HiddenServiceDescriptorV2,

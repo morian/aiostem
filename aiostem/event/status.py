@@ -1,9 +1,7 @@
-# -*- coding: utf-8 -*-
+from typing import Dict
 
 from aiostem.message import Message, MessageLine
 from aiostem.response.base import Event
-
-from typing import Dict
 
 
 class BaseStatusEvent(Event):

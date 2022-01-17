@@ -1,15 +1,11 @@
-# -*- coding: utf-8 -*-
+from typing import Dict, List, Set, Type
 
-from aiostem.message import Message
-
-from aiostem.response.base import Event, UnknownEvent
 from aiostem.event.hsdesc import HsDescContentEvent, HsDescEvent
 from aiostem.event.network import DisconnectEvent, NetworkLivenessEvent
 from aiostem.event.signal import SignalEvent
 from aiostem.event.status import StatusClientEvent, StatusGeneralEvent, StatusServerEvent
-
-from typing import Dict, Set, Tuple, Type
-
+from aiostem.message import Message
+from aiostem.response.base import Event, UnknownEvent
 
 EVENT_MAP: Dict[str, Type[Event]] = {
     'DISCONNECT': DisconnectEvent,
@@ -36,15 +32,14 @@ def event_parser(message: Message) -> Event:
 # End of function event_parser.
 
 
-__all__: Tuple[str, ...] = (
-    "DisconnectEvent",
-    "HsDescEvent",
-    "HsDescContentEvent",
-    "NetworkLivenessEvent",
-    "SignalEvent",
-
-    "EVENTS_INTERNAL",
-    "EVENT_MAP",
-    "Event",
-    "event_parser",
-)
+__all__: List[str] = [
+    'DisconnectEvent',
+    'EVENTS_INTERNAL',
+    'EVENT_MAP',
+    'Event',
+    'HsDescContentEvent',
+    'HsDescEvent',
+    'NetworkLivenessEvent',
+    'SignalEvent',
+    'event_parser',
+]

@@ -1,25 +1,37 @@
 stages:
-  - package
-  - linter
-  - deploy
+  - build
+  - tests
+  - publish
+
+
+# Global parameters for all jobs, cache everything we install.
+variables:
+  PIP_CACHE_DIR: "${CI_PROJECT_DIR}/.pip_cache"
+
+.pip-cache: &pip_cache
+  key: ${CI_COMMIT_REF_SLUG}
+  paths:
+    - .pip_cache/
+  policy: pull-push
 
 .deb-common:
-  stage: package
+  stage: build
   variables:
     DEBIAN_FRONTEND: noninteractive
+  script:
+    - make deb
   after_script:
     - mkdir --parents dist/
     - mv --verbose ../*.deb dist/
-  script:
-    - make deb
   artifacts:
-    expire_in: 8 days
+    expire_in: 7 days
     paths:
       - dist/python3-aiostem_*.deb
 
+
 python3-package:
-  image: ${CI_REGISTRY}/dockers/ci/centos-build:8
-  stage: package
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.10-alpine
+  stage: build
   script:
     - python3 -m build --sdist --wheel
   artifacts:
@@ -36,24 +48,45 @@ debian11-package:
   extends: .deb-common
 
 python3-linter:
-  image: ${CI_REGISTRY}/dockers/ci/centos-build:8
-  stage: linter
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.10-alpine
+  stage: tests
+  cache:
+    <<: *pip_cache
   needs: []
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - make install-linting
   script:
-    - make linter
+    - make lint
   allow_failure: true
 
-python3-deploy:
-  image: ${CI_REGISTRY}/dockers/ci/centos-build:8
-  stage: deploy
+python3-mypy:
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.10-alpine
+  stage: tests
+  cache:
+    <<: *pip_cache
+  needs: []
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - make install-aiostem
+    - make install-linting
+  script:
+    - make mypy
+  allow_failure: true
+
+python3-publish:
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.10-alpine
+  stage: publish
   variables:
     TWINE_REPOSITORY_URL: ${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/packages/pypi
     TWINE_USERNAME: gitlab-ci-token
     TWINE_PASSWORD: ${CI_JOB_TOKEN}
+  only:
+    - tags
   needs:
     - python3-package
   script:
     - twine upload dist/aiostem-*.whl
-  only:
-    - tags
   when: manual

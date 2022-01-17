@@ -1,12 +1,10 @@
-# -*- coding: utf-8 -*-
-
 import hashlib
 import hmac
 
 from aiostem.exception import ResponseError
+from aiostem.message import Message, MessageLine
 from aiostem.response.base import Reply
 from aiostem.response.simple import SimpleReply
-from aiostem.message import Message, MessageLine
 
 
 class AuthenticateReply(SimpleReply):
@@ -58,7 +56,7 @@ class AuthChallengeReply(Reply):
         """
         computed = self.server_token_build(cookie)
         if computed != self.server_hash:
-            raise ResponseError("Tor provided the wrong server nonce.")
+            raise ResponseError('Tor provided the wrong server nonce.')
 
     def server_token_build(self, cookie: bytes) -> bytes:
         """ Build a token suitable for server hash check from the client.

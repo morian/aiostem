@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
-
 from asyncio import CancelledError, TimeoutError
-from aiostem.event import HsDescEvent, HsDescContentEvent
-from aiostem.exception import AiostemError
-from aiostem.controller import Controller
-from aiostem.util import hs_address_strip_tld, hs_address_version
 from types import TracebackType
 from typing import Callable, Dict, List, Optional, Type
+
+from aiostem.controller import Controller
+from aiostem.event import HsDescContentEvent, HsDescEvent
+from aiostem.exception import AiostemError
+from aiostem.util import hs_address_strip_tld, hs_address_version
 
 
 class HiddenServiceFetchError(AiostemError):

@@ -1,8 +1,6 @@
-# -*- coding: utf-8 -*-
-
 from typing import List
 
-from aiostem.argument import BaseArgument, SingleArgument, KeywordArgument
+from aiostem.argument import BaseArgument, KeywordArgument, SingleArgument
 
 
 class Command:

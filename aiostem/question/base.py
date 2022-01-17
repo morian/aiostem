@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from aiostem.command import Command
 
 

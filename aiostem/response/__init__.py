@@ -1,15 +1,11 @@
-# -*- coding: utf-8 -*-
-
-from typing import Dict, Tuple, Type
+from typing import Dict, List, Type
 
 from aiostem.message import Message
 from aiostem.question import Query
-
-from aiostem.response.base import Reply, UnknownReply
 from aiostem.response.authentication import AuthChallengeReply, AuthenticateReply
+from aiostem.response.base import Reply, UnknownReply
 from aiostem.response.protocolinfo import ProtocolInfoReply
 from aiostem.response.simple import HsFetchReply, QuitReply, SetEventsReply, SignalReply
-
 
 REPLY_MAP: Dict[str, Type[Reply]] = {
     'AUTHENTICATE': AuthenticateReply,
@@ -30,16 +26,15 @@ def reply_parser(query: Query, message: Message) -> Reply:
 # End of function reply_parser.
 
 
-__all__: Tuple[str, ...] = (
-    "AuthChallengeReply",
-    "AuthenticateReply",
-    "HsFetchReply",
-    "ProtocolInfoReply",
-    "QuitReply",
-    "SetEventsReply",
-    "SignalReply",
-
-    "REPLY_MAP",
-    "Reply",
-    "reply_parser",
-)
+__all__: List[str] = [
+    'AuthChallengeReply',
+    'AuthenticateReply',
+    'HsFetchReply',
+    'ProtocolInfoReply',
+    'QuitReply',
+    'REPLY_MAP',
+    'Reply',
+    'SetEventsReply',
+    'SignalReply',
+    'reply_parser',
+]

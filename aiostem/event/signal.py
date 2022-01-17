@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from aiostem.message import Message, MessageLine
 from aiostem.response.base import Event
 

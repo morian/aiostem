@@ -1,7 +1,4 @@
-# -*- coding: utf-8 -*-
-
 import re
-
 from typing import List, Optional, Tuple
 
 from aiostem.exception import MessageError, ProtocolError
@@ -11,8 +8,8 @@ class MessageLine:
     """ Helper used to parse arguments on a message line.
     """
 
-    REGEX_SINGLE_N  = re.compile(r'^([^\s]+)')
-    REGEX_SINGLE_Q  = re.compile(r'^"((?:\\[\\"]|[^"])+)"')
+    REGEX_SINGLE_N = re.compile(r'^([^\s]+)')
+    REGEX_SINGLE_Q = re.compile(r'^"((?:\\[\\"]|[^"])+)"')
     REGEX_KEYWORD_N = re.compile(r'^([^\s=]+)=([^\s]+)')
     REGEX_KEYWORD_Q = re.compile(r'^([^\s=]+)="((?:\\[\\"]|[^"])+)"')
 
@@ -37,7 +34,7 @@ class MessageLine:
         pattern = self.REGEX_SINGLE_Q if quoted else self.REGEX_SINGLE_N
         match = pattern.match(self._cur_line)
         if match is None:
-            raise MessageError("No matching argument in provided line.")
+            raise MessageError('No matching argument in provided line.')
 
         self._cur_line = self._cur_line[match.end(0):].lstrip()
         text = match.group(1)
@@ -61,7 +58,7 @@ class MessageLine:
         pattern = self.REGEX_KEYWORD_Q if quoted else self.REGEX_KEYWORD_N
         match = pattern.match(self._cur_line)
         if match is None:
-            raise MessageError("No matching keyword argument in provided line.")
+            raise MessageError('No matching keyword argument in provided line.')
         self._cur_line = self._cur_line[match.end(0):].lstrip()
 
         keyword = match.group(1)
@@ -169,7 +166,7 @@ class Message:
         """ Add a new line from the controller.
         """
         if self.parsed:
-            raise MessageError("Cannot append an already parsed message.")
+            raise MessageError('Cannot append an already parsed message.')
 
         if line.endswith('\r\n'):
             line = line[:-2]

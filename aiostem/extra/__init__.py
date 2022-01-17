@@ -1,15 +1,13 @@
-# -*- coding: utf-8 -*-
+from typing import List
 
 from aiostem.extra.hscheck import (
     HiddenServiceChecker,
     HiddenServiceFetchError,
     HiddenServiceFetchRequest,
 )
-from typing import Tuple
 
-
-__all__: Tuple[str, ...] = (
-    "HiddenServiceChecker",
-    "HiddenServiceFetchError",
-    "HiddenServiceFetchRequest",
-)
+__all__: List[str] = [
+    'HiddenServiceChecker',
+    'HiddenServiceFetchError',
+    'HiddenServiceFetchRequest',
+]

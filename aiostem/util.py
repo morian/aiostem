@@ -1,9 +1,6 @@
-# -*- coding: utf-8 -*-
-
 import base64
 import hashlib
 import re
-
 
 HS_ADDRESS_SUFFIX = '.onion'
 HS_V2_ADDRESS_LENGTH = 16

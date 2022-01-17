@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from aiostem.command import Command
 from aiostem.question.base import Query
 
@@ -11,7 +9,7 @@ class SimpleQuery(Query):
     def __repr__(self) -> str:
         """ Query representation.
         """
-        return "<{}>".format(type(self).__name__)
+        return '<{}>'.format(type(self).__name__)
 
     @property
     def command(self) -> Command:

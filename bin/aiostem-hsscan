@@ -1,19 +1,18 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-from aiostem import Controller
-from aiostem.event import DisconnectEvent, HsDescContentEvent
-from aiostem.extra import HiddenServiceChecker, HiddenServiceFetchError, HiddenServiceFetchRequest
-from aiostem.util import is_valid_hs_address
-from typing import Optional, Set, Tuple, Union
-
-import aiofiles
 import argparse
 import asyncio
 import contextlib
 import os
 import sys
+from typing import Optional, Set, Tuple, Union
 
+import aiofiles
+
+from aiostem import Controller
+from aiostem.event import DisconnectEvent, HsDescContentEvent
+from aiostem.extra import HiddenServiceChecker, HiddenServiceFetchError, HiddenServiceFetchRequest
+from aiostem.util import is_valid_hs_address
 
 HsCallbackResponseType = Union[HsDescContentEvent, Exception]
 
@@ -36,8 +35,8 @@ class HiddenServiceScanner:
     """ Example application used to mass-scan hidden service descriptors.
     """
 
-    DESCRIPTION = "Check onion domains liveness by requesting directories."
-    DEFAULT_CONTROLLER = "127.0.0.1:9051"
+    DESCRIPTION = 'Check onion domains liveness by requesting directories.'
+    DEFAULT_CONTROLLER = '127.0.0.1:9051'
     DEFAULT_TIMEOUT = 60.0
     DEFAULT_WORKERS = 10
 
@@ -53,9 +52,9 @@ class HiddenServiceScanner:
         parser = argparse.ArgumentParser(prog=prog, description=cls.DESCRIPTION,
                                          formatter_class=HelpFormatter)
         parser.add_argument('-i', '--input', metavar='FILE', required=True,
-                            help="input onion domains to scan (one per line)")
+                            help='input onion domains to scan (one per line)')
         parser.add_argument('-o', '--output', metavar='FILE',
-                            help="output list of successfully scanned domains")
+                            help='output list of successfully scanned domains')
         parser.add_argument('-c', '--control', metavar='SOCK',
                             type=str, default=cls.DEFAULT_CONTROLLER,
                             help="location of Tor's controller (ip:port or path)")
@@ -63,12 +62,12 @@ class HiddenServiceScanner:
                             help="optional password to connect to Tor's controller")
         parser.add_argument('-t', '--timeout', metavar='SECS',
                             type=float, default=cls.DEFAULT_TIMEOUT,
-                            help="how long to wait for each descriptor to be fetched")
+                            help='how long to wait for each descriptor to be fetched')
         parser.add_argument('-w', '--workers', metavar='NUM',
                             type=int, default=cls.DEFAULT_WORKERS,
-                            help="maximum number of concurrent descriptor fetches")
+                            help='maximum number of concurrent descriptor fetches')
         parser.add_argument('-f', '--flush', action='store_true',
-                            help="flush to output file after each write")
+                            help='flush to output file after each write')
         return parser
 
     @staticmethod
@@ -77,7 +76,7 @@ class HiddenServiceScanner:
         """
         items = sock.split(':', 1)
         if len(items) == 1:
-            items.insert(0, "127.0.0.1")
+            items.insert(0, '127.0.0.1')
         return items[0], int(items[1])
 
     async def _onions_load(self, filepath: str) -> Set[str]:
@@ -97,7 +96,7 @@ class HiddenServiceScanner:
             Result can either be an exception or the HS_DESC_CONTENT event.
         """
         if isinstance(res, HiddenServiceFetchError):
-            print("[-] failed to fetch {}.onion (reason: {})".format(req.address, str(res)))
+            print('[-] failed to fetch {}.onion (reason: {})'.format(req.address, str(res)))
         elif isinstance(res, Exception):
             print("[-] unexpected error while fetching {}.onion: {}='{}'"
                   .format(req.address, type(res).__name__, str(res)))
@@ -133,7 +132,7 @@ class HiddenServiceScanner:
         onions = await self._onions_load(options.input)
         self.options = options
 
-        print("[+] Loaded a list of {} onion domains.".format(len(onions)))
+        print('[+] Loaded a list of {} onion domains.'.format(len(onions)))
 
         async with contextlib.AsyncExitStack() as stack:
             # Open the output file if this was requested.
@@ -158,7 +157,7 @@ class HiddenServiceScanner:
                 """ Callback used to be notified when this instance get disconnected
                     from the remote Tor controller.
                 """
-                print("[!] Controller is disconnected from the control socket!")
+                print('[!] Controller is disconnected from the control socket!')
                 task.cancel()
             # End of inner function _hs_check_task_cancel.
 

@@ -1,10 +1,9 @@
-# -*- coding: utf-8 -*-
+from typing import Optional, Tuple
 
 import aiofiles
 
-from aiostem.response.simple import SimpleReply
 from aiostem.message import Message, MessageLine
-from typing import Optional, Tuple
+from aiostem.response.simple import SimpleReply
 
 
 class ProtocolInfoReply(SimpleReply):

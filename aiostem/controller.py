@@ -1,27 +1,22 @@
-# -*- coding: utf-8 -*-
-
 import asyncio
-
 from types import TracebackType
 from typing import Callable, Dict, Iterable, List, Optional, Type
 
 import aiostem.event as e
 import aiostem.question as q
 import aiostem.response as r
-
 from aiostem.command import Command
 from aiostem.connector import (
-    ControlConnector,
-    ControlConnectorPath,
-    ControlConnectorPort,
     DEFAULT_CONTROL_HOST,
     DEFAULT_CONTROL_PATH,
     DEFAULT_CONTROL_PORT,
+    ControlConnector,
+    ControlConnectorPath,
+    ControlConnectorPort,
 )
 from aiostem.exception import AiostemError, ControllerError
 from aiostem.message import Message
 from aiostem.util import hs_address_strip_tld
-
 
 DEFAULT_PROTOCOL_VERSION = q.ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
 
@@ -166,7 +161,7 @@ class Controller:
         elif 'COOKIE' in methods:
             token = await protoinfo.cookie_file_read()
         else:
-            raise ControllerError("No compatible authentication method found!")
+            raise ControllerError('No compatible authentication method found!')
 
         if token is not None:
             token = token.hex()
@@ -191,7 +186,7 @@ class Controller:
         """
         async with self._request_lock:
             if not self.connected:
-                raise ControllerError("Controller is not connected!")
+                raise ControllerError('Controller is not connected!')
 
             payload = str(command).encode('ascii')
             self._writer.write(payload)
@@ -201,7 +196,7 @@ class Controller:
 
         self._rqueue.task_done()
         if rep is None:
-            raise ControllerError("Controller has disconnected!")
+            raise ControllerError('Controller has disconnected!')
         return rep
 
     async def request(self, query: q.Query) -> r.Reply:

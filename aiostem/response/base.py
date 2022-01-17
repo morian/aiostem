@@ -1,10 +1,8 @@
-# -*- coding: utf-8 -*-
+from typing import Dict
 
 from aiostem.exception import MessageError, ResponseError
-from aiostem.question import Query
 from aiostem.message import Message, MessageLine
-
-from typing import Dict
+from aiostem.question import Query
 
 
 class BaseResponse:
