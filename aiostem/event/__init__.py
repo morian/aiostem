@@ -25,11 +25,9 @@ EVENTS_INTERNAL: Set[str] = {
 
 
 def event_parser(message: Message) -> Event:
-    """ Find the appropriate event class to parse this message.
-    """
+    """Find the appropriate event class to parse this message."""
     parser = EVENT_MAP.get(message.event_type, UnknownEvent)
     return parser(message)
-# End of function event_parser.
 
 
 __all__: List[str] = [

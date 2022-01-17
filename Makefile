@@ -7,7 +7,8 @@ LINTER_SOURCES =      \
 	bin/aiostem-hsscan  \
 	setup.py
 isort = isort $(LINTER_SOURCES)
-black = black -S -l 100 $(LINTER_SOURCES)
+black = black -S -l 95 $(LINTER_SOURCES)
+pydocstyle = pydocstyle --explain --source $(LINTER_SOURCES)
 
 .PHONY: install-linter
 install-linter:
@@ -33,13 +34,14 @@ deb: debian/changelog
 .PHONY: format
 format:
 	$(isort)
-	# $(black)
+	$(black)
 
 .PHONY: lint
 lint:
 	flake8 $(LINTER_SOURCES)
 	$(isort) --check-only --df
-	$(black) --check --diff
+	$(black) --check --diff --color
+	$(pydocstyle)
 
 .PHONY: mypy
 mypy:

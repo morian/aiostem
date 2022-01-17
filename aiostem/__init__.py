@@ -1,6 +1,4 @@
-"""
-Asynchronous Tor controller library for asyncio and Python.
-"""
+"""Asynchronous Tor controller library for asyncio and Python."""
 
 from typing import List
 

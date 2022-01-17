@@ -1,12 +1,12 @@
 from typing import List
 
-from aiostem.question.authentication import AuthChallengeQuery, AuthenticateQuery
-from aiostem.question.base import Query
-from aiostem.question.events import SetEventsQuery
-from aiostem.question.hsfetch import HsFetchQuery
-from aiostem.question.protocolinfo import ProtocolInfoQuery
-from aiostem.question.signal import SignalQuery
-from aiostem.question.simple import QuitQuery
+from .authentication import AuthChallengeQuery, AuthenticateQuery
+from .base import Query
+from .events import SetEventsQuery
+from .hsfetch import HsFetchQuery
+from .protocolinfo import ProtocolInfoQuery
+from .signal import SignalQuery
+from .simple import QuitQuery
 
 __all__: List[str] = [
     'AuthChallengeQuery',

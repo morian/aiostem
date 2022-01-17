@@ -5,8 +5,7 @@ from aiostem.question.base import Query
 
 
 class SetEventsQuery(Query):
-    """ Create a query that sets the list of events to subscribe to.
-    """
+    """Create a query that sets the list of events to subscribe to."""
 
     COMMAND_NAME: str = 'SETEVENTS'
 
@@ -16,24 +15,20 @@ class SetEventsQuery(Query):
 
     @property
     def events(self) -> List[str]:
-        """ List of events we want to subscribe to.
-        """
+        """List of events we want to subscribe to."""
         return self._events
 
     @property
     def extended(self) -> bool:
-        """ Whether we want to get extended information on subscribed events.
-        """
+        """Whether we want to get extended information on subscribed events."""
         return self._extended
 
     @property
     def command(self) -> Command:
-        """ Build the command that sets the list of events we would like to receive.
-        """
+        """Build the command that sets the list of events we would like to receive."""
         cmd = Command(self.COMMAND_NAME)
         for event in self.events:
             cmd.add_arg(event)
         if self.extended:
             cmd.add_arg('EXTENDED')
         return cmd
-# End of class SetEventsQuery.

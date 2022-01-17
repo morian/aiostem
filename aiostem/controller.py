@@ -22,62 +22,59 @@ DEFAULT_PROTOCOL_VERSION = q.ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
 
 
 class Controller:
-    """ Client controller for Tor's control socket.
-    """
+    """Client controller for Tor's control socket."""
 
     def __init__(self, connector: ControlConnector) -> None:
+        """Initialize a new controller from a provided connector."""
         self._evt_callbacks = {}  # type: Dict[str, List[Callable]]
         self._request_lock = asyncio.Lock()
         self._events_lock = asyncio.Lock()
         self._authenticated = False
         self._connected = False
         self._connector = connector
-        self._protoinfo = None    # type: Optional[r.ProtocolInfoReply]
-        self._rqueue = None       # type: Optional[asyncio.Queue]
-        self._rdtask = None       # type: Optional[asyncio.Task]
-        self._writer = None       # type: Optional[asyncio.StreamWriter]
+        self._protoinfo = None  # type: Optional[r.ProtocolInfoReply]
+        self._rqueue = None  # type: Optional[asyncio.Queue]
+        self._rdtask = None  # type: Optional[asyncio.Task]
+        self._writer = None  # type: Optional[asyncio.StreamWriter]
 
     @classmethod
-    def from_port(cls, host: str = DEFAULT_CONTROL_HOST,
-                  port: int = DEFAULT_CONTROL_PORT) -> 'Controller':
-        """ Create a new Controller from a TCP port.
-        """
+    def from_port(
+        cls, host: str = DEFAULT_CONTROL_HOST, port: int = DEFAULT_CONTROL_PORT
+    ) -> 'Controller':
+        """Create a new Controller from a TCP port."""
         return cls(ControlConnectorPort(host, port))
 
     @classmethod
     def from_path(cls, path: str = DEFAULT_CONTROL_PATH) -> 'Controller':
-        """ Create a new Controller from a UNIX socket path.
-        """
+        """Create a new Controller from a UNIX socket path."""
         return cls(ControlConnectorPath(path))
 
     @property
     def authenticated(self) -> bool:
-        """ Whether we are correctly authenticated.
-        """
+        """Tell whether we are correctly authenticated."""
         return bool(self.connected and self._authenticated)
 
     @property
     def connected(self) -> bool:
-        """ Whether we are connected to the remote socket.
-        """
+        """Tell whether we are connected to the remote socket."""
         return self._connected
 
     async def __aenter__(self) -> 'Controller':
-        """ Enter Controller's context, connect to the target.
-        """
+        """Enter Controller's context, connect to the target."""
         await self.connect()
         return self
 
-    async def __aexit__(self, etype: Optional[Type[BaseException]],
-                        evalue: Optional[BaseException],
-                        traceback: Optional[TracebackType]) -> None:
-        """ Exit Controller's context.
-        """
+    async def __aexit__(
+        self,
+        etype: Optional[Type[BaseException]],
+        evalue: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
+        """Exit Controller's context."""
         await self.close()
 
     async def _handle_event(self, message: Message) -> None:
-        """ Handle the new received event (find and call the callbacks).
-        """
+        """Handle the new received event (find and call the callbacks)."""
         name = message.event_type
         event = e.event_parser(message)
 
@@ -89,15 +86,13 @@ class Controller:
                 pass
 
     async def _notify_disconnect(self) -> None:
-        """ Generate a DISCONNECT event to tell everyone that we are now disconnected.
-        """
+        """Generate a DISCONNECT event to tell everyone that we are now disconnected."""
         message = Message()
         message.add_line('650 DISCONNECT\r\n')
         await self._handle_event(message)
 
     async def _reader_task(self, reader: asyncio.StreamReader) -> None:
-        """ Read from the socket and dispatch all contents.
-        """
+        """Read from the socket and dispatch all contents."""
         try:
             message = Message()
 
@@ -123,17 +118,18 @@ class Controller:
                 pass
 
     async def auth_challenge(self, nonce: Optional[bytes] = None) -> r.AuthChallengeReply:
-        """ Query Tor's controller so we perform a SAFECOOKIE authentication method.
+        """Query Tor's controller so we perform a SAFECOOKIE authentication method.
 
-            This method is not meant to be called directly but is used by `authenticate`
-            when 'SAFECOOKIE' is the chosen authentication method.
+        This method is not meant to be called directly but is used by `authenticate`
+        when 'SAFECOOKIE' is the chosen authentication method.
         """
         query = q.AuthChallengeQuery(nonce)
         return await self.request(query)
 
     async def authenticate(self, password: Optional[str] = None) -> r.AuthenticateReply:
-        """ Authenticate to Tor's controller.
-            When no password is provided, cookie authentications are attempted.
+        """Authenticate to Tor's controller.
+
+        When no password is provided, cookie authentications are attempted.
         """
         protoinfo = await self.protocol_info()
         methods = set(protoinfo.methods)
@@ -171,18 +167,19 @@ class Controller:
         return reply
 
     async def hs_fetch(self, address: str, servers: List[str] = []) -> r.HsFetchReply:
-        """ Request a hidden service descriptor fetch.
+        """Request a hidden service descriptor fetch.
 
-            The result does not contain the descriptor, which is provided asynchronously
-            through events (HS_DESC and HS_DESC_CONTENT).
+        The result does not contain the descriptor, which is provided asynchronously
+        through events (HS_DESC and HS_DESC_CONTENT).
         """
         address = hs_address_strip_tld(address.lower())
         query = q.HsFetchQuery(address, servers)
         return await self.request(query)
 
     async def request_command(self, command: Command) -> Message:
-        """ Send any kind of command to the controller.
-            A reply is dequeued and expected.
+        """Send any kind of command to the controller.
+
+        A reply is dequeued and expected.
         """
         async with self._request_lock:
             if not self.connected:
@@ -200,14 +197,12 @@ class Controller:
         return rep
 
     async def request(self, query: q.Query) -> r.Reply:
-        """ Perform a provided `query` and returns the appropriate response.
-        """
+        """Perform a provided `query` and returns the appropriate response."""
         message = await self.request_command(query.command)
         return r.reply_parser(query, message)
 
     async def close(self) -> None:
-        """ Close this connection and reset the controller.
-        """
+        """Close this connection and reset the controller."""
         writer = self._writer
         if writer is not None:
             writer.close()
@@ -233,8 +228,7 @@ class Controller:
         self._rqueue = None
 
     async def connect(self) -> None:
-        """ Connect Tor's control socket.
-        """
+        """Connect Tor's control socket."""
         reader, writer = await self._connector.connect()
         rqueue = asyncio.Queue()
         rdtask = asyncio.create_task(self._reader_task(reader))
@@ -244,9 +238,14 @@ class Controller:
         self._rdtask = rdtask
         self._writer = writer
 
-    async def set_events(self, events: Iterable[str], extended: bool = False) -> r.SetEventsReply:
-        """ Set the list of events that we subscribe to.
-            This method should probably not be called directly, see event_subscribe.
+    async def set_events(
+        self,
+        events: Iterable[str],
+        extended: bool = False,
+    ) -> r.SetEventsReply:
+        """Set the list of events that we subscribe to.
+
+        This method should probably not be called directly, see event_subscribe.
         """
         # Remove internal events from the list in our request to the controller.
         events = set(events).difference(e.EVENTS_INTERNAL)
@@ -254,8 +253,7 @@ class Controller:
         return await self.request(query)
 
     async def event_subscribe(self, event: str, callback: Callable) -> None:
-        """ Register a callback to be called when `event` triggers.
-        """
+        """Register a callback to be called when `event` triggers."""
         async with self._events_lock:
             listeners = self._evt_callbacks.setdefault(event, [])
             try:
@@ -268,8 +266,7 @@ class Controller:
                 raise
 
     async def event_unsubscribe(self, event: str, callback: Callable) -> None:
-        """ Unsubscribe `callable` from the event handler for `event`.
-        """
+        """Unsubscribe `callable` from the event handler for `event`."""
         async with self._events_lock:
             listeners = self._evt_callbacks.get(event, [])
             if callback in listeners:
@@ -285,9 +282,13 @@ class Controller:
                     self._evt_callbacks[event] = backup_listeners
                     raise
 
-    async def protocol_info(self, version: int = DEFAULT_PROTOCOL_VERSION) -> r.ProtocolInfoReply:
-        """ Get control protocol information from the remote Tor process.
-            Default version is 1, this is the only version supported by Tor.
+    async def protocol_info(
+        self,
+        version: int = DEFAULT_PROTOCOL_VERSION,
+    ) -> r.ProtocolInfoReply:
+        """Get control protocol information from the remote Tor process.
+
+        Default version is 1, this is the only version supported by Tor.
         """
         if self.authenticated or not self._protoinfo:
             query = q.ProtocolInfoQuery(version)
@@ -295,12 +296,9 @@ class Controller:
         return self._protoinfo
 
     async def signal(self, signal: str) -> r.SignalReply:
-        """ Send a SIGNAL command to the controller.
-        """
+        """Send a SIGNAL command to the controller."""
         return await self.request(q.SignalQuery(signal))
 
     async def quit(self) -> r.QuitReply:
-        """ Send a QUIT command to the controller.
-        """
+        """Send a QUIT command to the controller."""
         return await self.request(q.QuitQuery())
-# End of class Controller.

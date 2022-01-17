@@ -3,19 +3,16 @@ from aiostem.response.base import Event
 
 
 class SignalEvent(Event):
-    """ Parse signal events.
-    """
+    """Parse signal events."""
 
     EVENT_NAME: str = 'SIGNAL'
 
     def __repr__(self) -> str:
-        """ Representation of this Signal event.
-        """
+        """Representation of this Signal event."""
         return "<{} '{}'>".format(type(self).__name__, self.signal)
 
     def _message_parse(self, message: Message) -> None:
-        """ Handle parsing on the signal event.
-        """
+        """Handle parsing on the signal event."""
         super()._message_parse(message)
 
         parser = MessageLine(message.endline)
@@ -24,7 +21,5 @@ class SignalEvent(Event):
 
     @property
     def signal(self) -> str:
-        """ Name of the signal received in this event.
-        """
+        """Name of the signal received in this event."""
         return self._signal
-# End of class SignalEvent.

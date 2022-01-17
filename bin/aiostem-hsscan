@@ -11,15 +11,18 @@ import aiofiles
 
 from aiostem import Controller
 from aiostem.event import DisconnectEvent, HsDescContentEvent
-from aiostem.extra import HiddenServiceChecker, HiddenServiceFetchError, HiddenServiceFetchRequest
+from aiostem.extra import (
+    HiddenServiceChecker,
+    HiddenServiceFetchError,
+    HiddenServiceFetchRequest,
+)
 from aiostem.util import is_valid_hs_address
 
 HsCallbackResponseType = Union[HsDescContentEvent, Exception]
 
 
 class HelpFormatter(argparse.HelpFormatter):
-    """ Change the style of the default help formatter.
-    """
+    """Change the style of the default help formatter."""
 
     DEFAULT_MAX_HELP_POSITION: int = 35
     DEFAULT_WIDTH: int = 100
@@ -28,12 +31,10 @@ class HelpFormatter(argparse.HelpFormatter):
         kwargs.setdefault('max_help_position', self.DEFAULT_MAX_HELP_POSITION)
         kwargs.setdefault('width', self.DEFAULT_WIDTH)
         super().__init__(*args, **kwargs)
-# End of class HelpFormatter.
 
 
 class HiddenServiceScanner:
-    """ Example application used to mass-scan hidden service descriptors.
-    """
+    """Example application used to mass-scan hidden service descriptors."""
 
     DESCRIPTION = 'Check onion domains liveness by requesting directories.'
     DEFAULT_CONTROLLER = '127.0.0.1:9051'
@@ -47,41 +48,68 @@ class HiddenServiceScanner:
 
     @classmethod
     def _parser_get(cls, prog: str) -> argparse.ArgumentParser:
-        """ Option parser for this application.
-        """
-        parser = argparse.ArgumentParser(prog=prog, description=cls.DESCRIPTION,
-                                         formatter_class=HelpFormatter)
-        parser.add_argument('-i', '--input', metavar='FILE', required=True,
-                            help='input onion domains to scan (one per line)')
-        parser.add_argument('-o', '--output', metavar='FILE',
-                            help='output list of successfully scanned domains')
-        parser.add_argument('-c', '--control', metavar='SOCK',
-                            type=str, default=cls.DEFAULT_CONTROLLER,
-                            help="location of Tor's controller (ip:port or path)")
-        parser.add_argument('-p', '--password', metavar='PASS',
-                            help="optional password to connect to Tor's controller")
-        parser.add_argument('-t', '--timeout', metavar='SECS',
-                            type=float, default=cls.DEFAULT_TIMEOUT,
-                            help='how long to wait for each descriptor to be fetched')
-        parser.add_argument('-w', '--workers', metavar='NUM',
-                            type=int, default=cls.DEFAULT_WORKERS,
-                            help='maximum number of concurrent descriptor fetches')
-        parser.add_argument('-f', '--flush', action='store_true',
-                            help='flush to output file after each write')
+        """Option parser for this application."""
+        parser = argparse.ArgumentParser(
+            prog=prog, description=cls.DESCRIPTION, formatter_class=HelpFormatter
+        )
+        parser.add_argument(
+            '-i',
+            '--input',
+            metavar='FILE',
+            required=True,
+            help='input onion domains to scan (one per line)',
+        )
+        parser.add_argument(
+            '-o',
+            '--output',
+            metavar='FILE',
+            help='output list of successfully scanned domains',
+        )
+        parser.add_argument(
+            '-c',
+            '--control',
+            metavar='SOCK',
+            type=str,
+            default=cls.DEFAULT_CONTROLLER,
+            help="location of Tor's controller (ip:port or path)",
+        )
+        parser.add_argument(
+            '-p',
+            '--password',
+            metavar='PASS',
+            help="optional password to connect to Tor's controller",
+        )
+        parser.add_argument(
+            '-t',
+            '--timeout',
+            metavar='SECS',
+            type=float,
+            default=cls.DEFAULT_TIMEOUT,
+            help='how long to wait for each descriptor to be fetched',
+        )
+        parser.add_argument(
+            '-w',
+            '--workers',
+            metavar='NUM',
+            type=int,
+            default=cls.DEFAULT_WORKERS,
+            help='maximum number of concurrent descriptor fetches',
+        )
+        parser.add_argument(
+            '-f', '--flush', action='store_true', help='flush to output file after each write'
+        )
         return parser
 
     @staticmethod
     def _sock_split(sock: str) -> Tuple[str, int]:
-        """ Parses host:port and return both.
-        """
+        """Parses host:port and return both."""
         items = sock.split(':', 1)
         if len(items) == 1:
             items.insert(0, '127.0.0.1')
         return items[0], int(items[1])
 
     async def _onions_load(self, filepath: str) -> Set[str]:
-        """ Load the input list of onion domains to scan.
-        """
+        """Load the input list of onion domains to scan."""
         async with aiofiles.open(filepath, 'r') as fp:
             contents = await fp.read()
 
@@ -90,35 +118,43 @@ class HiddenServiceScanner:
         lines = map(str.strip, contents.split('\n'))
         return set(filter(lambda x: is_valid_hs_address(x, allow_suffix=True), lines))
 
-    async def _hs_callback(self, req: HiddenServiceFetchRequest,
-                           res: HsCallbackResponseType) -> None:
-        """ The callback triggered when we get a scan result.
-            Result can either be an exception or the HS_DESC_CONTENT event.
+    async def _hs_callback(
+        self, req: HiddenServiceFetchRequest, res: HsCallbackResponseType
+    ) -> None:
+        """The callback triggered when we get a scan result.
+        Result can either be an exception or the HS_DESC_CONTENT event.
         """
         if isinstance(res, HiddenServiceFetchError):
             print('[-] failed to fetch {}.onion (reason: {})'.format(req.address, str(res)))
         elif isinstance(res, Exception):
-            print("[-] unexpected error while fetching {}.onion: {}='{}'"
-                  .format(req.address, type(res).__name__, str(res)))
+            print(
+                "[-] unexpected error while fetching {}.onion: {}='{}'".format(
+                    req.address, type(res).__name__, str(res)
+                )
+            )
         else:
-            print("[+] success scanning {}.onion (from directory '{}')"
-                  .format(req.address, res.directory))
+            print(
+                "[+] success scanning {}.onion (from directory '{}')".format(
+                    req.address, res.directory
+                )
+            )
             if self.output:
                 await self.output.write('{}.onion\n'.format(req.address))
                 if self.options.flush:
                     await self.output.flush()
 
     async def _hs_check_task(self, controller: Controller, onions: Set[str]) -> None:
-        """ This task is used to check all the provided onions in parallel way.
-        """
+        """This task is used to check all the provided onions in parallel way."""
         # Create the hidden service checker instance on our brand new controller.
         # Queue is defined here so we don't enqueue everything we have in queue at once.
-        checker = HiddenServiceChecker(controller, concurrency=self.options.workers,
-                                       queue=asyncio.Queue(maxsize=1000))
+        checker = HiddenServiceChecker(
+            controller, concurrency=self.options.workers, queue=asyncio.Queue(maxsize=1000)
+        )
         async with checker:
             for address in onions:
-                req = HiddenServiceFetchRequest(address, self._hs_callback,
-                                                timeout=self.options.timeout)
+                req = HiddenServiceFetchRequest(
+                    address, self._hs_callback, timeout=self.options.timeout
+                )
                 await checker.queue.put(req)
             await checker.queue.join()
 
@@ -127,8 +163,7 @@ class HiddenServiceScanner:
         await self.run(options)
 
     async def run(self, options) -> Optional[int]:
-        """ Check every valid onion domain and write results to an output file.
-        """
+        """Check every valid onion domain and write results to an output file."""
         onions = await self._onions_load(options.input)
         self.options = options
 
@@ -154,17 +189,15 @@ class HiddenServiceScanner:
             await controller.signal('NEWNYM')
 
             async def _hs_check_task_cancel(event: DisconnectEvent):
-                """ Callback used to be notified when this instance get disconnected
-                    from the remote Tor controller.
+                """Callback used to be notified when this instance get disconnected
+                from the remote Tor controller.
                 """
                 print('[!] Controller is disconnected from the control socket!')
                 task.cancel()
-            # End of inner function _hs_check_task_cancel.
 
             task = asyncio.create_task(self._hs_check_task(controller, onions))
             await controller.event_subscribe('DISCONNECT', _hs_check_task_cancel)
             await asyncio.gather(task, return_exceptions=True)
-# End of class HiddenServiceScanner.
 
 
 if __name__ == '__main__':
