@@ -56,7 +56,7 @@ python3-linter:
   before_script:
     - python -m venv venv
     - source venv/bin/activate
-    - make install-linting
+    - make install-linter
   script:
     - make lint
   allow_failure: true
@@ -71,7 +71,7 @@ python3-mypy:
     - python -m venv venv
     - source venv/bin/activate
     - make install-aiostem
-    - make install-linting
+    - make install-linter
   script:
     - make mypy
   allow_failure: true
