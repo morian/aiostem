@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import hashlib
 import hmac
+from typing import cast
 
-from aiostem.exception import ResponseError
+from aiostem.exception import ProtocolError
 from aiostem.message import Message, MessageLine
+from aiostem.question import AuthChallengeQuery
 from aiostem.response.base import Reply
 from aiostem.response.simple import SimpleReply
 
@@ -10,21 +14,23 @@ from aiostem.response.simple import SimpleReply
 class AuthenticateReply(SimpleReply):
     """Reply to the authentication query."""
 
+    pass
+
 
 class AuthChallengeReply(Reply):
     """Reply to a Authentication challenge query."""
 
-    CLIENT_HASH_CONSTANT = b'Tor safe cookie authentication controller-to-server hash'
-    SERVER_HASH_CONSTANT = b'Tor safe cookie authentication server-to-controller hash'
+    CLIENT_HASH_CONSTANT: bytes = b'Tor safe cookie authentication controller-to-server hash'
+    SERVER_HASH_CONSTANT: bytes = b'Tor safe cookie authentication server-to-controller hash'
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, query: AuthChallengeQuery, message: Message) -> None:
         """Initialize a new authentication challenge response."""
         self._server_hash = bytes()
         self._server_nonce = bytes()
-        super().__init__(*args, **kwargs)
+        super().__init__(query, message)
 
     def _message_parse(self, message: Message) -> None:
-        """Parse this whole message!"""
+        """Parse the provided message."""
         super()._message_parse(message)
 
         parser = MessageLine(message.endline)
@@ -35,6 +41,11 @@ class AuthChallengeReply(Reply):
 
         self._server_hash = bytes.fromhex(server_hash)
         self._server_nonce = bytes.fromhex(server_nonce)
+
+    @property
+    def query(self) -> AuthChallengeQuery:
+        """Our query is a AuthChallengeQuery."""
+        return cast(AuthChallengeQuery, super().query)
 
     @property
     def server_hash(self) -> bytes:
@@ -50,7 +61,7 @@ class AuthChallengeReply(Reply):
         """Check that the server hash is consistent with what we compute."""
         computed = self.server_token_build(cookie)
         if computed != self.server_hash:
-            raise ResponseError('Tor provided the wrong server nonce.')
+            raise ProtocolError('Tor provided the wrong server nonce.')
 
     def server_token_build(self, cookie: bytes) -> bytes:
         """Build a token suitable for server hash check from the client."""

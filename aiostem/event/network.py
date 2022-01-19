@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from aiostem.message import Message, MessageLine
 from aiostem.response.base import Event
 
@@ -17,7 +21,8 @@ class NetworkLivenessEvent(Event):
 
     EVENT_NAME: str = 'NETWORK_LIVENESS'
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialize a network status event."""
         self._network_status = ''  # type: str
         super().__init__(*args, **kwargs)
 
@@ -31,10 +36,10 @@ class NetworkLivenessEvent(Event):
 
     @property
     def network_status(self) -> str:
-        """Returns the network status received with this event."""
+        """Return the network status received with this event."""
         return self._network_status
 
     @property
     def is_connected(self) -> bool:
-        """Whether this event tells that the network is UP."""
+        """Tell whether this event tells that the network is UP."""
         return bool(self.network_status == 'UP')

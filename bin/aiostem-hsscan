@@ -5,12 +5,12 @@ import asyncio
 import contextlib
 import os
 import sys
-from typing import Optional, Set, Tuple, Union
+from typing import Any, Optional, Sequence, Set, Tuple, Union
 
 import aiofiles
 
 from aiostem import Controller
-from aiostem.event import DisconnectEvent, HsDescContentEvent
+from aiostem.event import Event, HsDescContentEvent
 from aiostem.extra import (
     HiddenServiceChecker,
     HiddenServiceFetchError,
@@ -27,7 +27,7 @@ class HelpFormatter(argparse.HelpFormatter):
     DEFAULT_MAX_HELP_POSITION: int = 35
     DEFAULT_WIDTH: int = 100
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         kwargs.setdefault('max_help_position', self.DEFAULT_MAX_HELP_POSITION)
         kwargs.setdefault('width', self.DEFAULT_WIDTH)
         super().__init__(*args, **kwargs)
@@ -42,7 +42,7 @@ class HiddenServiceScanner:
     DEFAULT_WORKERS = 10
 
     def __init__(self, prog: str) -> None:
-        self.options = None
+        self.options = None  # type: Optional[argparse.Namespace]
         self.output = None
         self.parser = self._parser_get(prog)
 
@@ -143,26 +143,31 @@ class HiddenServiceScanner:
                 if self.options.flush:
                     await self.output.flush()
 
-    async def _hs_check_task(self, controller: Controller, onions: Set[str]) -> None:
+    async def _hs_check_task(
+        self,
+        controller: Controller,
+        options: argparse.Namespace,
+        onions: Set[str],
+    ) -> None:
         """This task is used to check all the provided onions in parallel way."""
         # Create the hidden service checker instance on our brand new controller.
         # Queue is defined here so we don't enqueue everything we have in queue at once.
         checker = HiddenServiceChecker(
-            controller, concurrency=self.options.workers, queue=asyncio.Queue(maxsize=1000)
+            controller, concurrency=options.workers, queue=asyncio.Queue(maxsize=1000)
         )
         async with checker:
             for address in onions:
                 req = HiddenServiceFetchRequest(
-                    address, self._hs_callback, timeout=self.options.timeout
+                    address, self._hs_callback, timeout=options.timeout
                 )
                 await checker.queue.put(req)
             await checker.queue.join()
 
-    async def start(self, args) -> None:
+    async def start(self, args: Sequence[str]) -> None:
         options = self.parser.parse_args(args)
         await self.run(options)
 
-    async def run(self, options) -> Optional[int]:
+    async def run(self, options: argparse.Namespace) -> None:
         """Check every valid onion domain and write results to an output file."""
         onions = await self._onions_load(options.input)
         self.options = options
@@ -173,7 +178,7 @@ class HiddenServiceScanner:
             # Open the output file if this was requested.
             if options.output:
                 coro = aiofiles.open(options.output, 'w')
-                self.output = await stack.enter_async_context(coro)
+                self.output = await stack.enter_async_context(coro)  # type: ignore[arg-type]
 
             # Find out how we need to connect to our controller.
             if os.path.exists(options.control):
@@ -188,14 +193,14 @@ class HiddenServiceScanner:
             await controller.authenticate(options.password)
             await controller.signal('NEWNYM')
 
-            async def _hs_check_task_cancel(event: DisconnectEvent):
+            async def _hs_check_task_cancel(event: Event) -> None:
                 """Callback used to be notified when this instance get disconnected
                 from the remote Tor controller.
                 """
                 print('[!] Controller is disconnected from the control socket!')
                 task.cancel()
 
-            task = asyncio.create_task(self._hs_check_task(controller, onions))
+            task = asyncio.create_task(self._hs_check_task(controller, options, onions))
             await controller.event_subscribe('DISCONNECT', _hs_check_task_cancel)
             await asyncio.gather(task, return_exceptions=True)
 

@@ -1,6 +1,6 @@
 import asyncio
 from types import TracebackType
-from typing import Callable, Dict, Iterable, List, Optional, Type
+from typing import Any, Callable, Coroutine, Dict, Iterable, List, Optional, Type, cast
 
 import aiostem.event as e
 import aiostem.question as q
@@ -20,26 +20,30 @@ from aiostem.util import hs_address_strip_tld
 
 DEFAULT_PROTOCOL_VERSION = q.ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
 
+EventCallbackType = Callable[[e.Event], Coroutine[Any, Any, None]]
+
 
 class Controller:
     """Client controller for Tor's control socket."""
 
     def __init__(self, connector: ControlConnector) -> None:
         """Initialize a new controller from a provided connector."""
-        self._evt_callbacks = {}  # type: Dict[str, List[Callable]]
+        self._evt_callbacks = {}  # type: Dict[str, List[EventCallbackType]]
         self._request_lock = asyncio.Lock()
         self._events_lock = asyncio.Lock()
         self._authenticated = False
         self._connected = False
         self._connector = connector
         self._protoinfo = None  # type: Optional[r.ProtocolInfoReply]
-        self._rqueue = None  # type: Optional[asyncio.Queue]
-        self._rdtask = None  # type: Optional[asyncio.Task]
+        self._rqueue = None  # type: Optional[asyncio.Queue[Optional[Message]]]
+        self._rdtask = None  # type: Optional[asyncio.Task[None]]
         self._writer = None  # type: Optional[asyncio.StreamWriter]
 
     @classmethod
     def from_port(
-        cls, host: str = DEFAULT_CONTROL_HOST, port: int = DEFAULT_CONTROL_PORT
+        cls,
+        host: str = DEFAULT_CONTROL_HOST,
+        port: int = DEFAULT_CONTROL_PORT,
     ) -> 'Controller':
         """Create a new Controller from a TCP port."""
         return cls(ControlConnectorPort(host, port))
@@ -57,7 +61,7 @@ class Controller:
     @property
     def connected(self) -> bool:
         """Tell whether we are connected to the remote socket."""
-        return self._connected
+        return self._connected and self._writer is not None and self._rqueue is not None
 
     async def __aenter__(self) -> 'Controller':
         """Enter Controller's context, connect to the target."""
@@ -76,14 +80,15 @@ class Controller:
     async def _handle_event(self, message: Message) -> None:
         """Handle the new received event (find and call the callbacks)."""
         name = message.event_type
-        event = e.event_parser(message)
+        if name is not None:
+            event = e.event_parser(message)
 
-        for callback in self._evt_callbacks.get(name, []):
-            # We do not care about exceptions in the event callback.
-            try:
-                await callback(event)
-            except Exception:
-                pass
+            for callback in self._evt_callbacks.get(name, []):
+                # We do not care about exceptions in the event callback.
+                try:
+                    await callback(event)
+                except Exception:
+                    pass
 
     async def _notify_disconnect(self) -> None:
         """Generate a DISCONNECT event to tell everyone that we are now disconnected."""
@@ -91,7 +96,11 @@ class Controller:
         message.add_line('650 DISCONNECT\r\n')
         await self._handle_event(message)
 
-    async def _reader_task(self, reader: asyncio.StreamReader) -> None:
+    async def _reader_task(
+        self,
+        reader: asyncio.StreamReader,
+        rqueue: asyncio.Queue[Optional[Message]],
+    ) -> None:
         """Read from the socket and dispatch all contents."""
         try:
             message = Message()
@@ -101,18 +110,17 @@ class Controller:
                 if not line:
                     break
 
-                line = line.decode('ascii')
-                message.add_line(line)
+                message.add_line(line.decode('ascii'))
                 if message.parsed:
                     if message.is_event:
                         await self._handle_event(message)
                     else:
-                        await self._rqueue.put(message)
+                        rqueue.put(message)
                     message = Message()
         finally:
             try:
                 self._connected = False
-                self._rqueue.put_nowait(None)
+                rqueue.put_nowait(None)
                 await self._notify_disconnect()
             except asyncio.QueueFull:
                 pass
@@ -124,7 +132,8 @@ class Controller:
         when 'SAFECOOKIE' is the chosen authentication method.
         """
         query = q.AuthChallengeQuery(nonce)
-        return await self.request(query)
+        reply = await self.request(query)
+        return cast(r.AuthChallengeReply, reply)
 
     async def authenticate(self, password: Optional[str] = None) -> r.AuthenticateReply:
         """Authenticate to Tor's controller.
@@ -148,12 +157,13 @@ class Controller:
         if 'NULL' in methods:
             token = None
         elif 'HASHEDPASSWORD' in methods:
-            token = password.encode()
+            token = password.encode()  # type: ignore[union-attr]
         elif 'SAFECOOKIE' in methods:
             cookie = await protoinfo.cookie_file_read()
-            challenge = await self.auth_challenge()
-            challenge.raise_for_server_hash_error(cookie)
-            token = challenge.client_token_build(cookie)
+            if cookie is not None:
+                challenge = await self.auth_challenge()
+                challenge.raise_for_server_hash_error(cookie)
+                token = challenge.client_token_build(cookie)
         elif 'COOKIE' in methods:
             token = await protoinfo.cookie_file_read()
         else:
@@ -162,7 +172,7 @@ class Controller:
         if token is not None:
             token = token.hex()
         query = q.AuthenticateQuery(token)
-        reply = await self.request(query)
+        reply = cast(r.AuthenticateReply, await self.request(query))
         self._authenticated = bool(reply.status == 250)
         return reply
 
@@ -174,24 +184,27 @@ class Controller:
         """
         address = hs_address_strip_tld(address.lower())
         query = q.HsFetchQuery(address, servers)
-        return await self.request(query)
+        return cast(r.HsFetchReply, await self.request(query))
 
     async def request_command(self, command: Command) -> Message:
         """Send any kind of command to the controller.
 
         A reply is dequeued and expected.
         """
+        rqueue = cast(asyncio.Queue[Optional[Message]], self._rqueue)
+
         async with self._request_lock:
             if not self.connected:
                 raise ControllerError('Controller is not connected!')
 
+            writer = cast(asyncio.StreamWriter, self._writer)
             payload = str(command).encode('ascii')
-            self._writer.write(payload)
-            await self._writer.drain()
+            writer.write(payload)
+            await writer.drain()
 
-            rep = await self._rqueue.get()
+            rep = await rqueue.get()
 
-        self._rqueue.task_done()
+        rqueue.task_done()
         if rep is None:
             raise ControllerError('Controller has disconnected!')
         return rep
@@ -230,8 +243,8 @@ class Controller:
     async def connect(self) -> None:
         """Connect Tor's control socket."""
         reader, writer = await self._connector.connect()
-        rqueue = asyncio.Queue()
-        rdtask = asyncio.create_task(self._reader_task(reader))
+        rqueue = asyncio.Queue()  # type: asyncio.Queue[Optional[Message]]
+        rdtask = asyncio.create_task(self._reader_task(reader, rqueue))
 
         self._connected = True
         self._rqueue = rqueue
@@ -250,9 +263,9 @@ class Controller:
         # Remove internal events from the list in our request to the controller.
         events = set(events).difference(e.EVENTS_INTERNAL)
         query = q.SetEventsQuery(events, extended)
-        return await self.request(query)
+        return cast(r.SetEventsReply, await self.request(query))
 
-    async def event_subscribe(self, event: str, callback: Callable) -> None:
+    async def event_subscribe(self, event: str, callback: EventCallbackType) -> None:
         """Register a callback to be called when `event` triggers."""
         async with self._events_lock:
             listeners = self._evt_callbacks.setdefault(event, [])
@@ -265,7 +278,7 @@ class Controller:
                     self._evt_callbacks.pop(event)
                 raise
 
-    async def event_unsubscribe(self, event: str, callback: Callable) -> None:
+    async def event_unsubscribe(self, event: str, callback: EventCallbackType) -> None:
         """Unsubscribe `callable` from the event handler for `event`."""
         async with self._events_lock:
             listeners = self._evt_callbacks.get(event, [])
@@ -292,13 +305,13 @@ class Controller:
         """
         if self.authenticated or not self._protoinfo:
             query = q.ProtocolInfoQuery(version)
-            self._protoinfo = await self.request(query)
+            self._protoinfo = cast(r.ProtocolInfoReply, await self.request(query))
         return self._protoinfo
 
     async def signal(self, signal: str) -> r.SignalReply:
         """Send a SIGNAL command to the controller."""
-        return await self.request(q.SignalQuery(signal))
+        return cast(r.SignalReply, await self.request(q.SignalQuery(signal)))
 
     async def quit(self) -> r.QuitReply:
         """Send a QUIT command to the controller."""
-        return await self.request(q.QuitQuery())
+        return cast(r.QuitReply, await self.request(q.QuitQuery()))

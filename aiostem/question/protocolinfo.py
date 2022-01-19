@@ -8,7 +8,8 @@ class ProtocolInfoQuery(Query):
     COMMAND_NAME: str = 'PROTOCOLINFO'
     DEFAULT_PROTOCOL_VERSION: int = 1
 
-    def __init__(self, version: DEFAULT_PROTOCOL_VERSION) -> None:
+    def __init__(self, version: int = DEFAULT_PROTOCOL_VERSION) -> None:
+        """Build a PROTOCOLINFO query."""
         self._version = version
 
     def __repr__(self) -> str:
@@ -16,7 +17,7 @@ class ProtocolInfoQuery(Query):
         return "<{} version='{}'>".format(self.COMMAND_NAME, self.version)
 
     @property
-    def command(self) -> str:
+    def command(self) -> Command:
         """Convert this query object to a command suitable for `Controller.request()`."""
         cmd = Command(self.COMMAND_NAME)
         cmd.add_arg(str(self.version))

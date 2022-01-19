@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Dict
 
 from aiostem.exception import MessageError, ResponseError
@@ -9,12 +11,14 @@ class BaseResponse:
     """Base class used by all response messages."""
 
     def __init__(self, message: Message) -> None:
-        self._message = message
+        """Create a base builder for any kind of response."""
         self._message_parse(message)
+        self._message = message
 
     @staticmethod
-    def _keyword_parse(self, parser: MessageLine) -> Dict[str, str]:
+    def _keyword_parse(parser: MessageLine) -> Dict[str, str]:
         """Parse keyword arguments from the provided MessageLine.
+
         This first try to parse as quoted, otherwise as non-quoted.
         """
         keywords = {}
@@ -34,7 +38,7 @@ class BaseResponse:
 
     @property
     def status(self) -> int:
-        """Status code of the received response."""
+        """Get the status code of the received response."""
         return self._status
 
     @property
@@ -47,12 +51,13 @@ class Reply(BaseResponse):
     """Anything received in response to a request."""
 
     def __init__(self, query: Query, message: Message) -> None:
+        """Build a response that is a reply to a query we sent."""
         super().__init__(message)
         self._query = query
 
     @property
     def query(self) -> Query:
-        """This is the original query related to this reply."""
+        """Get the the original query related to this reply."""
         return self._query
 
     def _message_parse(self, message: Message) -> None:
@@ -60,8 +65,8 @@ class Reply(BaseResponse):
         super()._message_parse(message)
         self.raise_for_status()
 
-    def raise_for_status(self):
-        """Raise a reponse error!"""
+    def raise_for_status(self) -> None:
+        """Raise a reponse error when the status instructs us to."""
         if self.status >= 400:
             raise ResponseError(self.status, self.message.endline)
 

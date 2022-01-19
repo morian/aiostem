@@ -1,6 +1,8 @@
-from typing import Dict, Optional, Type
+from __future__ import annotations
 
-from stem.descriptor.hidden_service import (
+from typing import Any, Dict, Optional, Type
+
+from stem.descriptor.hidden_service import (  # type: ignore[import]
     BaseHiddenServiceDescriptor,
     HiddenServiceDescriptorV2,
     HiddenServiceDescriptorV3,
@@ -22,7 +24,8 @@ class HsDescEvent(Event):
 
     EVENT_NAME: str = 'HS_DESC'
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialize a hidden service descriptor event."""
         self._action = ''  # type: str
         self._address = ''  # type: str
         self._auth_type = ''  # type: str
@@ -34,13 +37,13 @@ class HsDescEvent(Event):
         super().__init__(*args, **kwargs)
 
     def __repr__(self) -> str:
-        """Representation of this event."""
+        """Get the representation of this event."""
         return "<{} address='{}' directory='{}' action='{}'>".format(
             type(self).__name__, self.address, self.directory, self.action
         )
 
     def _message_parse(self, message: Message) -> None:
-        """Parse this event message."""
+        """Parse the provided message to build our event."""
         super()._message_parse(message)
 
         parser = MessageLine(message.endline)
@@ -65,13 +68,13 @@ class HsDescEvent(Event):
             key, val = parser.pop_kwarg()
             keywords[key] = val
 
-        def reason_set(val):
+        def reason_set(val: str) -> None:
             self._reason = val
 
-        def replica_set(val):
+        def replica_set(val: str) -> None:
             self._replica = int(val)
 
-        def index_set(val):
+        def index_set(val: str) -> None:
             self._index = val
 
         keyword_fn = {
@@ -87,44 +90,45 @@ class HsDescEvent(Event):
 
     @property
     def action(self) -> str:
-        """Type of event received
+        """Get the type of event we received.
+
         REQUESTED, FAILED, UPLOAD, RECEIVED, UPLOADED,IGNORE, CREATED
         """
         return self._action
 
     @property
     def address(self) -> str:
-        """Onion domain address (or UNKNOWN)"""
+        """Get the onion domain address or UNKNOWN."""
         return self._address
 
     @property
     def auth_type(self) -> str:
-        """Type of authentication with the HS."""
+        """Get the type of authentication with the hidden service."""
         return self._auth_type
 
     @property
     def descriptor_id(self) -> Optional[str]:
-        """Descriptor ID"""
+        """Get the descriptor ID."""
         return self._descriptor_id
 
     @property
     def directory(self) -> str:
-        """Hidden service directory (or 'UNKNOWN')"""
+        """Get the Hidden service directory or 'UNKNOWN'."""
         return self._directory
 
     @property
     def index(self) -> Optional[str]:
-        """Directory index (if any)."""
+        """Get the directory index, if any."""
         return self._index
 
     @property
     def reason(self) -> Optional[str]:
-        """Reason why this descriptor failed."""
+        """Get the reason why this descriptor failed."""
         return self._reason
 
     @property
     def replica(self) -> Optional[int]:
-        """Replica number of the generated descriptor."""
+        """Get the replica number of the generated descriptor."""
         return self._replica
 
 
@@ -133,7 +137,8 @@ class HsDescContentEvent(Event):
 
     EVENT_NAME: str = 'HS_DESC_CONTENT'
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialize a hidden service descriptor content event."""
         self._address = ''  # type: str
         self._descriptor = None  # type: Optional[BaseHiddenServiceDescriptor]
         self._descriptor_id = ''  # type: str
@@ -142,13 +147,13 @@ class HsDescContentEvent(Event):
         super().__init__(*args, **kwargs)
 
     def __repr__(self) -> str:
-        """Representation of this event."""
+        """Get the representation of this event."""
         return "<{} address='{}' directory='{}' descid='{}'>".format(
             type(self).__name__, self.address, self.directory, self.descriptor_id
         )
 
     def _message_parse(self, message: Message) -> None:
-        """Parse this event message."""
+        """Parse the provided message to build our event."""
         super()._message_parse(message)
 
         parser = MessageLine(message.dataline)
@@ -161,7 +166,7 @@ class HsDescContentEvent(Event):
 
     @property
     def address(self) -> str:
-        """Hidden Service address related to this event."""
+        """Get the hidden Service address related to this event."""
         return self._address
 
     @property
@@ -174,15 +179,15 @@ class HsDescContentEvent(Event):
 
     @property
     def descriptor_id(self) -> str:
-        """Descriptor ID"""
+        """Get the descriptor ID."""
         return self._descriptor_id
 
     @property
     def descriptor_raw(self) -> str:
-        """Raw content of the received descriptor."""
+        """Get the raw content of the received descriptor."""
         return self._descriptor_raw
 
     @property
     def directory(self) -> str:
-        """Hidden service directory that provided this descriptor."""
+        """Get the hidden service directory name providing this descriptor."""
         return self._directory

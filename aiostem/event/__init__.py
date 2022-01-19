@@ -26,7 +26,10 @@ EVENTS_INTERNAL: Set[str] = {
 
 def event_parser(message: Message) -> Event:
     """Find the appropriate event class to parse this message."""
-    parser = EVENT_MAP.get(message.event_type, UnknownEvent)
+    if message.event_type is not None:
+        parser = EVENT_MAP.get(message.event_type, UnknownEvent)
+    else:
+        parser = UnknownEvent
     return parser(message)
 
 

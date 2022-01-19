@@ -1,4 +1,6 @@
-from typing import Dict
+from __future__ import annotations
+
+from typing import Any, Dict
 
 from aiostem.message import Message, MessageLine
 from aiostem.response.base import Event
@@ -7,12 +9,13 @@ from aiostem.response.base import Event
 class BaseStatusEvent(Event):
     """Parent class for all status events."""
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Build any kind of status event."""
         self._action = ''  # type: str
         self._severity = ''  # type: str
         super().__init__(*args, **kwargs)
 
-    def _message_parse(self, message: Message) -> MessageLine:
+    def _message_parse(self, message: Message) -> None:
         """Parse this kind of event messages."""
         super()._message_parse(message)
 
@@ -25,17 +28,20 @@ class BaseStatusEvent(Event):
 
     @property
     def action(self) -> str:
-        """Action string."""
+        """Get the action string."""
         return self._action
 
     @property
     def arguments(self) -> Dict[str, str]:
-        """Get the list of keyword arguments (generic)."""
+        """Get the list of generic keyword arguments."""
         return self._arguments
 
     @property
     def severity(self) -> str:
-        """Message severity ('NOTICE', 'WARN', 'ERR')."""
+        """Get the message severity.
+
+        This can be NOTICE, WARN, ERR.
+        """
         return self._severity
 
 

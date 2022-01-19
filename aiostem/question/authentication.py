@@ -15,10 +15,10 @@ class AuthChallengeQuery(Query):
         """Initialize a new authentication challenge query."""
         if nonce is None:
             nonce = secrets.token_bytes(self.CLIENT_NONCE_SIZE)
-        self._nonce = nonce
+        self._nonce = nonce  # type: bytes
 
     @property
-    def command(self) -> str:
+    def command(self) -> Command:
         """Convert this query object to a command suitable for `Controller.request()`."""
         cmd = Command(self.COMMAND_NAME)
         cmd.add_arg('SAFECOOKIE')
@@ -26,7 +26,7 @@ class AuthChallengeQuery(Query):
         return cmd
 
     @property
-    def nonce(self) -> Optional[bytes]:
+    def nonce(self) -> bytes:
         """Get the client nonce, either provided or generated."""
         return self._nonce
 
@@ -41,7 +41,7 @@ class AuthenticateQuery(Query):
         self._token = token
 
     @property
-    def command(self) -> str:
+    def command(self) -> Command:
         """Convert this query object to a command suitable for `Controller.request()`."""
         cmd = Command(self.COMMAND_NAME)
         if self.token is not None:

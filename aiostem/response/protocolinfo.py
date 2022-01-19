@@ -1,4 +1,6 @@
-from typing import Optional, Tuple
+from __future__ import annotations
+
+from typing import Any, Optional, Tuple
 
 import aiofiles
 
@@ -9,7 +11,8 @@ from aiostem.response.simple import SimpleReply
 class ProtocolInfoReply(SimpleReply):
     """Parse a protocol info reply."""
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Build a reply to a ProtocolInfoQuery."""
         self._cookie_file = None  # type: Optional[str]
         self._methods = ()  # type: Tuple[str, ...]
         self._proto_version = 0  # type: int
@@ -24,7 +27,7 @@ class ProtocolInfoReply(SimpleReply):
 
     def _message_resp_parse(self, parser: MessageLine) -> None:
         """Parse the PROTOCOLINFO mid-line."""
-        self._proto_version = parser.pop_arg()
+        self._proto_version = int(parser.pop_arg())
 
     def _message_auth_parse(self, parser: MessageLine) -> None:
         """Parse the AUTH mid-line."""
@@ -41,7 +44,7 @@ class ProtocolInfoReply(SimpleReply):
         self._tor_version = version
 
     def _message_parse(self, message: Message) -> None:
-        """Parse this whole message!"""
+        """Parse the provided message."""
         super()._message_parse(message)
 
         # Control spec says these line can come in any order...
@@ -59,25 +62,27 @@ class ProtocolInfoReply(SimpleReply):
 
     @property
     def cookie_file(self) -> Optional[str]:
-        """Cookie file that can be used for authentication."""
+        """Get the path to the cookie file that can be used to authenticate."""
         return self._cookie_file
 
     @property
     def methods(self) -> Tuple[str, ...]:
-        """List of authentication methods allowed."""
+        """Get a list of allowed authentication methods."""
         return self._methods
 
     @property
     def proto_version(self) -> int:
-        """Protocol version returned by Tor."""
+        """Get the protocol version returned by Tor."""
         return self._proto_version
 
     @property
     def tor_version(self) -> str:
-        """Version of the Tor daemon we are communicating with."""
+        """Get the version of the Tor daemon we are communicating with."""
         return self._tor_version
 
-    async def cookie_file_read(self) -> bytes:
+    async def cookie_file_read(self) -> Optional[bytes]:
         """Read the content of the cookie file."""
-        async with aiofiles.open(self.cookie_file, 'rb') as fp:
-            return await fp.read()
+        if self.cookie_file is not None:
+            async with aiofiles.open(self.cookie_file, 'rb') as fp:
+                return await fp.read()
+        return None

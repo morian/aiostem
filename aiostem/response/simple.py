@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from aiostem.message import Message
 from aiostem.response.base import Reply
 
@@ -5,12 +9,13 @@ from aiostem.response.base import Reply
 class SimpleReply(Reply):
     """Base class for simple replies (a single line)."""
 
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Initialize any kind of simple replies."""
         self._status_text = ''  # type: str
         super().__init__(*args, **kwargs)
 
     def __repr__(self) -> str:
-        """Representation of this reply."""
+        """Get the representation of this reply."""
         return "<{} status='{}' text='{}'>".format(
             type(self).__name__, self.status, self.status_text
         )
@@ -22,7 +27,7 @@ class SimpleReply(Reply):
 
     @property
     def status_text(self) -> str:
-        """Text version of the `status` code."""
+        """Get the text version of the `status` code."""
         return self._status_text
 
 
