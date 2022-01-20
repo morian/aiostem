@@ -79,7 +79,7 @@ python3-tests:
     - source venv/bin/activate
     - make install-testing
   script:
-    - |-
+    - >-
       coverage run bin/aiostem-hsscan --input tests/onionlist.txt
       --control torcontrol:9201 --password aiostem --workers 2 --timeout 30
     - make test
