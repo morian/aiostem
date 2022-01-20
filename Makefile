@@ -19,8 +19,12 @@ install-aiostem:
 	pip install -U build pip wheel
 	pip install -e .
 
+.PHONY: install-testing
+install-testing: install-aiostem
+	pip install -r tests/requirements-testing.txt
+
 .PHONY: install
-install: install-aiostem install-linter
+install: install-testing install-linter
 	@echo 'Installed development requirements'
 
 .PHONY: build
@@ -50,11 +54,23 @@ mypy:
 .PHONY: all
 all: lint mypy
 
+.PHONY: test
+test:
+	pytest --cov=aiostem
+
+.PHONY: testcov
+testcov: test
+	@echo "building coverage html"
+	@coverage html
+
 .PHONY: clean
 clean:
+	rm -f .coverage
+	rm -f .coverage.*
 	rm -rf *.egg-info
 	rm -rf .mypy_cache
 	rm -rf .pytest_cache
 	rm -rf build
 	rm -rf dist
+	rm -rf htmlcov
 	find aiostem -name '*.py[cod]' -delete
