@@ -18,7 +18,7 @@ from typing import (
 )
 
 from aiostem.controller import Controller
-from aiostem.event import HsDescContentEvent, HsDescEvent
+from aiostem.event import Event, HsDescContentEvent, HsDescEvent
 from aiostem.exception import AiostemError
 from aiostem.util import hs_address_strip_tld, hs_address_version
 
@@ -166,19 +166,21 @@ class HiddenServiceChecker:
         """Get the hidden service request queue."""
         return self._queue
 
-    async def _event_info_cb(self, event: HsDescEvent) -> None:
+    async def _event_info_cb(self, event: Event) -> None:
         """Handle received descriptor event (received/created/requested)."""
-        entries = self._requests.get(event.address)
-        if entries:
-            for entry in entries:
-                entry.add_info(event)
+        if isinstance(event, HsDescEvent):
+            entries = self._requests.get(event.address)
+            if entries:
+                for entry in entries:
+                    entry.add_info(event)
 
-    async def _event_data_cb(self, event: HsDescContentEvent) -> None:
+    async def _event_data_cb(self, event: Event) -> None:
         """Handle received descriptor content."""
-        entries = self._requests.get(event.address)
-        if entries:
-            for entry in entries:
-                entry.add_data(event)
+        if isinstance(event, HsDescContentEvent):
+            entries = self._requests.get(event.address)
+            if entries:
+                for entry in entries:
+                    entry.add_data(event)
 
     async def _request_post(self, address: str) -> HiddenServiceCheckEntry:
         """Perform and register a hidden service fetch request."""
@@ -213,11 +215,12 @@ class HiddenServiceChecker:
         while True:
             req = await self.queue.get()
             try:
-                entry = cast(
-                    Union[HsDescContentEvent, Exception], await self._request_post(req.address)
-                )
+                entry = await self._request_post(req.address)
                 try:
-                    res = await asyncio.wait_for(entry.future, req.timeout)
+                    res = cast(
+                        Union[Exception, HsDescContentEvent],
+                        await asyncio.wait_for(entry.future, req.timeout),
+                    )
                 finally:
                     self._request_discard(req.address, entry)
             # These handlers are here to convert expected errors to HiddenServiceFetchError.
