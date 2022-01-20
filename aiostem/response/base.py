@@ -12,8 +12,8 @@ class BaseResponse:
 
     def __init__(self, message: Message) -> None:
         """Create a base builder for any kind of response."""
-        self._message_parse(message)
         self._message = message
+        self._message_parse(message)
 
     @staticmethod
     def _keyword_parse(parser: MessageLine) -> Dict[str, str]:
