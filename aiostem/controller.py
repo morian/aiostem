@@ -115,7 +115,7 @@ class Controller:
                     if message.is_event:
                         await self._handle_event(message)
                     else:
-                        rqueue.put(message)
+                        await rqueue.put(message)
                     message = Message()
         finally:
             try:
