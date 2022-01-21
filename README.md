@@ -45,7 +45,7 @@ On compatibility, just ensure you have a recent version of Tor (something like 0
 
 # Installation
 
-Aiostem was tested successfully with Python 3.7, Python 3.8 and Python 3.9.
+Aiostem was tested successfully from Python 3.7 to Python 3.10.
 
 The best way to install it is by creating a dedicated `venv` using the `venv` package from python.
 Note that this might require the installation of distribution specific packages such as
@@ -68,21 +68,15 @@ or from sources using `setup.py` (provided):
 (venv) $ pip install .
 ```
 
-Should anything fail at this point, and still within the container you can install the exact
-dependencies that were used during the development phase and provided in `requirements.txt`:
-
-```console
-(venv) $ pip -r requirements.txt
-```
-
 # Getting started
 
 This simple example shows how to use the controller in asynchronous python.
 No extra thread is involved here, everything runs in the event loop.
 
 ```python
-import aiostem
 import asyncio
+
+from aiostem import Controller
 
 
 async def aio_hs_callback(event):
@@ -91,7 +85,7 @@ async def aio_hs_callback(event):
 
 async def main():
     # Create a new controller with the default port (9051).
-    async with aiostem.Controller.from_port() as controller:
+    async with Controller.from_port() as controller:
         # Authenticate automatically with a secure method.
         await controller.authenticate()
 

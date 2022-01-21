@@ -68,5 +68,5 @@ class KeywordArgument(BaseArgument):
     def __str__(self) -> str:
         """Get the value as sent on the socket."""
         if self.quoted:
-            return '{0}={1}'.format(self.keyword, add_quotes(self.value))
+            return '{0}="{1}"'.format(self.keyword, add_quotes(self.value))
         return '{0}={1}'.format(self.keyword, self.value)
