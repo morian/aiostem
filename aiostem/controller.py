@@ -295,10 +295,10 @@ class Controller:
                     self._evt_callbacks[event] = backup_listeners
                     raise
 
-    async def get_info(self, *args: str) -> r.Reply:
+    async def get_info(self, *args: str) -> r.GetInfoReply:
         """Get information from the remote server."""
         query = q.GetInfoQuery(*args)
-        return await self.request(query)
+        return cast(r.GetInfoReply, await self.request(query))
 
     async def protocol_info(
         self,

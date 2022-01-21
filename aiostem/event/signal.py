@@ -19,7 +19,7 @@ class SignalEvent(Event):
         """Handle parsing on the signal event."""
         super()._message_parse(message)
 
-        parser = MessageLineParser(message.endline)
+        parser = MessageLineParser(message.status_line)
         parser.pop_arg_checked(self.EVENT_NAME)
         self._signal = parser.pop_arg()
 

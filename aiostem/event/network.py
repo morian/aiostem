@@ -30,7 +30,7 @@ class NetworkLivenessEvent(Event):
         """Parse this event message."""
         super()._message_parse(message)
 
-        parser = MessageLineParser(message.endline)
+        parser = MessageLineParser(message.status_line)
         parser.pop_arg_checked(self.EVENT_NAME)
         self._network_status = parser.pop_arg()
 

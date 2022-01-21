@@ -8,8 +8,8 @@ from stem.descriptor.hidden_service import (  # type: ignore[import]
     HiddenServiceDescriptorV3,
 )
 
-from aiostem.exception import MessageError
-from aiostem.message import Message, MessageLineParser
+from aiostem.exception import MessageError, ProtocolError
+from aiostem.message import Message, MessageData, MessageLineParser
 from aiostem.response.base import Event
 from aiostem.util import hs_address_version
 
@@ -46,7 +46,7 @@ class HsDescEvent(Event):
         """Parse the provided message to build our event."""
         super()._message_parse(message)
 
-        parser = MessageLineParser(message.endline)
+        parser = MessageLineParser(message.status_line)
         parser.pop_arg_checked(self.EVENT_NAME)
 
         self._action = parser.pop_arg()
@@ -156,12 +156,19 @@ class HsDescContentEvent(Event):
         """Parse the provided message to build our event."""
         super()._message_parse(message)
 
-        parser = MessageLineParser(message.dataline)
+        if len(message.items) == 0:
+            raise ProtocolError('Event HS_DESC_CONTENT contains nothing.')
+
+        item = message.items[0]
+        if not isinstance(item, MessageData):
+            raise ProtocolError('Event HS_DESC_CONTENT contains no data.')
+
+        parser = MessageLineParser(item.header)
         parser.pop_arg_checked(self.EVENT_NAME)
 
         self._address = parser.pop_arg()
         self._descriptor_id = parser.pop_arg()
-        self._descriptor_raw = message.data
+        self._descriptor_raw = '\n'.join(item.lines)
         self._directory = parser.pop_arg()
 
     @property

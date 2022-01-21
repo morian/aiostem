@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 import aiofiles
 
@@ -11,7 +11,26 @@ from aiostem.response.simple import SimpleReply
 class GetInfoReply(SimpleReply):
     """Parse replies from information requests."""
 
-    pass
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        """Build a reply to a GetInfoQuery."""
+        self._items = {}  # type: Dict[str, str]
+        super().__init__(*args, **kwargs)
+
+    def _message_parse(self, message: Message) -> None:
+        """Parse the provided message."""
+        super()._message_parse(message)
+
+        for item in message.items:
+            parser = MessageLineParser(item.header)
+            key, value = parser.pop_kwarg()
+            if len(item.lines):
+                value = '\n'.join(item.lines)
+            self._items[key] = value
+
+    @property
+    def values(self) -> Dict[str, str]:
+        """Get the list of parsed items."""
+        return self._items
 
 
 class ProtocolInfoReply(SimpleReply):
@@ -60,10 +79,11 @@ class ProtocolInfoReply(SimpleReply):
             'VERSION': self._message_vers_parse,
         }
 
-        for parser in map(MessageLineParser, message.midlines):
+        for item in message.items:
+            parser = MessageLineParser(item.header)
             verb = parser.pop_arg()
             func = parser_fn.get(verb)
-            if func is not None:
+            if func:
                 func(parser)
 
     @property

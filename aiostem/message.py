@@ -9,8 +9,8 @@ class MessageLineParser:
 
     REGEX_SINGLE_N = re.compile(r'^([^\s]+)')
     REGEX_SINGLE_Q = re.compile(r'^"((?:\\[\\"]|[^"])+)"')
-    REGEX_KEYWORD_N = re.compile(r'^([^\s=]+)=([^\s]+)')
-    REGEX_KEYWORD_Q = re.compile(r'^([^\s=]+)="((?:\\[\\"]|[^"])+)"')
+    REGEX_KEYWORD_N = re.compile(r'^([^\s=]+)=([^\s]*)')
+    REGEX_KEYWORD_Q = re.compile(r'^([^\s=]+)="((?:\\[\\"]|[^"])*)"')
 
     def __init__(self, line: str) -> None:
         """Initialize and handle a single line from the control socket."""
@@ -73,20 +73,43 @@ class MessageLineParser:
             raise MessageError("expected argument '{}', got '{}'.".format(name, keyword))
         return value
 
+    def reset(self) -> None:
+        """Reset the parser to its initial state."""
+        self._cur_line = self._raw_line
+
+
+class MessageData:
+    """Class for keeping track of data messages."""
+
+    __slots__ = ('header', 'lines')
+
+    def __init__(self, header: str):
+        """Create a new message data."""
+        self.header = header
+        self.lines = []  # type: List[str]
+
 
 class Message:
     """Store any kind of message received by the controller."""
 
     def __init__(self) -> None:
         """Initialize a new empty message."""
-        self._parsed = False
-        self._status = 0
-        self._dataline = ''
-        self._statline = ''
-        self._midlines = []  # type: List[str]
-        self._datlines = []  # type: List[str]
-        self._evttype = None  # type: Optional[str]
-        self._indata = False
+        self._parsing_data = None  # type: Optional[MessageData]
+        self._parsing_done = False
+
+        self._data_items = []  # type: List[MessageData]
+        self._event_type = None  # type: Optional[str]
+        self._status_code = 0
+        self._status_line = ''
+
+    def _event_type_set(self) -> None:
+        """Find the event type of the current event."""
+        if len(self.items) > 0:
+            line = self.items[0].header
+        else:
+            line = self.status_line
+
+        self._event_type = MessageLineParser(line).pop_arg()
 
     @property
     def parsed(self) -> bool:
@@ -95,62 +118,32 @@ class Message:
         This marks the end of a message and the start of another one from the
         controller's point of view (message is then forwarded appropriately).
         """
-        return self._parsed
-
-    @property
-    def data(self) -> str:
-        """Get the text content of the data payload."""
-        return '\n'.join(self._datlines)
-
-    @property
-    def datalines(self) -> List[str]:
-        """List of data lines received."""
-        return self._datlines
-
-    @property
-    def dataline(self) -> str:
-        """Get the full content of the data line.
-
-        This is the one preceding the full data text.
-        """
-        return self._dataline
-
-    @property
-    def is_event(self) -> bool:
-        """Whether this message is an asynchronous event."""
-        return bool(self.status == 650)
-
-    @property
-    def endline(self) -> str:
-        """Get the raw text content of the end line."""
-        return self._statline
+        return self._parsing_done
 
     @property
     def event_type(self) -> Optional[str]:
         """Event type (when this message is an event)."""
-        return self._evttype
+        return self._event_type
 
     @property
-    def midlines(self) -> List[str]:
-        """Get the list of middle lines."""
-        return self._midlines
+    def is_event(self) -> bool:
+        """Whether this message is an asynchronous event."""
+        return bool(self.status_code == 650)
 
     @property
-    def status(self) -> int:
+    def items(self) -> List[MessageData]:
+        """Get the ordered list of items in this message."""
+        return self._data_items
+
+    @property
+    def status_code(self) -> int:
         """Status code of this message."""
-        return self._status
+        return self._status_code
 
-    def _event_type_set(self) -> None:
-        """Find the event type of the current event."""
-        if self.is_event:
-            if self.dataline:
-                line = self.dataline
-            elif self.midlines:
-                line = self.midlines[0]
-            else:
-                line = self.endline
-
-            self._evttype = MessageLineParser(line).pop_arg()
+    @property
+    def status_line(self) -> str:
+        """Get the raw text content of the end line."""
+        return self._status_line
 
     def add_line(self, line: str) -> None:
         """Add a new line from the controller."""
@@ -160,16 +153,16 @@ class Message:
         if line.endswith('\r\n'):
             line = line[:-2]
 
-        if self._indata:
+        if isinstance(self._parsing_data, MessageData):
             # This indicates the end of the data part of this message.
             if line == '.':
-                self._indata = False
-                return
-
-            # Ignore the leading dot (this is an escape mechanism).
-            if line.startswith('.'):
-                line = line[1:]
-            self._datlines.append(line)
+                self._data_items.append(self._parsing_data)
+                self._parsing_data = None
+            else:
+                # Ignore the leading dot (this is an escape mechanism).
+                if line.startswith('.'):
+                    line = line[1:]
+                self._parsing_data.lines.append(line)
         else:
             if len(line) < 4:
                 raise ProtocolError("Received line is too short: '{}'!".format(line))
@@ -179,14 +172,14 @@ class Message:
             data = line[4:]
 
             if kind == ' ':
-                self._parsed = True
-                self._status = int(code)
-                self._statline = data
-                self._event_type_set()
+                self._status_code = int(code)
+                self._status_line = data
+                self._parsing_done = True
+                if self.is_event:
+                    self._event_type_set()
             elif kind == '+':
-                self._dataline = data
-                self._indata = True
+                self._parsing_data = MessageData(data)
             elif kind == '-':
-                self._midlines.append(data)
+                self._data_items.append(MessageData(data))
             else:
                 raise ProtocolError("Unable to parse line '{}'".format(line))

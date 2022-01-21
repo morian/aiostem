@@ -33,7 +33,7 @@ class AuthChallengeReply(Reply):
         """Parse the provided message."""
         super()._message_parse(message)
 
-        parser = MessageLineParser(message.endline)
+        parser = MessageLineParser(message.status_line)
         parser.pop_arg_checked('AUTHCHALLENGE')
 
         server_hash = parser.pop_kwarg_checked('SERVERHASH')

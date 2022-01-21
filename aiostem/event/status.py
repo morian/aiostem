@@ -19,7 +19,7 @@ class BaseStatusEvent(Event):
         """Parse this kind of event messages."""
         super()._message_parse(message)
 
-        parser = MessageLineParser(message.endline)
+        parser = MessageLineParser(message.status_line)
         parser.pop_arg_checked(self.EVENT_NAME)
 
         self._severity = parser.pop_arg()

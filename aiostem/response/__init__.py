@@ -11,6 +11,7 @@ from .simple import HsFetchReply, QuitReply, SetEventsReply, SignalReply
 REPLY_MAP: Dict[str, Type[Reply]] = {
     'AUTHENTICATE': AuthenticateReply,
     'AUTHCHALLENGE': AuthChallengeReply,
+    'GETINFO': GetInfoReply,
     'HSFETCH': HsFetchReply,
     'PROTOCOLINFO': ProtocolInfoReply,
     'QUIT': QuitReply,

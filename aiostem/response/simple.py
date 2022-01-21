@@ -23,7 +23,7 @@ class SimpleReply(Reply):
     def _message_parse(self, message: Message) -> None:
         """Parse the whole message."""
         super()._message_parse(message)
-        self._status_text = message.endline
+        self._status_text = message.status_line
 
     @property
     def status_text(self) -> str:

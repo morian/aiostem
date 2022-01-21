@@ -193,8 +193,8 @@ class HiddenServiceScanner:
             await controller.authenticate(options.password)
             await controller.signal('NEWNYM')
 
-            # await controller.get_info('network-liveness', 'info/names', 'config/names')
-            # return
+            res = await controller.get_info('network-liveness')
+            print('[!] Network is currently ' + res.values['network-liveness'])
 
             async def _hs_check_task_cancel(event: Event) -> None:
                 """Callback used to be notified when this instance get disconnected

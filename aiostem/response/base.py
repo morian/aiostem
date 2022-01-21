@@ -34,7 +34,7 @@ class BaseResponse:
 
     def _message_parse(self, message: Message) -> None:
         """Parse the received message and build this response according to the type."""
-        self._status = message.status
+        self._status = message.status_code
 
     @property
     def status(self) -> int:
@@ -68,7 +68,7 @@ class Reply(BaseResponse):
     def raise_for_status(self) -> None:
         """Raise a reponse error when the status instructs us to."""
         if self.status >= 400:
-            raise ResponseError(self.status, self.message.endline)
+            raise ResponseError(self.status, self.message.status_line)
 
 
 class UnknownReply(Reply):
