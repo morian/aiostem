@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import ClassVar
+
 from aiostem.message import Message, MessageLine
 from aiostem.response.base import Event
 

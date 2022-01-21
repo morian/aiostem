@@ -1,9 +1,36 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import ClassVar, Tuple
 
 from aiostem.command import Command
 from aiostem.question.base import Query
+
+
+class GetInfoQuery(Query):
+    """Create a query to get any kind of server information."""
+
+    COMMAND_NAME: ClassVar[str] = 'GETINFO'
+
+    def __init__(self, *args: str) -> None:
+        """Build a GETINFO query."""
+        self._keys = args
+
+    def __repr__(self) -> str:
+        """Representation of this query."""
+        return '<{} {}>'.format(self.COMMAND_NAME, ' '.join(self.keys))
+
+    @property
+    def command(self) -> Command:
+        """Build a command that is suitable to transmit over the control socket."""
+        cmd = Command(self.COMMAND_NAME)
+        for key in self.keys:
+            cmd.add_arg(key)
+        return cmd
+
+    @property
+    def keys(self) -> Tuple[str, ...]:
+        """List of keys requested in this command."""
+        return self._keys
 
 
 class ProtocolInfoQuery(Query):

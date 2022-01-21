@@ -8,6 +8,12 @@ from aiostem.message import Message, MessageLine
 from aiostem.response.simple import SimpleReply
 
 
+class GetInfoReply(SimpleReply):
+    """Parse replies from information requests."""
+
+    pass
+
+
 class ProtocolInfoReply(SimpleReply):
     """Parse a protocol info reply."""
 
