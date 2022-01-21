@@ -66,7 +66,7 @@ python3-tests:
   stage: tests
   needs: []
   services:
-    - name: "${CI_REGISTRY}/${CI_PROJECT_ROOT_NAMESPACE}/docker/tor-client:0.4.6.7"
+    - name: "${CI_REGISTRY}/${CI_PROJECT_ROOT_NAMESPACE}/docker/tor-client:0.4.5.9"
       alias: torcontrol
       command: [
         'tor', '-f', '/etc/tor/torrc',
