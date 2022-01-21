@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import ClassVar
+
 from aiostem.command import Command
 from aiostem.question.base import Query
 
@@ -5,8 +9,8 @@ from aiostem.question.base import Query
 class ProtocolInfoQuery(Query):
     """Create a query for the protocol info command."""
 
-    COMMAND_NAME: str = 'PROTOCOLINFO'
-    DEFAULT_PROTOCOL_VERSION: int = 1
+    COMMAND_NAME: ClassVar[str] = 'PROTOCOLINFO'
+    DEFAULT_PROTOCOL_VERSION: ClassVar[int] = 1
 
     def __init__(self, version: int = DEFAULT_PROTOCOL_VERSION) -> None:
         """Build a PROTOCOLINFO query."""

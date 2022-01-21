@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import ClassVar
+
 from aiostem.command import Command
 
 from .base import Query
@@ -20,7 +24,7 @@ class SignalQuery(Query):
     Also supports UNIX signals such as HUP, USR1, USR2, TERM.
     """
 
-    COMMAND_NAME: str = 'SIGNAL'
+    COMMAND_NAME: ClassVar[str] = 'SIGNAL'
 
     def __init__(self, signal: str) -> None:
         """Create a new SIGNAL query."""

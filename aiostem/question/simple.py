@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import ClassVar
+
 from aiostem.command import Command
 from aiostem.question.base import Query
 
@@ -18,4 +22,4 @@ class SimpleQuery(Query):
 class QuitQuery(SimpleQuery):
     """Create a query for the quit command."""
 
-    COMMAND_NAME: str = 'QUIT'
+    COMMAND_NAME: ClassVar[str] = 'QUIT'

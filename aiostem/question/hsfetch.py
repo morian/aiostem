@@ -1,4 +1,6 @@
-from typing import List
+from __future__ import annotations
+
+from typing import ClassVar, List
 
 from aiostem.command import Command
 from aiostem.question.base import Query
@@ -7,7 +9,7 @@ from aiostem.question.base import Query
 class HsFetchQuery(Query):
     """Build a Hidden service fetch query."""
 
-    COMMAND_NAME: str = 'HSFETCH'
+    COMMAND_NAME: ClassVar[str] = 'HSFETCH'
 
     def __init__(self, address: str, servers: List[str] = []) -> None:
         """Initialize a new HSFETCH query."""

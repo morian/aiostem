@@ -1,5 +1,7 @@
+from __future__ import annotations
+
 import secrets
-from typing import Optional
+from typing import ClassVar, Optional
 
 from aiostem.command import Command
 from aiostem.question.base import Query
@@ -8,8 +10,8 @@ from aiostem.question.base import Query
 class AuthChallengeQuery(Query):
     """Authentication challenge query."""
 
-    COMMAND_NAME: str = 'AUTHCHALLENGE'
-    CLIENT_NONCE_SIZE: int = 32
+    COMMAND_NAME: ClassVar[str] = 'AUTHCHALLENGE'
+    CLIENT_NONCE_SIZE: ClassVar[int] = 32
 
     def __init__(self, nonce: Optional[bytes] = None) -> None:
         """Initialize a new authentication challenge query."""
@@ -34,7 +36,7 @@ class AuthChallengeQuery(Query):
 class AuthenticateQuery(Query):
     """Create an authentication query."""
 
-    COMMAND_NAME: str = 'AUTHENTICATE'
+    COMMAND_NAME: ClassVar[str] = 'AUTHENTICATE'
 
     def __init__(self, token: Optional[str] = None) -> None:
         """Initialize a new authentication query."""

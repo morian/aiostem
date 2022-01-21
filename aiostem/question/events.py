@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Iterable, List
+from typing import ClassVar, Iterable, List
 
 from aiostem.command import Command
 from aiostem.question.base import Query
@@ -9,7 +9,7 @@ from aiostem.question.base import Query
 class SetEventsQuery(Query):
     """Create a query that sets the list of events to subscribe to."""
 
-    COMMAND_NAME: str = 'SETEVENTS'
+    COMMAND_NAME: ClassVar[str] = 'SETEVENTS'
 
     def __init__(self, events: Iterable[str], extended: bool = False) -> None:
         """Build a query that setst the list of events to subscribe to."""
