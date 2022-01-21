@@ -4,7 +4,7 @@ from typing import List, Optional, Tuple
 from aiostem.exception import MessageError, ProtocolError
 
 
-class MessageLine:
+class MessageLineParser:
     """Helper used to parse arguments on a message line."""
 
     REGEX_SINGLE_N = re.compile(r'^([^\s]+)')
@@ -150,7 +150,7 @@ class Message:
             else:
                 line = self.endline
 
-            self._evttype = MessageLine(line).pop_arg()
+            self._evttype = MessageLineParser(line).pop_arg()
 
     def add_line(self, line: str) -> None:
         """Add a new line from the controller."""

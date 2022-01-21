@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import ClassVar, Dict
 
 from aiostem.exception import MessageError, ResponseError
-from aiostem.message import Message, MessageLine
+from aiostem.message import Message, MessageLineParser
 from aiostem.question import Query
 
 
@@ -16,8 +16,8 @@ class BaseResponse:
         self._message_parse(message)
 
     @staticmethod
-    def _keyword_parse(parser: MessageLine) -> Dict[str, str]:
-        """Parse keyword arguments from the provided MessageLine.
+    def _keyword_parse(parser: MessageLineParser) -> Dict[str, str]:
+        """Parse keyword arguments from the provided MessageLineParser.
 
         This first try to parse as quoted, otherwise as non-quoted.
         """

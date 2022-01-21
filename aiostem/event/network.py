@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
-from aiostem.message import Message, MessageLine
+from aiostem.message import Message, MessageLineParser
 from aiostem.response.base import Event
 
 
@@ -30,7 +30,7 @@ class NetworkLivenessEvent(Event):
         """Parse this event message."""
         super()._message_parse(message)
 
-        parser = MessageLine(message.endline)
+        parser = MessageLineParser(message.endline)
         parser.pop_arg_checked(self.EVENT_NAME)
         self._network_status = parser.pop_arg()
 

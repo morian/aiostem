@@ -5,7 +5,7 @@ import hmac
 from typing import cast
 
 from aiostem.exception import ProtocolError
-from aiostem.message import Message, MessageLine
+from aiostem.message import Message, MessageLineParser
 from aiostem.question import AuthChallengeQuery
 from aiostem.response.base import Reply
 from aiostem.response.simple import SimpleReply
@@ -33,7 +33,7 @@ class AuthChallengeReply(Reply):
         """Parse the provided message."""
         super()._message_parse(message)
 
-        parser = MessageLine(message.endline)
+        parser = MessageLineParser(message.endline)
         parser.pop_arg_checked('AUTHCHALLENGE')
 
         server_hash = parser.pop_kwarg_checked('SERVERHASH')

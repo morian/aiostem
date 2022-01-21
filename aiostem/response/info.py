@@ -4,7 +4,7 @@ from typing import Any, Optional, Tuple
 
 import aiofiles
 
-from aiostem.message import Message, MessageLine
+from aiostem.message import Message, MessageLineParser
 from aiostem.response.simple import SimpleReply
 
 
@@ -31,11 +31,11 @@ class ProtocolInfoReply(SimpleReply):
             type(self).__name__, self.proto_version, ','.join(self.methods)
         )
 
-    def _message_resp_parse(self, parser: MessageLine) -> None:
+    def _message_resp_parse(self, parser: MessageLineParser) -> None:
         """Parse the PROTOCOLINFO mid-line."""
         self._proto_version = int(parser.pop_arg())
 
-    def _message_auth_parse(self, parser: MessageLine) -> None:
+    def _message_auth_parse(self, parser: MessageLineParser) -> None:
         """Parse the AUTH mid-line."""
         methods = parser.pop_kwarg_checked('METHODS')
         self._methods = tuple(methods.split(','))
@@ -44,7 +44,7 @@ class ProtocolInfoReply(SimpleReply):
             cookie = parser.pop_kwarg_checked('COOKIEFILE', quoted=True)
             self._cookie_file = cookie
 
-    def _message_vers_parse(self, parser: MessageLine) -> None:
+    def _message_vers_parse(self, parser: MessageLineParser) -> None:
         """Parse the VERSION mid-line."""
         version = parser.pop_kwarg_checked('Tor', quoted=True)
         self._tor_version = version
@@ -60,7 +60,7 @@ class ProtocolInfoReply(SimpleReply):
             'VERSION': self._message_vers_parse,
         }
 
-        for parser in map(MessageLine, message.midlines):
+        for parser in map(MessageLineParser, message.midlines):
             verb = parser.pop_arg()
             func = parser_fn.get(verb)
             if func is not None:

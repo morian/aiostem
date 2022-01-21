@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from aiostem.message import Message, MessageLine
+from aiostem.message import Message, MessageLineParser
 from aiostem.response.base import Event
 
 
@@ -19,7 +19,7 @@ class SignalEvent(Event):
         """Handle parsing on the signal event."""
         super()._message_parse(message)
 
-        parser = MessageLine(message.endline)
+        parser = MessageLineParser(message.endline)
         parser.pop_arg_checked(self.EVENT_NAME)
         self._signal = parser.pop_arg()
 

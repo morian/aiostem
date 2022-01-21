@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, ClassVar, Dict
 
-from aiostem.message import Message, MessageLine
+from aiostem.message import Message, MessageLineParser
 from aiostem.response.base import Event
 
 
@@ -19,7 +19,7 @@ class BaseStatusEvent(Event):
         """Parse this kind of event messages."""
         super()._message_parse(message)
 
-        parser = MessageLine(message.endline)
+        parser = MessageLineParser(message.endline)
         parser.pop_arg_checked(self.EVENT_NAME)
 
         self._severity = parser.pop_arg()

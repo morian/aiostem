@@ -9,7 +9,7 @@ from stem.descriptor.hidden_service import (  # type: ignore[import]
 )
 
 from aiostem.exception import MessageError
-from aiostem.message import Message, MessageLine
+from aiostem.message import Message, MessageLineParser
 from aiostem.response.base import Event
 from aiostem.util import hs_address_version
 
@@ -46,7 +46,7 @@ class HsDescEvent(Event):
         """Parse the provided message to build our event."""
         super()._message_parse(message)
 
-        parser = MessageLine(message.endline)
+        parser = MessageLineParser(message.endline)
         parser.pop_arg_checked(self.EVENT_NAME)
 
         self._action = parser.pop_arg()
@@ -156,7 +156,7 @@ class HsDescContentEvent(Event):
         """Parse the provided message to build our event."""
         super()._message_parse(message)
 
-        parser = MessageLine(message.dataline)
+        parser = MessageLineParser(message.dataline)
         parser.pop_arg_checked(self.EVENT_NAME)
 
         self._address = parser.pop_arg()
