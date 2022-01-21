@@ -1,7 +1,7 @@
 #!/usr/bin/make -f
 # -*- makefile -*-
 
-export PYBUILD_NAME=geoscan
+export PYBUILD_NAME=aiostem
 export PYBUILD_DISABLE=test
 
 %:
