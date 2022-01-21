@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any, ClassVar, Dict
 
 from aiostem.message import Message, MessageLine
 from aiostem.response.base import Event
@@ -48,16 +48,16 @@ class BaseStatusEvent(Event):
 class StatusGeneralEvent(BaseStatusEvent):
     """General status event."""
 
-    EVENT_NAME: str = 'STATUS_GENERAL'
+    EVENT_NAME: ClassVar[str] = 'STATUS_GENERAL'
 
 
 class StatusClientEvent(BaseStatusEvent):
     """Client status event."""
 
-    EVENT_NAME: str = 'STATUS_CLIENT'
+    EVENT_NAME: ClassVar[str] = 'STATUS_CLIENT'
 
 
 class StatusServerEvent(BaseStatusEvent):
     """Server status event."""
 
-    EVENT_NAME: str = 'STATUS_SERVER'
+    EVENT_NAME: ClassVar[str] = 'STATUS_SERVER'

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Type
+from typing import Any, ClassVar, Dict, Optional, Type
 
 from stem.descriptor.hidden_service import (  # type: ignore[import]
     BaseHiddenServiceDescriptor,
@@ -22,7 +22,7 @@ _DESCRIPTOR_CLASS_MAP: Dict[int, Type[BaseHiddenServiceDescriptor]] = {
 class HsDescEvent(Event):
     """We have a new Hidden Service descriptor event."""
 
-    EVENT_NAME: str = 'HS_DESC'
+    EVENT_NAME: ClassVar[str] = 'HS_DESC'
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize a hidden service descriptor event."""
@@ -135,7 +135,7 @@ class HsDescEvent(Event):
 class HsDescContentEvent(Event):
     """We have a new Hidden Service descriptor content."""
 
-    EVENT_NAME: str = 'HS_DESC_CONTENT'
+    EVENT_NAME: ClassVar[str] = 'HS_DESC_CONTENT'
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize a hidden service descriptor content event."""

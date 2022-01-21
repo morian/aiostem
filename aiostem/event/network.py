@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, ClassVar
 
 from aiostem.message import Message, MessageLine
 from aiostem.response.base import Event
@@ -13,13 +13,13 @@ class DisconnectEvent(Event):
     EOF is encountered while reading on the control socket.
     """
 
-    EVENT_NAME: str = 'DISCONNECT'
+    EVENT_NAME: ClassVar[str] = 'DISCONNECT'
 
 
 class NetworkLivenessEvent(Event):
     """Notification of network liveness change."""
 
-    EVENT_NAME: str = 'NETWORK_LIVENESS'
+    EVENT_NAME: ClassVar[str] = 'NETWORK_LIVENESS'
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize a network status event."""

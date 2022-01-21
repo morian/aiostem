@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict
+from typing import ClassVar, Dict
 
 from aiostem.exception import MessageError, ResponseError
 from aiostem.message import Message, MessageLine
@@ -80,7 +80,7 @@ class UnknownReply(Reply):
 class Event(BaseResponse):
     """Base class for any kind of event received asynchronously."""
 
-    EVENT_NAME: str = 'UNKNOWN'
+    EVENT_NAME: ClassVar[str] = 'UNKNOWN'
 
 
 class UnknownEvent(Event):

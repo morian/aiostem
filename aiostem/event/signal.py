@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import ClassVar
 from aiostem.message import Message, MessageLine
 from aiostem.response.base import Event
 
@@ -5,7 +8,7 @@ from aiostem.response.base import Event
 class SignalEvent(Event):
     """Parse signal events."""
 
-    EVENT_NAME: str = 'SIGNAL'
+    EVENT_NAME: ClassVar[str] = 'SIGNAL'
 
     def __repr__(self) -> str:
         """Representation of this Signal event."""
