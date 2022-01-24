@@ -92,7 +92,7 @@ class HsDescEvent(Event):
     def action(self) -> str:
         """Get the type of event we received.
 
-        REQUESTED, FAILED, UPLOAD, RECEIVED, UPLOADED,IGNORE, CREATED
+        REQUESTED, FAILED, UPLOAD, RECEIVED, UPLOADED, IGNORE, CREATED
         """
         return self._action
 
