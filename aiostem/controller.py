@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from types import TracebackType
 from typing import Any, Callable, Coroutine, Dict, Iterable, List, Optional, Type, cast
 
@@ -19,8 +20,8 @@ from aiostem.message import Message
 from aiostem.util import hs_address_strip_tld
 
 DEFAULT_PROTOCOL_VERSION = q.ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
-
 EventCallbackType = Callable[[e.Event], Coroutine[Any, Any, None]]
+logger = logging.getLogger(__package__)
 
 
 class Controller:
@@ -87,8 +88,8 @@ class Controller:
                 # We do not care about exceptions in the event callback.
                 try:
                     await callback(event)
-                except Exception:
-                    pass
+                except Exception as exc:
+                    logger.error("Error handling callback for '%s': %s", name, str(exc))
 
     async def _notify_disconnect(self) -> None:
         """Generate a DISCONNECT event to tell everyone that we are now disconnected."""
