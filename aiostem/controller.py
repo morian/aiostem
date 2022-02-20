@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import asyncio
 import logging
 from types import TracebackType
@@ -45,12 +47,12 @@ class Controller:
         cls,
         host: str = DEFAULT_CONTROL_HOST,
         port: int = DEFAULT_CONTROL_PORT,
-    ) -> 'Controller':
+    ) -> Controller:
         """Create a new Controller from a TCP port."""
         return cls(ControlConnectorPort(host, port))
 
     @classmethod
-    def from_path(cls, path: str = DEFAULT_CONTROL_PATH) -> 'Controller':
+    def from_path(cls, path: str = DEFAULT_CONTROL_PATH) -> Controller:
         """Create a new Controller from a UNIX socket path."""
         return cls(ControlConnectorPath(path))
 
@@ -64,7 +66,7 @@ class Controller:
         """Tell whether we are connected to the remote socket."""
         return self._connected and self._writer is not None and self._rqueue is not None
 
-    async def __aenter__(self) -> 'Controller':
+    async def __aenter__(self) -> Controller:
         """Enter Controller's context, connect to the target."""
         await self.connect()
         return self
@@ -297,6 +299,11 @@ class Controller:
                 except AiostemError:
                     self._evt_callbacks[event] = backup_listeners
                     raise
+
+    async def get_conf(self, *args: str) -> r.GetConfReply:
+        """Get configuration items from the remote server."""
+        query = q.GetConfQuery(*args)
+        return cast(r.GetConfReply, await self.request(query))
 
     async def get_info(self, *args: str) -> r.GetInfoReply:
         """Get information from the remote server."""

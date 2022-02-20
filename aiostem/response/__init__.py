@@ -5,12 +5,13 @@ from aiostem.question import Query
 
 from .authentication import AuthChallengeReply, AuthenticateReply
 from .base import Reply, UnknownReply
-from .info import GetInfoReply, ProtocolInfoReply
+from .info import GetConfReply, GetInfoReply, ProtocolInfoReply
 from .simple import HsFetchReply, QuitReply, SetEventsReply, SignalReply
 
 REPLY_MAP: Dict[str, Type[Reply]] = {
     'AUTHENTICATE': AuthenticateReply,
     'AUTHCHALLENGE': AuthChallengeReply,
+    'GETCONF': GetConfReply,
     'GETINFO': GetInfoReply,
     'HSFETCH': HsFetchReply,
     'PROTOCOLINFO': ProtocolInfoReply,
@@ -29,6 +30,7 @@ def reply_parser(query: Query, message: Message) -> Reply:
 __all__: List[str] = [
     'AuthChallengeReply',
     'AuthenticateReply',
+    'GetConfReply',
     'GetInfoReply',
     'HsFetchReply',
     'ProtocolInfoReply',

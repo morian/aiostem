@@ -6,10 +6,8 @@ from aiostem.command import Command
 from aiostem.question.base import Query
 
 
-class GetInfoQuery(Query):
-    """Create a query to get any kind of server information."""
-
-    COMMAND_NAME: ClassVar[str] = 'GETINFO'
+class BaseInfoQuery(Query):
+    """Any kind of query like GETCONF or GETINFO."""
 
     def __init__(self, *args: str) -> None:
         """Build a GETINFO query."""
@@ -31,6 +29,18 @@ class GetInfoQuery(Query):
     def keys(self) -> Tuple[str, ...]:
         """List of keys requested in this command."""
         return self._keys
+
+
+class GetConfQuery(BaseInfoQuery):
+    """Create a query to get any kind of server configuration item."""
+
+    COMMAND_NAME: ClassVar[str] = 'GETCONF'
+
+
+class GetInfoQuery(BaseInfoQuery):
+    """Create a query to get any kind of server information."""
+
+    COMMAND_NAME: ClassVar[str] = 'GETINFO'
 
 
 class ProtocolInfoQuery(Query):

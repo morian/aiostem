@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, ClassVar, Dict, Optional, Tuple
 
 import aiofiles
 
@@ -8,8 +8,10 @@ from aiostem.message import Message, MessageLineParser
 from aiostem.response.simple import SimpleReply
 
 
-class GetInfoReply(SimpleReply):
-    """Parse replies from information requests."""
+class BaseInfoReply(SimpleReply):
+    """Parse replies for GETCONF/GETINFO."""
+
+    WITH_STATUS_LINE: ClassVar[bool] = False
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Build a reply to a GetInfoQuery."""
@@ -27,10 +29,27 @@ class GetInfoReply(SimpleReply):
                 value = '\n'.join(item.lines)
             self._items[key] = value
 
+        if self.WITH_STATUS_LINE:
+            parser = MessageLineParser(message.status_line)
+            key, value = parser.pop_kwarg()
+            self._items[key] = value
+
     @property
     def values(self) -> Dict[str, str]:
         """Get the list of parsed items."""
         return self._items
+
+
+class GetConfReply(BaseInfoReply):
+    """Parse replies for GETCONF."""
+
+    WITH_STATUS_LINE: ClassVar[bool] = True
+
+
+class GetInfoReply(BaseInfoReply):
+    """Parse replies for GETINFO."""
+
+    WITH_STATUS_LINE: ClassVar[bool] = False
 
 
 class ProtocolInfoReply(SimpleReply):

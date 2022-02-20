@@ -33,3 +33,8 @@ async def test_authenticated_controller(controller):
 async def test_proto_getinfo(controller):
     info = await controller.get_info('version')
     assert 'version' in info.values
+
+
+async def test_getconf(controller):
+    info = await controller.get_conf('DormantClientTimeout')
+    assert info.values == {'DormantClientTimeout': '86400'}
