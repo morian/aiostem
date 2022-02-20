@@ -1,7 +1,7 @@
 import asyncio
 import logging
 from types import TracebackType
-from typing import Any, Callable, Coroutine, Dict, Iterable, List, Optional, Type, cast
+from typing import Any, Callable, Dict, Iterable, List, Optional, Type, cast
 
 import aiostem.event as e
 import aiostem.question as q
@@ -20,7 +20,7 @@ from aiostem.message import Message
 from aiostem.util import hs_address_strip_tld
 
 DEFAULT_PROTOCOL_VERSION = q.ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
-EventCallbackType = Callable[[e.Event], Coroutine[Any, Any, None]]
+EventCallbackType = Callable[[e.Event], Any]
 logger = logging.getLogger(__package__)
 
 
@@ -87,7 +87,9 @@ class Controller:
             for callback in self._evt_callbacks.get(name, []):
                 # We do not care about exceptions in the event callback.
                 try:
-                    await callback(event)
+                    coro = callback(event)
+                    if asyncio.iscoroutine(coro):
+                        await coro
                 except Exception as exc:
                     logger.error("Error handling callback for '%s': %s", name, str(exc))
 
