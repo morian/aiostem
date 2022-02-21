@@ -10,7 +10,7 @@ from stem.descriptor.hidden_service import (  # type: ignore[import]
 
 from aiostem.exception import MessageError, ProtocolError
 from aiostem.message import Message, MessageData, MessageLineParser
-from aiostem.response.base import Event
+from aiostem.reply.base import Event
 from aiostem.util import hs_address_version
 
 _DESCRIPTOR_CLASS_MAP: dict[int, type[BaseHiddenServiceDescriptor]] = {

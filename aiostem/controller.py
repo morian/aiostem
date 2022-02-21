@@ -6,8 +6,8 @@ from types import TracebackType
 from typing import Any, Callable, Iterable, Optional, overload
 
 import aiostem.event as e
-import aiostem.question as q
-import aiostem.response as r
+import aiostem.query as q
+import aiostem.reply as r
 
 from .command import Command
 from .connector import (

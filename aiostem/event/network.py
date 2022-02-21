@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, ClassVar
 
 from aiostem.message import Message, MessageLineParser
-from aiostem.response.base import Event
+from aiostem.reply.base import Event
 
 
 class DisconnectEvent(Event):

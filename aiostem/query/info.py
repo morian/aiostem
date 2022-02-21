@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import ClassVar
 
 from aiostem.command import Command
-from aiostem.question.base import Query
+
+from .base import Query
 
 
 class BaseInfoQuery(Query):

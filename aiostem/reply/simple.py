@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from aiostem.message import Message
-from aiostem.response.base import Reply
+
+from .base import Reply
 
 
 class SimpleReply(Reply):

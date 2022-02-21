@@ -1,5 +1,5 @@
 from aiostem.message import Message
-from aiostem.response.base import Event, UnknownEvent
+from aiostem.reply.base import Event, UnknownEvent
 
 from .hsdesc import HsDescContentEvent, HsDescEvent
 from .network import DisconnectEvent, NetworkLivenessEvent

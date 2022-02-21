@@ -4,7 +4,7 @@ from typing import cast
 
 from aiostem.exception import ProtocolError
 from aiostem.message import Message, MessageLineParser
-from aiostem.question import AuthChallengeQuery
+from aiostem.query import AuthChallengeQuery
 
 from .base import Reply
 from .simple import SimpleReply

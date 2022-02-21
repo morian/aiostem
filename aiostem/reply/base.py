@@ -4,7 +4,7 @@ from typing import ClassVar
 
 from aiostem.exception import MessageError, ResponseError
 from aiostem.message import Message, MessageLineParser
-from aiostem.question import Query
+from aiostem.query import Query
 
 
 class BaseResponse:

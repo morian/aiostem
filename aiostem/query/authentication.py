@@ -4,7 +4,8 @@ import secrets
 from typing import ClassVar, Optional
 
 from aiostem.command import Command
-from aiostem.question.base import Query
+
+from .base import Query
 
 
 class AuthChallengeQuery(Query):

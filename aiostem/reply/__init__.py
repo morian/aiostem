@@ -1,5 +1,5 @@
 from aiostem.message import Message
-from aiostem.question import Query
+from aiostem.query import Query
 
 from .authentication import AuthChallengeReply, AuthenticateReply
 from .base import Reply, UnknownReply
