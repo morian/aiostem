@@ -31,17 +31,17 @@ async def test_authenticated_controller(controller):
     assert controller.authenticated
 
 
-async def test_proto_getinfo(controller):
+async def test_cmd_getinfo(controller):
     info = await controller.get_info('version')
     assert 'version' in info.values
 
 
-async def test_getconf(controller):
+async def test_cmd_getconf(controller):
     info = await controller.get_conf('DormantClientTimeout')
     assert info.values == {'DormantClientTimeout': '86400'}
 
 
-async def test_quit_command(controller):
+async def test_cmd_quit(controller):
     event = None
     def _callback(evt):
         nonlocal event
@@ -55,3 +55,7 @@ async def test_quit_command(controller):
     assert reply.status == 250
     assert event is not None
 
+
+async def test_cmd_signal(controller):
+    reply = await controller.signal('NEWNYM')
+    assert reply.status == 250
