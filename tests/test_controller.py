@@ -1,3 +1,4 @@
+import asyncio
 import os
 import pytest
 
@@ -38,3 +39,19 @@ async def test_proto_getinfo(controller):
 async def test_getconf(controller):
     info = await controller.get_conf('DormantClientTimeout')
     assert info.values == {'DormantClientTimeout': '86400'}
+
+
+async def test_quit_command(controller):
+    event = None
+    def _callback(evt):
+        nonlocal event
+        event = evt
+
+    await controller.event_subscribe('DISCONNECT', _callback)
+    reply = await controller.quit()
+    await asyncio.sleep(0.1)
+    await controller.event_unsubscribe('DISCONNECT', _callback)
+
+    assert reply.status == 250
+    assert event is not None
+

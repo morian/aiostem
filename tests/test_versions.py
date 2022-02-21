@@ -1,6 +1,7 @@
 import pytest
 
 import aiostem
+import aiostem.extra
 
 
 def test_version_attribute_is_present():
