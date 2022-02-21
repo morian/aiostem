@@ -1,6 +1,4 @@
-from typing import List
-
-from aiostem.argument import BaseArgument, KeywordArgument, SingleArgument
+from .argument import BaseArgument, KeywordArgument, SingleArgument
 
 
 class Command:
@@ -9,8 +7,8 @@ class Command:
     def __init__(self, name: str) -> None:
         """Create a new command to send to the controller."""
         self._name = name
-        self._args = []  # type: List[BaseArgument]
-        self._data = []  # type: List[str]
+        self._args = []  # type: list[BaseArgument]
+        self._data = []  # type: list[str]
 
     def __str__(self) -> str:
         """Build the full command to send to the controller."""
@@ -31,7 +29,7 @@ class Command:
         return '\r\n'.join(lines)
 
     @property
-    def arguments(self) -> List[BaseArgument]:
+    def arguments(self) -> list[BaseArgument]:
         """List of arguments in this command."""
         return self._args
 

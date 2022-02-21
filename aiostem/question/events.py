@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar, Iterable, List
+from typing import ClassVar, Iterable
 
 from aiostem.command import Command
 from aiostem.question.base import Query
@@ -17,7 +17,7 @@ class SetEventsQuery(Query):
         self._extended = extended
 
     @property
-    def events(self) -> List[str]:
+    def events(self) -> list[str]:
         """Get the list of events this query contains."""
         return self._events
 

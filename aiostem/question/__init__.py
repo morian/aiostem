@@ -1,5 +1,3 @@
-from typing import List
-
 from .authentication import AuthChallengeQuery, AuthenticateQuery
 from .base import Query
 from .events import SetEventsQuery
@@ -8,7 +6,7 @@ from .info import GetConfQuery, GetInfoQuery, ProtocolInfoQuery
 from .signal import SignalQuery
 from .simple import QuitQuery
 
-__all__: List[str] = [
+__all__: list[str] = [
     'AuthChallengeQuery',
     'AuthenticateQuery',
     'GetConfQuery',

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar, Dict
+from typing import ClassVar
 
 from aiostem.exception import MessageError, ResponseError
 from aiostem.message import Message, MessageLineParser
@@ -16,7 +16,7 @@ class BaseResponse:
         self._message_parse(message)
 
     @staticmethod
-    def _keyword_parse(parser: MessageLineParser) -> Dict[str, str]:
+    def _keyword_parse(parser: MessageLineParser) -> dict[str, str]:
         """Parse keyword arguments from the provided MessageLineParser.
 
         This first try to parse as quoted, otherwise as non-quoted.

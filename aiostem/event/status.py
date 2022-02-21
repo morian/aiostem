@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Dict
+from typing import Any, ClassVar
 
 from aiostem.message import Message, MessageLineParser
 from aiostem.response.base import Event
@@ -32,7 +32,7 @@ class BaseStatusEvent(Event):
         return self._action
 
     @property
-    def arguments(self) -> Dict[str, str]:
+    def arguments(self) -> dict[str, str]:
         """Get the list of generic keyword arguments."""
         return self._arguments
 

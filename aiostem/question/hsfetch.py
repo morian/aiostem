@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar, List
+from typing import ClassVar
 
 from aiostem.command import Command
 from aiostem.question.base import Query
@@ -11,7 +11,7 @@ class HsFetchQuery(Query):
 
     COMMAND_NAME: ClassVar[str] = 'HSFETCH'
 
-    def __init__(self, address: str, servers: List[str] = []) -> None:
+    def __init__(self, address: str, servers: list[str] = []) -> None:
         """Initialize a new HSFETCH query."""
         self._address = address
         self._servers = servers
@@ -36,6 +36,6 @@ class HsFetchQuery(Query):
         return self._address
 
     @property
-    def servers(self) -> List[str]:
+    def servers(self) -> list[str]:
         """List of servers to request for this address."""
         return self._servers

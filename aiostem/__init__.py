@@ -1,17 +1,15 @@
 """Asynchronous Tor controller library for asyncio and Python."""
 
-from typing import List
-
-from aiostem.controller import Controller
-from aiostem.exception import ResponseError
-from aiostem.version import version
+from .controller import Controller
+from .exception import ResponseError
+from .version import version
 
 __author__ = 'Romain Bezut'
 __contact__ = 'morian@xdec.net'
 __license__ = 'MIT'
 __version__ = version
 
-__all__: List[str] = [
+__all__: list[str] = [
     'Controller',
     'ResponseError',
     'version',

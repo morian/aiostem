@@ -3,13 +3,14 @@ from __future__ import annotations
 import asyncio
 import logging
 from types import TracebackType
-from typing import Any, Callable, Dict, Iterable, List, Optional, Type, cast
+from typing import Any, Callable, Iterable, Optional, overload
 
 import aiostem.event as e
 import aiostem.question as q
 import aiostem.response as r
-from aiostem.command import Command
-from aiostem.connector import (
+
+from .command import Command
+from .connector import (
     DEFAULT_CONTROL_HOST,
     DEFAULT_CONTROL_PATH,
     DEFAULT_CONTROL_PORT,
@@ -17,9 +18,9 @@ from aiostem.connector import (
     ControlConnectorPath,
     ControlConnectorPort,
 )
-from aiostem.exception import AiostemError, ControllerError
-from aiostem.message import Message
-from aiostem.util import hs_address_strip_tld
+from .exception import AiostemError, ControllerError
+from .message import Message
+from .util import hs_address_strip_tld
 
 DEFAULT_PROTOCOL_VERSION = q.ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
 EventCallbackType = Callable[[e.Event], Any]
@@ -31,7 +32,7 @@ class Controller:
 
     def __init__(self, connector: ControlConnector) -> None:
         """Initialize a new controller from a provided connector."""
-        self._evt_callbacks = {}  # type: Dict[str, List[EventCallbackType]]
+        self._evt_callbacks = {}  # type: dict[str, list[EventCallbackType]]
         self._request_lock = asyncio.Lock()
         self._events_lock = asyncio.Lock()
         self._authenticated = False
@@ -73,7 +74,7 @@ class Controller:
 
     async def __aexit__(
         self,
-        etype: Optional[Type[BaseException]],
+        etype: Optional[type[BaseException]],
         evalue: Optional[BaseException],
         traceback: Optional[TracebackType],
     ) -> None:
@@ -130,6 +131,28 @@ class Controller:
             except asyncio.QueueFull:
                 pass
 
+    async def _request(self, command: Command) -> Message:
+        """Send any kind of command to the controller.
+
+        A reply is dequeued and expected.
+        """
+        async with self._request_lock:
+            if self._rqueue is None or self._writer is None:
+                raise ControllerError('Controller is not connected!')
+
+            rqueue = self._rqueue
+            writer = self._writer
+            payload = str(command).encode('ascii')
+            writer.write(payload)
+            await writer.drain()
+
+            rep = await rqueue.get()
+
+        rqueue.task_done()
+        if rep is None:
+            raise ControllerError('Controller has disconnected!')
+        return rep
+
     async def auth_challenge(self, nonce: Optional[bytes] = None) -> r.AuthChallengeReply:
         """Query Tor's controller so we perform a SAFECOOKIE authentication method.
 
@@ -138,7 +161,7 @@ class Controller:
         """
         query = q.AuthChallengeQuery(nonce)
         reply = await self.request(query)
-        return cast(r.AuthChallengeReply, reply)
+        return reply
 
     async def authenticate(self, password: Optional[str] = None) -> r.AuthenticateReply:
         """Authenticate to Tor's controller.
@@ -177,11 +200,11 @@ class Controller:
         if token is not None:
             token = token.hex()
         query = q.AuthenticateQuery(token)
-        reply = cast(r.AuthenticateReply, await self.request(query))
+        reply = await self.request(query)
         self._authenticated = bool(reply.status == 250)
         return reply
 
-    async def hs_fetch(self, address: str, servers: List[str] = []) -> r.HsFetchReply:
+    async def hs_fetch(self, address: str, servers: list[str] = []) -> r.HsFetchReply:
         """Request a hidden service descriptor fetch.
 
         The result does not contain the descriptor, which is provided asynchronously
@@ -189,34 +212,47 @@ class Controller:
         """
         address = hs_address_strip_tld(address.lower())
         query = q.HsFetchQuery(address, servers)
-        return cast(r.HsFetchReply, await self.request(query))
+        return await self.request(query)
 
-    async def request_command(self, command: Command) -> Message:
-        """Send any kind of command to the controller.
+    @overload
+    async def request(self, query: q.AuthenticateQuery) -> r.AuthenticateReply:
+        """Type overload for AUTHENTICATE."""
 
-        A reply is dequeued and expected.
-        """
-        rqueue = cast(asyncio.Queue[Optional[Message]], self._rqueue)
+    @overload
+    async def request(self, query: q.AuthChallengeQuery) -> r.AuthChallengeReply:
+        """Type overload for AUTHCHALLENGE."""
 
-        async with self._request_lock:
-            if not self.connected:
-                raise ControllerError('Controller is not connected!')
+    @overload
+    async def request(self, query: q.GetConfQuery) -> r.GetConfReply:
+        """Type overload for GETCONF."""
 
-            writer = cast(asyncio.StreamWriter, self._writer)
-            payload = str(command).encode('ascii')
-            writer.write(payload)
-            await writer.drain()
+    @overload
+    async def request(self, query: q.GetInfoQuery) -> r.GetInfoReply:
+        """Type overload for GETINFO."""
 
-            rep = await rqueue.get()
+    @overload
+    async def request(self, query: q.HsFetchQuery) -> r.HsFetchReply:
+        """Type overload for HSFETCH."""
 
-        rqueue.task_done()
-        if rep is None:
-            raise ControllerError('Controller has disconnected!')
-        return rep
+    @overload
+    async def request(self, query: q.ProtocolInfoQuery) -> r.ProtocolInfoReply:
+        """Type overload for PROTOCOLINFO."""
+
+    @overload
+    async def request(self, query: q.QuitQuery) -> r.QuitReply:
+        """Type overload for QUIT."""
+
+    @overload
+    async def request(self, query: q.SetEventsQuery) -> r.SetEventsReply:
+        """Type overload for SETEVENTS."""
+
+    @overload
+    async def request(self, query: q.SignalQuery) -> r.SignalReply:
+        """Type overload for SIGNAL."""
 
     async def request(self, query: q.Query) -> r.Reply:
         """Perform a provided `query` and returns the appropriate response."""
-        message = await self.request_command(query.command)
+        message = await self._request(query.command)
         return r.reply_parser(query, message)
 
     async def close(self) -> None:
@@ -268,7 +304,7 @@ class Controller:
         # Remove internal events from the list in our request to the controller.
         events = set(events).difference(e.EVENTS_INTERNAL)
         query = q.SetEventsQuery(events, extended)
-        return cast(r.SetEventsReply, await self.request(query))
+        return await self.request(query)
 
     async def event_subscribe(self, event: str, callback: EventCallbackType) -> None:
         """Register a callback to be called when `event` triggers."""
@@ -303,12 +339,12 @@ class Controller:
     async def get_conf(self, *args: str) -> r.GetConfReply:
         """Get configuration items from the remote server."""
         query = q.GetConfQuery(*args)
-        return cast(r.GetConfReply, await self.request(query))
+        return await self.request(query)
 
     async def get_info(self, *args: str) -> r.GetInfoReply:
         """Get information from the remote server."""
         query = q.GetInfoQuery(*args)
-        return cast(r.GetInfoReply, await self.request(query))
+        return await self.request(query)
 
     async def protocol_info(
         self,
@@ -320,13 +356,13 @@ class Controller:
         """
         if self.authenticated or not self._protoinfo:
             query = q.ProtocolInfoQuery(version)
-            self._protoinfo = cast(r.ProtocolInfoReply, await self.request(query))
+            self._protoinfo = await self.request(query)
         return self._protoinfo
 
     async def signal(self, signal: str) -> r.SignalReply:
         """Send a SIGNAL command to the controller."""
-        return cast(r.SignalReply, await self.request(q.SignalQuery(signal)))
+        return await self.request(q.SignalQuery(signal))
 
     async def quit(self) -> r.QuitReply:
         """Send a QUIT command to the controller."""
-        return cast(r.QuitReply, await self.request(q.QuitQuery()))
+        return await self.request(q.QuitQuery())

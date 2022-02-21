@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Dict, Optional, Type
+from typing import Any, ClassVar, Optional
 
 from stem.descriptor.hidden_service import (  # type: ignore[import]
     BaseHiddenServiceDescriptor,
@@ -13,7 +13,7 @@ from aiostem.message import Message, MessageData, MessageLineParser
 from aiostem.response.base import Event
 from aiostem.util import hs_address_version
 
-_DESCRIPTOR_CLASS_MAP: Dict[int, Type[BaseHiddenServiceDescriptor]] = {
+_DESCRIPTOR_CLASS_MAP: dict[int, type[BaseHiddenServiceDescriptor]] = {
     2: HiddenServiceDescriptorV2,
     3: HiddenServiceDescriptorV3,
 }

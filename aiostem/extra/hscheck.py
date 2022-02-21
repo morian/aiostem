@@ -4,18 +4,7 @@ import asyncio
 import contextlib
 from asyncio import CancelledError, TimeoutError
 from types import TracebackType
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Callable,
-    Coroutine,
-    Dict,
-    List,
-    Optional,
-    Type,
-    Union,
-    cast,
-)
+from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional, Union, cast
 
 from aiostem.controller import Controller
 from aiostem.event import Event, HsDescContentEvent, HsDescEvent
@@ -59,7 +48,7 @@ class HiddenServiceCheckEntry:
         future = loop.create_future()
 
         self._future = future
-        self._requests = {}  # type: Dict[str, HiddenServiceDirRequest]
+        self._requests = {}  # type: dict[str, HiddenServiceDirRequest]
         self._fail_count = 0
         self._fail_reason = None  # type: Optional[str]
 
@@ -147,9 +136,9 @@ class HiddenServiceChecker:
 
         self._concurrency = concurrency
         self._controller = controller
-        self._requests = {}  # type: Dict[str, List[HiddenServiceCheckEntry]]
+        self._requests = {}  # type: dict[str, list[HiddenServiceCheckEntry]]
         self._queue = queue
-        self._workers = []  # type: List[asyncio.Task[None]]
+        self._workers = []  # type: list[asyncio.Task[None]]
 
     @property
     def controller(self) -> Controller:
@@ -273,7 +262,7 @@ class HiddenServiceChecker:
 
     async def __aexit__(
         self,
-        exc_cls: Optional[Type[BaseException]],
+        exc_cls: Optional[type[BaseException]],
         exc_val: Optional[BaseException],
         exc_tb: Optional[TracebackType],
     ) -> None:

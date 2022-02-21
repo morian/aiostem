@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Dict, Optional, Tuple
+from typing import Any, ClassVar, Optional
 
 import aiofiles
 
 from aiostem.message import Message, MessageLineParser
-from aiostem.response.simple import SimpleReply
+
+from .simple import SimpleReply
 
 
 class BaseInfoReply(SimpleReply):
@@ -15,7 +16,7 @@ class BaseInfoReply(SimpleReply):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Build a reply to a GetInfoQuery."""
-        self._items = {}  # type: Dict[str, str]
+        self._items = {}  # type: dict[str, str]
         super().__init__(*args, **kwargs)
 
     def _message_parse(self, message: Message) -> None:
@@ -35,7 +36,7 @@ class BaseInfoReply(SimpleReply):
             self._items[key] = value
 
     @property
-    def values(self) -> Dict[str, str]:
+    def values(self) -> dict[str, str]:
         """Get the list of parsed items."""
         return self._items
 
@@ -58,7 +59,7 @@ class ProtocolInfoReply(SimpleReply):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Build a reply to a ProtocolInfoQuery."""
         self._cookie_file = None  # type: Optional[str]
-        self._methods = ()  # type: Tuple[str, ...]
+        self._methods = ()  # type: tuple[str, ...]
         self._proto_version = 0  # type: int
         self._tor_version = ''  # type: str
         super().__init__(*args, **kwargs)
@@ -111,7 +112,7 @@ class ProtocolInfoReply(SimpleReply):
         return self._cookie_file
 
     @property
-    def methods(self) -> Tuple[str, ...]:
+    def methods(self) -> tuple[str, ...]:
         """Get a list of allowed authentication methods."""
         return self._methods
 

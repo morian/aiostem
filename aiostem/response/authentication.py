@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import hashlib
 import hmac
 from typing import cast
@@ -7,8 +5,9 @@ from typing import cast
 from aiostem.exception import ProtocolError
 from aiostem.message import Message, MessageLineParser
 from aiostem.question import AuthChallengeQuery
-from aiostem.response.base import Reply
-from aiostem.response.simple import SimpleReply
+
+from .base import Reply
+from .simple import SimpleReply
 
 
 class AuthenticateReply(SimpleReply):

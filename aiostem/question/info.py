@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import ClassVar, Tuple
+from typing import ClassVar
 
 from aiostem.command import Command
 from aiostem.question.base import Query
@@ -26,7 +26,7 @@ class BaseInfoQuery(Query):
         return cmd
 
     @property
-    def keys(self) -> Tuple[str, ...]:
+    def keys(self) -> tuple[str, ...]:
         """List of keys requested in this command."""
         return self._keys
 
