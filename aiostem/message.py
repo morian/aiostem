@@ -9,6 +9,7 @@ class MessageLineParser:
 
     REGEX_SINGLE_N = re.compile(r'^([^\s]+)')
     REGEX_SINGLE_Q = re.compile(r'^"((?:\\[\\"]|[^"])+)"')
+    REGEX_KEYWORD_L = re.compile(r'^([^\s=]+)=(.*)$')
     REGEX_KEYWORD_N = re.compile(r'^([^\s=]+)=([^\s]*)')
     REGEX_KEYWORD_Q = re.compile(r'^([^\s=]+)="((?:\\[\\"]|[^"])*)"')
 
@@ -65,6 +66,17 @@ class MessageLineParser:
         if quoted:
             value = re.sub(r'\\([\\"])', r'\1', value)
         return (keyword, value)
+
+    def pop_kwarg_line(self) -> tuple[str, str]:
+        """Parse the next argument as a keyword argument.
+
+        The whole line is considered when returning the value, regardless of spaces.
+        """
+        match = self.REGEX_KEYWORD_L.match(self._cur_line)
+        if match is None:
+            raise MessageError('No matching keyword argument in provided line.')
+        self._cur_line = self._cur_line[match.end(0) :].lstrip()
+        return (match.group(1), match.group(2))
 
     def pop_kwarg_checked(self, name: str, quoted: bool = False) -> str:
         """Get the next keyword argument and ensures that `keyword` is `name`."""

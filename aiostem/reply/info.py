@@ -25,14 +25,14 @@ class BaseInfoReply(SimpleReply):
 
         for item in message.items:
             parser = MessageLineParser(item.header)
-            key, value = parser.pop_kwarg()
+            key, value = parser.pop_kwarg_line()
             if len(item.lines):
                 value = '\n'.join(item.lines)
             self._items[key] = value
 
         if self.WITH_STATUS_LINE:
             parser = MessageLineParser(message.status_line)
-            key, value = parser.pop_kwarg()
+            key, value = parser.pop_kwarg_line()
             self._items[key] = value
 
     @property
