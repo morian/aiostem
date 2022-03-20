@@ -110,7 +110,7 @@ class HiddenServiceCheckEntry:
             req.event = event
 
     def cancel(self) -> bool:
-        """Cancel this entry (we are no longer interrested in it)."""
+        """Cancel this entry (we are no longer interested in it)."""
         return self._future.cancel()
 
 
