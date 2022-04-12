@@ -8,7 +8,7 @@ from aiostem.command import Command
 class Query:
     """Base class for everything that can be converted to a Command."""
 
-    COMMAND_NAME: ClassVar[str] = 'UNKOWN'
+    COMMAND_NAME: ClassVar[str] = 'UNKNOWN'
 
     @property
     def command(self) -> Command:

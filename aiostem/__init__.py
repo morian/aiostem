@@ -9,7 +9,7 @@ __contact__ = 'morian@xdec.net'
 __license__ = 'MIT'
 __version__ = version
 
-__all__: list[str] = [
+__all__ = [
     'Controller',
     'ResponseError',
     'version',
