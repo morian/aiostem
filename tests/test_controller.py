@@ -42,7 +42,7 @@ async def test_cmd_getconf(controller):
 
 
 async def test_cmd_setconf(controller):
-    conf = {'MaxClientCircuitsPending': 64}
+    conf = {'MaxClientCircuitsPending': '64'}
 
     result = await controller.set_conf(conf)
     assert result.status == 250

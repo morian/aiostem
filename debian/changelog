@@ -1,3 +1,9 @@
+python3-aiostem (0.2.5) unstable; urgency=low
+
+  * Add support for SETCONF command.
+
+ -- Romain Bezut <morian@xdec.net>  Wed, 13 Mar 2022 20:25:10 +0000
+
 python3-aiostem (0.2.4) unstable; urgency=low
 
   * Add a way to parse keyword arguments with a whole line in messages
