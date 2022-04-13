@@ -41,6 +41,16 @@ async def test_cmd_getconf(controller):
     assert info.values == {'DormantClientTimeout': '86400'}
 
 
+async def test_cmd_setconf(controller):
+    conf = {'MaxClientCircuitsPending': 64}
+
+    result = await controller.set_conf(conf)
+    assert result.status == 250
+
+    info = await controller.get_conf('MaxClientCircuitsPending')
+    assert info.values == conf
+
+
 async def test_cmd_quit(controller):
     event = None
     def _callback(evt):
