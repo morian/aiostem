@@ -1,3 +1,5 @@
+from typing import Dict, Type
+
 from aiostem.message import Message
 from aiostem.query import Query
 
@@ -6,7 +8,7 @@ from .base import Reply, UnknownReply
 from .info import GetConfReply, GetInfoReply, ProtocolInfoReply
 from .simple import HsFetchReply, QuitReply, SetConfReply, SetEventsReply, SignalReply
 
-REPLY_MAP: dict[str, type[Reply]] = {
+REPLY_MAP: Dict[str, Type[Reply]] = {
     'AUTHENTICATE': AuthenticateReply,
     'AUTHCHALLENGE': AuthChallengeReply,
     'GETCONF': GetConfReply,

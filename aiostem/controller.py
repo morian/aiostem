@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from types import TracebackType
-from typing import Any, Callable, Iterable, Optional, overload
+from typing import Any, Callable, Dict, Iterable, List, Optional, overload
 
 import aiostem.event as e
 import aiostem.query as q
@@ -32,7 +32,7 @@ class Controller:
 
     def __init__(self, connector: ControlConnector) -> None:
         """Initialize a new controller from a provided connector."""
-        self._evt_callbacks = {}  # type: dict[str, list[EventCallbackType]]
+        self._evt_callbacks = {}  # type: Dict[str, List[EventCallbackType]]
         self._request_lock = asyncio.Lock()
         self._events_lock = asyncio.Lock()
         self._authenticated = False
@@ -92,7 +92,7 @@ class Controller:
                 try:
                     coro = callback(event)
                     if asyncio.iscoroutine(coro):
-                        await coro
+                        await coro  # type: ignore[misc]
                 except Exception as exc:
                     logger.error("Error handling callback for '%s': %s", name, str(exc))
 

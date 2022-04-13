@@ -1,5 +1,6 @@
 import asyncio
 from abc import abstractmethod
+from typing import Tuple
 
 DEFAULT_CONTROL_PATH: str = '/var/run/tor/control'
 DEFAULT_CONTROL_HOST: str = '127.0.0.1'
@@ -10,7 +11,7 @@ class ControlConnector:
     """Common class for all socket types used by the controller."""
 
     @abstractmethod
-    async def connect(self) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+    async def connect(self) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
         """Connect this socket asynchronously."""
         raise NotImplementedError('connect() must be implemented by ControlConnector subclass')
 
@@ -37,7 +38,7 @@ class ControlConnectorPort(ControlConnector):
         """TCP port used to join this control port."""
         return self._port
 
-    async def connect(self) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+    async def connect(self) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
         """Connect this socket asynchronously."""
         return await asyncio.open_connection(self.host, self.port)
 
@@ -54,6 +55,6 @@ class ControlConnectorPath(ControlConnector):
         """Get the path provided to connect to Tor's control port."""
         return self._path
 
-    async def connect(self) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
+    async def connect(self) -> Tuple[asyncio.StreamReader, asyncio.StreamWriter]:
         """Connect this socket asynchronously."""
         return await asyncio.open_unix_connection(self.path)
