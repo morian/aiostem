@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import Any, ClassVar
 
+from aiostem.argument import KeywordArgument
 from aiostem.command import Command
 
 from .base import Query
@@ -36,6 +37,36 @@ class GetConfQuery(BaseInfoQuery):
     """Create a query to get any kind of server configuration item."""
 
     COMMAND_NAME: ClassVar[str] = 'GETCONF'
+
+
+class SetConfQuery(Query):
+    """Create a query to set any kind of server configuration item."""
+
+    COMMAND_NAME: ClassVar[str] = 'SETCONF'
+
+    def __init__(self, items: dict[str, Any]) -> None:
+        """Build a SETCONF query."""
+        args = []
+        for key, value in items.items():
+            args.append(KeywordArgument(key, str(value), True))
+        self._args = args
+
+    def __repr__(self) -> str:
+        """Representation of this query."""
+        return '<{} {}>'.format(self.COMMAND_NAME, ' '.join(map(str, self.items)))
+
+    @property
+    def command(self) -> Command:
+        """Build a command suitable to transmit over the control socket."""
+        cmd = Command(self.COMMAND_NAME)
+        for arg in self.items:
+            cmd.add_rawarg(arg)
+        return cmd
+
+    @property
+    def items(self) -> list[KeywordArgument]:
+        """List of arguments requested in this command."""
+        return self._args
 
 
 class GetInfoQuery(BaseInfoQuery):

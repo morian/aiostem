@@ -4,7 +4,7 @@ from aiostem.query import Query
 from .authentication import AuthChallengeReply, AuthenticateReply
 from .base import Reply, UnknownReply
 from .info import GetConfReply, GetInfoReply, ProtocolInfoReply
-from .simple import HsFetchReply, QuitReply, SetEventsReply, SignalReply
+from .simple import HsFetchReply, QuitReply, SetConfReply, SetEventsReply, SignalReply
 
 REPLY_MAP: dict[str, type[Reply]] = {
     'AUTHENTICATE': AuthenticateReply,
@@ -14,6 +14,7 @@ REPLY_MAP: dict[str, type[Reply]] = {
     'HSFETCH': HsFetchReply,
     'PROTOCOLINFO': ProtocolInfoReply,
     'QUIT': QuitReply,
+    'SETCONF': SetConfReply,
     'SETEVENTS': SetEventsReply,
     'SIGNAL': SignalReply,
 }
@@ -25,7 +26,7 @@ def reply_parser(query: Query, message: Message) -> Reply:
     return parser(query, message)
 
 
-__all__: list[str] = [
+__all__ = [
     'AuthChallengeReply',
     'AuthenticateReply',
     'GetConfReply',
@@ -35,6 +36,7 @@ __all__: list[str] = [
     'QuitReply',
     'REPLY_MAP',
     'Reply',
+    'SetConfReply',
     'SetEventsReply',
     'SignalReply',
     'reply_parser',

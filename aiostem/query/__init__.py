@@ -2,11 +2,11 @@ from .authentication import AuthChallengeQuery, AuthenticateQuery
 from .base import Query
 from .events import SetEventsQuery
 from .hsfetch import HsFetchQuery
-from .info import GetConfQuery, GetInfoQuery, ProtocolInfoQuery
+from .info import GetConfQuery, GetInfoQuery, ProtocolInfoQuery, SetConfQuery
 from .signal import SignalQuery
 from .simple import QuitQuery
 
-__all__: list[str] = [
+__all__ = [
     'AuthChallengeQuery',
     'AuthenticateQuery',
     'GetConfQuery',
@@ -14,6 +14,7 @@ __all__: list[str] = [
     'HsFetchQuery',
     'ProtocolInfoQuery',
     'QuitQuery',
+    'SetConfQuery',
     'SetEventsQuery',
     'SignalQuery',
     'Query',

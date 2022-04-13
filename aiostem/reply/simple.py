@@ -44,5 +44,9 @@ class HsFetchReply(SimpleReply):
     """A reply parser for the HSFETCH command."""
 
 
+class SetConfReply(SimpleReply):
+    """A reply parser for the SETCONF command."""
+
+
 class SetEventsReply(SimpleReply):
     """A reply parser for the SETEVENTS command."""

@@ -32,7 +32,7 @@ def event_parser(message: Message) -> Event:
     return parser(message)
 
 
-__all__: list[str] = [
+__all__ = [
     'DisconnectEvent',
     'EVENTS_INTERNAL',
     'EVENT_MAP',

@@ -243,6 +243,10 @@ class Controller:
         """Type overload for QUIT."""
 
     @overload
+    async def request(self, query: q.SetConfQuery) -> r.SetConfReply:
+        """Type overload for SETCONF."""
+
+    @overload
     async def request(self, query: q.SetEventsQuery) -> r.SetEventsReply:
         """Type overload for SETEVENTS."""
 
@@ -358,6 +362,11 @@ class Controller:
             query = q.ProtocolInfoQuery(version)
             self._protoinfo = await self.request(query)
         return self._protoinfo
+
+    async def set_conf(self, items: dict[str, Any]) -> r.SetConfReply:
+        """Set configuration items to the remote server."""
+        query = q.SetConfQuery(items)
+        return await self.request(query)
 
     async def signal(self, signal: str) -> r.SignalReply:
         """Send a SIGNAL command to the controller."""

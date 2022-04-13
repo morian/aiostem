@@ -1,6 +1,6 @@
 from .hscheck import HiddenServiceChecker, HiddenServiceFetchError, HiddenServiceFetchRequest
 
-__all__: list[str] = [
+__all__ = [
     'HiddenServiceChecker',
     'HiddenServiceFetchError',
     'HiddenServiceFetchRequest',
