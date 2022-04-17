@@ -204,61 +204,6 @@ class Controller:
         self._authenticated = bool(reply.status == 250)
         return reply
 
-    async def hs_fetch(self, address: str, servers: list[str] = []) -> r.HsFetchReply:
-        """Request a hidden service descriptor fetch.
-
-        The result does not contain the descriptor, which is provided asynchronously
-        through events (HS_DESC and HS_DESC_CONTENT).
-        """
-        address = hs_address_strip_tld(address.lower())
-        query = q.HsFetchQuery(address, servers)
-        return await self.request(query)
-
-    @overload
-    async def request(self, query: q.AuthenticateQuery) -> r.AuthenticateReply:
-        """Type overload for AUTHENTICATE."""
-
-    @overload
-    async def request(self, query: q.AuthChallengeQuery) -> r.AuthChallengeReply:
-        """Type overload for AUTHCHALLENGE."""
-
-    @overload
-    async def request(self, query: q.GetConfQuery) -> r.GetConfReply:
-        """Type overload for GETCONF."""
-
-    @overload
-    async def request(self, query: q.GetInfoQuery) -> r.GetInfoReply:
-        """Type overload for GETINFO."""
-
-    @overload
-    async def request(self, query: q.HsFetchQuery) -> r.HsFetchReply:
-        """Type overload for HSFETCH."""
-
-    @overload
-    async def request(self, query: q.ProtocolInfoQuery) -> r.ProtocolInfoReply:
-        """Type overload for PROTOCOLINFO."""
-
-    @overload
-    async def request(self, query: q.QuitQuery) -> r.QuitReply:
-        """Type overload for QUIT."""
-
-    @overload
-    async def request(self, query: q.SetConfQuery) -> r.SetConfReply:
-        """Type overload for SETCONF."""
-
-    @overload
-    async def request(self, query: q.SetEventsQuery) -> r.SetEventsReply:
-        """Type overload for SETEVENTS."""
-
-    @overload
-    async def request(self, query: q.SignalQuery) -> r.SignalReply:
-        """Type overload for SIGNAL."""
-
-    async def request(self, query: q.Query) -> r.Reply:
-        """Perform a provided `query` and returns the appropriate response."""
-        message = await self._request(query.command)
-        return r.reply_parser(query, message)
-
     async def close(self) -> None:
         """Close this connection and reset the controller."""
         writer = self._writer
@@ -296,19 +241,9 @@ class Controller:
         self._rdtask = rdtask
         self._writer = writer
 
-    async def set_events(
-        self,
-        events: Iterable[str],
-        extended: bool = False,
-    ) -> r.SetEventsReply:
-        """Set the list of events that we subscribe to.
-
-        This method should probably not be called directly, see event_subscribe.
-        """
-        # Remove internal events from the list in our request to the controller.
-        events = set(events).difference(e.EVENTS_INTERNAL)
-        query = q.SetEventsQuery(events, extended)
-        return await self.request(query)
+    async def drop_guards(self) -> r.DropGuardsReply:
+        """Send a 'DROPGUARDS' command to the controller."""
+        return await self.request(q.DropGuardsQuery())
 
     async def event_subscribe(self, event: str, callback: EventCallbackType) -> None:
         """Register a callback to be called when `event` triggers."""
@@ -350,6 +285,16 @@ class Controller:
         query = q.GetInfoQuery(*args)
         return await self.request(query)
 
+    async def hs_fetch(self, address: str, servers: list[str] = []) -> r.HsFetchReply:
+        """Request a hidden service descriptor fetch.
+
+        The result does not contain the descriptor, which is provided asynchronously
+        through events (HS_DESC and HS_DESC_CONTENT).
+        """
+        address = hs_address_strip_tld(address.lower())
+        query = q.HsFetchQuery(address, servers)
+        return await self.request(query)
+
     async def protocol_info(
         self,
         version: int = DEFAULT_PROTOCOL_VERSION,
@@ -363,9 +308,72 @@ class Controller:
             self._protoinfo = await self.request(query)
         return self._protoinfo
 
+    @overload
+    async def request(self, query: q.AuthenticateQuery) -> r.AuthenticateReply:
+        """Type overload for AUTHENTICATE."""
+
+    @overload
+    async def request(self, query: q.AuthChallengeQuery) -> r.AuthChallengeReply:
+        """Type overload for AUTHCHALLENGE."""
+
+    @overload
+    async def request(self, query: q.DropGuardsQuery) -> r.DropGuardsReply:
+        """Type overload for DROPGUARDS."""
+
+    @overload
+    async def request(self, query: q.GetConfQuery) -> r.GetConfReply:
+        """Type overload for GETCONF."""
+
+    @overload
+    async def request(self, query: q.GetInfoQuery) -> r.GetInfoReply:
+        """Type overload for GETINFO."""
+
+    @overload
+    async def request(self, query: q.HsFetchQuery) -> r.HsFetchReply:
+        """Type overload for HSFETCH."""
+
+    @overload
+    async def request(self, query: q.ProtocolInfoQuery) -> r.ProtocolInfoReply:
+        """Type overload for PROTOCOLINFO."""
+
+    @overload
+    async def request(self, query: q.QuitQuery) -> r.QuitReply:
+        """Type overload for QUIT."""
+
+    @overload
+    async def request(self, query: q.SetConfQuery) -> r.SetConfReply:
+        """Type overload for SETCONF."""
+
+    @overload
+    async def request(self, query: q.SetEventsQuery) -> r.SetEventsReply:
+        """Type overload for SETEVENTS."""
+
+    @overload
+    async def request(self, query: q.SignalQuery) -> r.SignalReply:
+        """Type overload for SIGNAL."""
+
+    async def request(self, query: q.Query) -> r.Reply:
+        """Perform a provided `query` and returns the appropriate response."""
+        message = await self._request(query.command)
+        return r.reply_parser(query, message)
+
     async def set_conf(self, items: dict[str, Any]) -> r.SetConfReply:
         """Set configuration items to the remote server."""
         query = q.SetConfQuery(items)
+        return await self.request(query)
+
+    async def set_events(
+        self,
+        events: Iterable[str],
+        extended: bool = False,
+    ) -> r.SetEventsReply:
+        """Set the list of events that we subscribe to.
+
+        This method should probably not be called directly, see event_subscribe.
+        """
+        # Remove internal events from the list in our request to the controller.
+        events = set(events).difference(e.EVENTS_INTERNAL)
+        query = q.SetEventsQuery(events, extended)
         return await self.request(query)
 
     async def signal(self, signal: str) -> r.SignalReply:

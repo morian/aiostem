@@ -20,6 +20,12 @@ class SimpleQuery(Query):
         return Command(self.COMMAND_NAME)
 
 
+class DropGuardsQuery(SimpleQuery):
+    """Create a query for the DROPGUARDS command."""
+
+    COMMAND_NAME: ClassVar[str] = 'DROPGUARDS'
+
+
 class QuitQuery(SimpleQuery):
     """Create a query for the quit command."""
 

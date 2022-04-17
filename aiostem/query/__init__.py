@@ -4,11 +4,12 @@ from .events import SetEventsQuery
 from .hsfetch import HsFetchQuery
 from .info import GetConfQuery, GetInfoQuery, ProtocolInfoQuery, SetConfQuery
 from .signal import SignalQuery
-from .simple import QuitQuery
+from .simple import DropGuardsQuery, QuitQuery
 
 __all__ = [
     'AuthChallengeQuery',
     'AuthenticateQuery',
+    'DropGuardsQuery',
     'GetConfQuery',
     'GetInfoQuery',
     'HsFetchQuery',

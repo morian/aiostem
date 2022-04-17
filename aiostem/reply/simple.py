@@ -32,16 +32,16 @@ class SimpleReply(Reply):
         return self._status_text
 
 
-class QuitReply(SimpleReply):
-    """A reply parser for the QUIT command."""
-
-
-class SignalReply(SimpleReply):
-    """A reply parser for the SIGNAL command."""
+class DropGuardsReply(SimpleReply):
+    """A reply parser for the DROPGUARDS command."""
 
 
 class HsFetchReply(SimpleReply):
     """A reply parser for the HSFETCH command."""
+
+
+class QuitReply(SimpleReply):
+    """A reply parser for the QUIT command."""
 
 
 class SetConfReply(SimpleReply):
@@ -50,3 +50,7 @@ class SetConfReply(SimpleReply):
 
 class SetEventsReply(SimpleReply):
     """A reply parser for the SETEVENTS command."""
+
+
+class SignalReply(SimpleReply):
+    """A reply parser for the SIGNAL command."""
