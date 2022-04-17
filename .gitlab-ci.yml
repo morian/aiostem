@@ -121,4 +121,3 @@ python3-publish:
     - python3-package
   script:
     - twine upload dist/aiostem-*.whl
-  when: manual
