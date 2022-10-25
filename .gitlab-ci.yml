@@ -30,7 +30,7 @@ variables:
 
 
 python3-package:
-  image: ${CI_REGISTRY}/dockers/ci/python-build:3.10-alpine
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.11-alpine
   stage: build
   script:
     - python3 -m build --sdist --wheel
@@ -48,7 +48,7 @@ debian11-package:
   extends: .deb-common
 
 python3-linter:
-  image: ${CI_REGISTRY}/dockers/ci/python-build:3.10-alpine
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.11-alpine
   stage: tests
   cache:
     <<: *pip_cache
@@ -62,14 +62,14 @@ python3-linter:
   allow_failure: true
 
 python3-tests:
-  image: ${CI_REGISTRY}/dockers/ci/python-build:3.10-alpine
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.11-alpine
   stage: tests
   needs: []
   variables:
     AIOSTEM_HOST: 'torcontrol'
     AIOSTEM_PASS: 'aiostem'
   services:
-    - name: "${CI_REGISTRY}/${CI_PROJECT_ROOT_NAMESPACE}/docker/tor-client:0.4.5.9"
+    - name: "${CI_REGISTRY}/${CI_PROJECT_ROOT_NAMESPACE}/docker/tor-client:0.4.7.10"
       alias: torcontrol
       command: [
         'tor', '-f', '/etc/tor/torrc',
@@ -96,7 +96,7 @@ python3-tests:
         path: coverage.xml
 
 python3-mypy:
-  image: ${CI_REGISTRY}/dockers/ci/python-build:3.10-alpine
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.11-alpine
   stage: tests
   cache:
     <<: *pip_cache
@@ -111,7 +111,7 @@ python3-mypy:
   allow_failure: true
 
 python3-publish:
-  image: ${CI_REGISTRY}/dockers/ci/python-build:3.10-alpine
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.11-alpine
   stage: publish
   variables:
     TWINE_REPOSITORY_URL: ${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/packages/pypi
