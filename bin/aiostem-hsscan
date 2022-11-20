@@ -178,7 +178,7 @@ class HiddenServiceScanner:
             # Open the output file if this was requested.
             if options.output:
                 coro = aiofiles.open(options.output, 'w')
-                self.output = await stack.enter_async_context(coro)  # type: ignore[arg-type]
+                self.output = await stack.enter_async_context(coro)  # type: ignore
 
             # Find out how we need to connect to our controller.
             if os.path.exists(options.control):

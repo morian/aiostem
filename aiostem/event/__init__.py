@@ -43,5 +43,8 @@ __all__ = [
     'HsDescEvent',
     'NetworkLivenessEvent',
     'SignalEvent',
+    'StatusClientEvent',
+    'StatusGeneralEvent',
+    'StatusServerEvent',
     'event_parser',
 ]
