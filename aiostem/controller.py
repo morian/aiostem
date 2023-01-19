@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from types import TracebackType
-from typing import Any, Callable, Dict, Iterable, List, Optional, overload
+from typing import Any, Callable, Dict, Iterable, List, Optional, overload  # noqa: F401
 
 import aiostem.event as e
 import aiostem.query as q
