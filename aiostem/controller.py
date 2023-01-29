@@ -310,47 +310,47 @@ class Controller:
 
     @overload
     async def request(self, query: q.AuthenticateQuery) -> r.AuthenticateReply:
-        """Type overload for AUTHENTICATE."""
+        ...
 
     @overload
     async def request(self, query: q.AuthChallengeQuery) -> r.AuthChallengeReply:
-        """Type overload for AUTHCHALLENGE."""
+        ...
 
     @overload
     async def request(self, query: q.DropGuardsQuery) -> r.DropGuardsReply:
-        """Type overload for DROPGUARDS."""
+        ...
 
     @overload
     async def request(self, query: q.GetConfQuery) -> r.GetConfReply:
-        """Type overload for GETCONF."""
+        ...
 
     @overload
     async def request(self, query: q.GetInfoQuery) -> r.GetInfoReply:
-        """Type overload for GETINFO."""
+        ...
 
     @overload
     async def request(self, query: q.HsFetchQuery) -> r.HsFetchReply:
-        """Type overload for HSFETCH."""
+        ...
 
     @overload
     async def request(self, query: q.ProtocolInfoQuery) -> r.ProtocolInfoReply:
-        """Type overload for PROTOCOLINFO."""
+        ...
 
     @overload
     async def request(self, query: q.QuitQuery) -> r.QuitReply:
-        """Type overload for QUIT."""
+        ...
 
     @overload
     async def request(self, query: q.SetConfQuery) -> r.SetConfReply:
-        """Type overload for SETCONF."""
+        ...
 
     @overload
     async def request(self, query: q.SetEventsQuery) -> r.SetEventsReply:
-        """Type overload for SETEVENTS."""
+        ...
 
     @overload
     async def request(self, query: q.SignalQuery) -> r.SignalReply:
-        """Type overload for SIGNAL."""
+        ...
 
     async def request(self, query: q.Query) -> r.Reply:
         """Perform a provided `query` and returns the appropriate response."""
