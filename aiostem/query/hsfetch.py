@@ -12,8 +12,10 @@ class HsFetchQuery(Query):
 
     COMMAND_NAME: ClassVar[str] = 'HSFETCH'
 
-    def __init__(self, address: str, servers: list[str] = []) -> None:
+    def __init__(self, address: str, servers: list[str] | None = None) -> None:
         """Initialize a new HSFETCH query."""
+        if servers is None:
+            servers = []
         self._address = address
         self._servers = servers
 

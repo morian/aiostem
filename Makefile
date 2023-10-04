@@ -1,17 +1,9 @@
 .DEFAULT_GOAL := all
+sources = aiostem tests bin/aiostem-hsscan
+DEBUILD ?= /usr/bin/debuild
 
-DEBUILD   ?= /usr/bin/debuild
-
-LINTER_SOURCES =      \
-	aiostem/            \
-	bin/aiostem-hsscan  \
-	setup.py
-isort = isort $(LINTER_SOURCES)
-black = black -S -l 95 $(LINTER_SOURCES)
-pydocstyle = pydocstyle --explain --source $(LINTER_SOURCES)
-
-.PHONY: install-linter
-install-linter:
+.PHONY: install-linting
+install-linting:
 	pip install -r tests/requirements-linter.txt
 
 .PHONY: install-aiostem
@@ -37,19 +29,18 @@ deb: debian/changelog
 
 .PHONY: format
 format:
-	$(isort)
-	$(black)
+	isort $(sources)
+	black $(sources)
 
 .PHONY: lint
 lint:
-	flake8 $(LINTER_SOURCES)
-	$(isort) --check-only --df
-	$(black) --check --diff --color
-	$(pydocstyle)
+	ruff check $(sources)
+	isort $(sources) --check-only --df
+	black $(sources) --check --diff
 
 .PHONY: mypy
 mypy:
-	mypy $(LINTER_SOURCES)
+	mypy aiostem bin/aiostem-hsscan
 
 .PHONY: all
 all: lint mypy
@@ -65,12 +56,13 @@ testcov: test
 
 .PHONY: clean
 clean:
-	rm -f .coverage
-	rm -f .coverage.*
-	rm -rf *.egg-info
-	rm -rf .mypy_cache
-	rm -rf .pytest_cache
-	rm -rf build
-	rm -rf dist
-	rm -rf htmlcov
+	$(RM) .coverage
+	$(RM) .coverage.*
+	$(RM) -r *.egg-info
+	$(RM) -r .mypy_cache
+	$(RM) -r .pytest_cache
+	$(RM) -r .ruff_cache
+	$(RM) -r build
+	$(RM) -r dist
+	$(RM) -r htmlcov
 	find aiostem -name '*.py[cod]' -delete

@@ -12,7 +12,7 @@ class SimpleQuery(Query):
 
     def __repr__(self) -> str:
         """Query representation."""
-        return '<{}>'.format(type(self).__name__)
+        return f'<{type(self).__name__}>'
 
     @property
     def command(self) -> Command:

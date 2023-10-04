@@ -3,8 +3,9 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from asyncio import CancelledError, TimeoutError
+from collections.abc import Coroutine
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, Callable, Coroutine, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, Union, cast
 
 from aiostem.controller import Controller
 from aiostem.event import Event, HsDescContentEvent, HsDescEvent
@@ -21,8 +22,8 @@ class HiddenServiceDirRequest:
 
     def __init__(self) -> None:
         """Initialize a new directory request tracker."""
-        self.event = None  # type: Optional[HsDescContentEvent]
-        self.status = None  # type: Optional[bool]
+        self.event = None  # type: HsDescContentEvent | None
+        self.status = None  # type: bool | None
 
     @property
     def failed(self) -> bool:
@@ -50,10 +51,10 @@ class HiddenServiceCheckEntry:
         self._future = future
         self._requests = {}  # type: dict[str, HiddenServiceDirRequest]
         self._fail_count = 0
-        self._fail_reason = None  # type: Optional[str]
+        self._fail_reason = None  # type: str | None
 
     @property
-    def future(self) -> asyncio.Future[Optional[HsDescContentEvent]]:
+    def future(self) -> asyncio.Future[HsDescContentEvent | None]:
         """Future completed when this entry has been completed."""
         return self._future
 
@@ -71,10 +72,9 @@ class HiddenServiceCheckEntry:
             req.status = False
 
         fail_count = self._fail_count + 1
-        if not req or fail_count >= self.FAIL_COUNT_LIMIT:
-            if not self._future.done():
-                exc = HiddenServiceFetchError(self._fail_reason)
-                self._future.set_exception(exc)
+        if (not req or fail_count >= self.FAIL_COUNT_LIMIT) and not self._future.done():
+            exc = HiddenServiceFetchError(self._fail_reason)
+            self._future.set_exception(exc)
         self._fail_count = fail_count
 
     def _info_received(self, event: HsDescEvent) -> None:
@@ -123,7 +123,7 @@ class HiddenServiceChecker:
         self,
         controller: Controller,
         concurrency: int = DEFAULT_CONCURRENCY,
-        queue: Optional[asyncio.Queue[HiddenServiceFetchRequest]] = None,
+        queue: asyncio.Queue[HiddenServiceFetchRequest] | None = None,
     ) -> None:
         """Create a new hidden service checker.
 
@@ -262,9 +262,9 @@ class HiddenServiceChecker:
 
     async def __aexit__(
         self,
-        exc_cls: Optional[type[BaseException]],
-        exc_val: Optional[BaseException],
-        exc_tb: Optional[TracebackType],
+        exc_cls: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         """Exit Checker's context."""
         await self.close()
@@ -273,7 +273,8 @@ class HiddenServiceChecker:
 if TYPE_CHECKING:
     HsCallbackResponseType = Union[HsDescContentEvent, Exception]
     HiddenServiceFetchCallback = Callable[
-        ['HiddenServiceFetchRequest', HsCallbackResponseType], Coroutine[Any, Any, None]
+        ['HiddenServiceFetchRequest', HsCallbackResponseType],
+        Coroutine[Any, Any, None],
     ]
 
 
@@ -288,7 +289,7 @@ class HiddenServiceFetchRequest:
     def __init__(
         self,
         address: str,
-        callback: Optional[HiddenServiceFetchCallback],
+        callback: HiddenServiceFetchCallback | None,
         timeout: int = DEFAULT_TIMEOUT,
     ) -> None:
         """Initialize a new hidden service fetch request."""
@@ -305,7 +306,7 @@ class HiddenServiceFetchRequest:
         return self._address
 
     @property
-    def callback(self) -> Optional[HiddenServiceFetchCallback]:
+    def callback(self) -> HiddenServiceFetchCallback | None:
         """Asynchronous callable triggered on success, failure or timeout."""
         return self._callback
 

@@ -87,7 +87,7 @@ class ProtocolInfoQuery(Query):
 
     def __repr__(self) -> str:
         """Representation of this query."""
-        return "<{} version='{}'>".format(self.COMMAND_NAME, self.version)
+        return f"<{self.COMMAND_NAME} version='{self.version}'>"
 
     @property
     def command(self) -> Command:

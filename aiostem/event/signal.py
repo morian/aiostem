@@ -13,7 +13,7 @@ class SignalEvent(Event):
 
     def __repr__(self) -> str:
         """Representation of this Signal event."""
-        return "<{} '{}'>".format(type(self).__name__, self.signal)
+        return f"<{type(self).__name__} '{self.signal}'>"
 
     def _message_parse(self, message: Message) -> None:
         """Handle parsing on the signal event."""

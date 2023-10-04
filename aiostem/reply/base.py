@@ -74,8 +74,6 @@ class Reply(BaseResponse):
 class UnknownReply(Reply):
     """A reply with no specific class."""
 
-    pass
-
 
 class Event(BaseResponse):
     """Base class for any kind of event received asynchronously."""
@@ -85,5 +83,3 @@ class Event(BaseResponse):
 
 class UnknownEvent(Event):
     """Any kind of event that we could not handle."""
-
-    pass

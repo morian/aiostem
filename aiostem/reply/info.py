@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar
 
 import aiofiles
 
@@ -58,7 +58,7 @@ class ProtocolInfoReply(SimpleReply):
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Build a reply to a ProtocolInfoQuery."""
-        self._cookie_file = None  # type: Optional[str]
+        self._cookie_file = None  # type: str | None
         self._methods = ()  # type: tuple[str, ...]
         self._proto_version = 0  # type: int
         self._tor_version = ''  # type: str
@@ -67,7 +67,9 @@ class ProtocolInfoReply(SimpleReply):
     def __repr__(self) -> str:
         """Reply from a ProtocolInfo Query."""
         return "<{} version='{}' methods='{}'>".format(
-            type(self).__name__, self.proto_version, ','.join(self.methods)
+            type(self).__name__,
+            self.proto_version,
+            ','.join(self.methods),
         )
 
     def _message_resp_parse(self, parser: MessageLineParser) -> None:
@@ -107,7 +109,7 @@ class ProtocolInfoReply(SimpleReply):
                 func(parser)
 
     @property
-    def cookie_file(self) -> Optional[str]:
+    def cookie_file(self) -> str | None:
         """Get the path to the cookie file that can be used to authenticate."""
         return self._cookie_file
 
@@ -126,7 +128,7 @@ class ProtocolInfoReply(SimpleReply):
         """Get the version of the Tor daemon we are communicating with."""
         return self._tor_version
 
-    async def cookie_file_read(self) -> Optional[bytes]:
+    async def cookie_file_read(self) -> bytes | None:
         """Read the content of the cookie file."""
         if self.cookie_file is not None:
             async with aiofiles.open(self.cookie_file, 'rb') as fp:

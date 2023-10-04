@@ -1,5 +1,3 @@
-import pytest
-
 from aiostem.command import Command
 
 
@@ -14,8 +12,5 @@ def test_complex_command():
     assert cmd.data == 'First line!\n.Dot line.'
     assert len(cmd.arguments) == 2
     assert str(cmd) == (
-        '+TEST myarg key=value\r\n'
-        'First line!\r\n'
-        '..Dot line.\r\n'
-        '.\r\n'
+        '+TEST myarg key=value\r\n' 'First line!\r\n' '..Dot line.\r\n' '.\r\n'
     )

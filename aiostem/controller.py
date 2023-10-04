@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import logging
+from collections.abc import Iterable
+from contextlib import suppress
 from types import TracebackType
-from typing import Any, Callable, Dict, Iterable, List, Optional, overload  # noqa: F401
+from typing import Any, Callable, overload
 
 import aiostem.event as e
 import aiostem.query as q
@@ -32,16 +35,16 @@ class Controller:
 
     def __init__(self, connector: ControlConnector) -> None:
         """Initialize a new controller from a provided connector."""
-        self._evt_callbacks = {}  # type: Dict[str, List[EventCallbackType]]
+        self._evt_callbacks = {}  # type: dict[str, list[EventCallbackType]]
         self._request_lock = asyncio.Lock()
         self._events_lock = asyncio.Lock()
         self._authenticated = False
         self._connected = False
         self._connector = connector
-        self._protoinfo = None  # type: Optional[r.ProtocolInfoReply]
-        self._rqueue = None  # type: Optional[asyncio.Queue[Optional[Message]]]
-        self._rdtask = None  # type: Optional[asyncio.Task[None]]
-        self._writer = None  # type: Optional[asyncio.StreamWriter]
+        self._protoinfo = None  # type: r.ProtocolInfoReply | None
+        self._rqueue = None  # type: asyncio.Queue[Message | None] | None
+        self._rdtask = None  # type: asyncio.Task[None] | None
+        self._writer = None  # type: asyncio.StreamWriter | None
 
     @classmethod
     def from_port(
@@ -74,9 +77,9 @@ class Controller:
 
     async def __aexit__(
         self,
-        etype: Optional[type[BaseException]],
-        evalue: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        etype: type[BaseException] | None,
+        evalue: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         """Exit Controller's context."""
         await self.close()
@@ -105,7 +108,7 @@ class Controller:
     async def _reader_task(
         self,
         reader: asyncio.StreamReader,
-        rqueue: asyncio.Queue[Optional[Message]],
+        rqueue: asyncio.Queue[Message | None],
     ) -> None:
         """Read from the socket and dispatch all contents."""
         try:
@@ -153,17 +156,16 @@ class Controller:
             raise ControllerError('Controller has disconnected!')
         return rep
 
-    async def auth_challenge(self, nonce: Optional[bytes] = None) -> r.AuthChallengeReply:
+    async def auth_challenge(self, nonce: bytes | None = None) -> r.AuthChallengeReply:
         """Query Tor's controller so we perform a SAFECOOKIE authentication method.
 
         This method is not meant to be called directly but is used by `authenticate`
         when 'SAFECOOKIE' is the chosen authentication method.
         """
         query = q.AuthChallengeQuery(nonce)
-        reply = await self.request(query)
-        return reply
+        return await self.request(query)
 
-    async def authenticate(self, password: Optional[str] = None) -> r.AuthenticateReply:
+    async def authenticate(self, password: str | None = None) -> r.AuthenticateReply:
         """Authenticate to Tor's controller.
 
         When no password is provided, cookie authentications are attempted.
@@ -209,19 +211,16 @@ class Controller:
         writer = self._writer
         if writer is not None:
             writer.close()
-            try:
+            # Can arise while closing underlying UNIX socket
+            with suppress(BrokenPipeError):
                 await writer.wait_closed()
-            except BrokenPipeError:
-                pass  # can arise while closing underlying UNIX socket
         self._writer = None
 
         rdtask = self._rdtask
         if rdtask is not None:
             rdtask.cancel()
-            try:
+            with contextlib.suppress(asyncio.CancelledError):
                 await rdtask
-            except asyncio.CancelledError:
-                pass
         self._rdtask = None
 
         self._evt_callbacks = {}
@@ -233,7 +232,7 @@ class Controller:
     async def connect(self) -> None:
         """Connect Tor's control socket."""
         reader, writer = await self._connector.connect()
-        rqueue = asyncio.Queue()  # type: asyncio.Queue[Optional[Message]]
+        rqueue = asyncio.Queue()  # type: asyncio.Queue[Message | None]
         rdtask = asyncio.create_task(self._reader_task(reader, rqueue))
 
         self._connected = True
@@ -285,12 +284,14 @@ class Controller:
         query = q.GetInfoQuery(*args)
         return await self.request(query)
 
-    async def hs_fetch(self, address: str, servers: list[str] = []) -> r.HsFetchReply:
+    async def hs_fetch(self, address: str, servers: list[str] | None = None) -> r.HsFetchReply:
         """Request a hidden service descriptor fetch.
 
         The result does not contain the descriptor, which is provided asynchronously
         through events (HS_DESC and HS_DESC_CONTENT).
         """
+        if servers is None:
+            servers = []
         address = hs_address_strip_tld(address.lower())
         query = q.HsFetchQuery(address, servers)
         return await self.request(query)

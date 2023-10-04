@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import secrets
-from typing import ClassVar, Optional
+from typing import ClassVar
 
 from aiostem.command import Command
 
@@ -14,7 +14,7 @@ class AuthChallengeQuery(Query):
     COMMAND_NAME: ClassVar[str] = 'AUTHCHALLENGE'
     CLIENT_NONCE_SIZE: ClassVar[int] = 32
 
-    def __init__(self, nonce: Optional[bytes] = None) -> None:
+    def __init__(self, nonce: bytes | None = None) -> None:
         """Initialize a new authentication challenge query."""
         if nonce is None:
             nonce = secrets.token_bytes(self.CLIENT_NONCE_SIZE)
@@ -39,7 +39,7 @@ class AuthenticateQuery(Query):
 
     COMMAND_NAME: ClassVar[str] = 'AUTHENTICATE'
 
-    def __init__(self, token: Optional[str] = None) -> None:
+    def __init__(self, token: str | None = None) -> None:
         """Initialize a new authentication query."""
         self._token = token
 
@@ -52,6 +52,6 @@ class AuthenticateQuery(Query):
         return cmd
 
     @property
-    def token(self) -> Optional[str]:
+    def token(self) -> str | None:
         """Get the provided token used for authentication."""
         return self._token

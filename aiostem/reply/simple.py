@@ -17,9 +17,7 @@ class SimpleReply(Reply):
 
     def __repr__(self) -> str:
         """Get the representation of this reply."""
-        return "<{} status='{}' text='{}'>".format(
-            type(self).__name__, self.status, self.status_text
-        )
+        return f"<{type(self).__name__} status='{self.status}' text='{self.status_text}'>"
 
     def _message_parse(self, message: Message) -> None:
         """Parse the whole message."""

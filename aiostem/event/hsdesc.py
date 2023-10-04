@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar, Optional
+from typing import Any, ClassVar
 
 from stem.descriptor.hidden_service import (  # type: ignore[import]
     BaseHiddenServiceDescriptor,
@@ -30,16 +30,19 @@ class HsDescEvent(Event):
         self._address = ''  # type: str
         self._auth_type = ''  # type: str
         self._directory = ''  # type: str
-        self._reason = None  # type: Optional[str]
-        self._descriptor_id = None  # type: Optional[str]
-        self._index = None  # type: Optional[str]
-        self._replica = None  # type: Optional[int]
+        self._reason = None  # type: str | None
+        self._descriptor_id = None  # type: str | None
+        self._index = None  # type: str | None
+        self._replica = None  # type: int | None
         super().__init__(*args, **kwargs)
 
     def __repr__(self) -> str:
         """Get the representation of this event."""
         return "<{} address='{}' directory='{}' action='{}'>".format(
-            type(self).__name__, self.address, self.directory, self.action
+            type(self).__name__,
+            self.address,
+            self.directory,
+            self.action,
         )
 
     def _message_parse(self, message: Message) -> None:
@@ -107,7 +110,7 @@ class HsDescEvent(Event):
         return self._auth_type
 
     @property
-    def descriptor_id(self) -> Optional[str]:
+    def descriptor_id(self) -> str | None:
         """Get the descriptor ID."""
         return self._descriptor_id
 
@@ -117,17 +120,17 @@ class HsDescEvent(Event):
         return self._directory
 
     @property
-    def index(self) -> Optional[str]:
+    def index(self) -> str | None:
         """Get the directory index, if any."""
         return self._index
 
     @property
-    def reason(self) -> Optional[str]:
+    def reason(self) -> str | None:
         """Get the reason why this descriptor failed."""
         return self._reason
 
     @property
-    def replica(self) -> Optional[int]:
+    def replica(self) -> int | None:
         """Get the replica number of the generated descriptor."""
         return self._replica
 
@@ -140,7 +143,7 @@ class HsDescContentEvent(Event):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         """Initialize a hidden service descriptor content event."""
         self._address = ''  # type: str
-        self._descriptor = None  # type: Optional[BaseHiddenServiceDescriptor]
+        self._descriptor = None  # type: BaseHiddenServiceDescriptor | None
         self._descriptor_id = ''  # type: str
         self._descriptor_raw = ''  # type: str
         self._directory = ''  # type: str
@@ -149,7 +152,10 @@ class HsDescContentEvent(Event):
     def __repr__(self) -> str:
         """Get the representation of this event."""
         return "<{} address='{}' directory='{}' descid='{}'>".format(
-            type(self).__name__, self.address, self.directory, self.descriptor_id
+            type(self).__name__,
+            self.address,
+            self.directory,
+            self.descriptor_id,
         )
 
     def _message_parse(self, message: Message) -> None:

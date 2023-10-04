@@ -47,7 +47,7 @@ debian11-package:
   image: ${CI_REGISTRY}/dockers/ci/debian-build:11
   extends: .deb-common
 
-python3-linter:
+python3-linting:
   image: ${CI_REGISTRY}/dockers/ci/python-build:3.11-alpine
   stage: tests
   cache:
@@ -56,7 +56,7 @@ python3-linter:
   before_script:
     - python -m venv venv
     - source venv/bin/activate
-    - make install-linter
+    - make install-linting
   script:
     - make lint
   allow_failure: true
@@ -69,7 +69,7 @@ python3-tests:
     AIOSTEM_HOST: 'torcontrol'
     AIOSTEM_PASS: 'aiostem'
   services:
-    - name: "${CI_REGISTRY}/${CI_PROJECT_ROOT_NAMESPACE}/docker/tor-client:0.4.7.10"
+    - name: "${CI_REGISTRY}/${CI_PROJECT_ROOT_NAMESPACE}/docker/tor-client:0.4.6.12"
       alias: torcontrol
       command: [
         'tor', '-f', '/etc/tor/torrc',
@@ -105,7 +105,7 @@ python3-mypy:
     - python -m venv venv
     - source venv/bin/activate
     - make install-aiostem
-    - make install-linter
+    - make install-linting
   script:
     - make mypy
   allow_failure: true

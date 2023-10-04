@@ -13,8 +13,6 @@ from .simple import SimpleReply
 class AuthenticateReply(SimpleReply):
     """Reply to the authentication query."""
 
-    pass
-
 
 class AuthChallengeReply(Reply):
     """Reply to a Authentication challenge query."""
@@ -24,8 +22,8 @@ class AuthChallengeReply(Reply):
 
     def __init__(self, query: AuthChallengeQuery, message: Message) -> None:
         """Initialize a new authentication challenge response."""
-        self._server_hash = bytes()
-        self._server_nonce = bytes()
+        self._server_hash = b''
+        self._server_nonce = b''
         super().__init__(query, message)
 
     def _message_parse(self, message: Message) -> None:

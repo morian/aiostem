@@ -1,5 +1,3 @@
-from typing import Dict, Type
-
 from aiostem.message import Message
 from aiostem.query import Query
 
@@ -15,7 +13,7 @@ from .simple import (
     SignalReply,
 )
 
-REPLY_MAP: Dict[str, Type[Reply]] = {
+REPLY_MAP: dict[str, type[Reply]] = {
     'AUTHENTICATE': AuthenticateReply,
     'AUTHCHALLENGE': AuthChallengeReply,
     'DROPGUARDS': DropGuardsReply,

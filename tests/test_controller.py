@@ -1,11 +1,12 @@
 import asyncio
 import os
+
 import pytest
 
 from aiostem import Controller
 
 
-@pytest.fixture
+@pytest.fixture()
 async def raw_controller():
     host = os.environ.get('AIOSTEM_HOST', '127.0.0.1')
     port = os.environ.get('AIOSTEM_PORT', 9051)
@@ -15,15 +16,15 @@ async def raw_controller():
 
 
 async def test_base_controller(raw_controller):
-    assert raw_controller.authenticated == False
-    assert raw_controller.connected == True
+    assert raw_controller.authenticated is False
+    assert raw_controller.connected is True
 
 
-@pytest.fixture
+@pytest.fixture()
 async def controller(raw_controller):
     password = os.environ.get('AIOSTEM_PASS', 'onionfarm')
     await raw_controller.authenticate(password)
-    yield raw_controller
+    return raw_controller
 
 
 async def test_authenticated_controller(controller):
@@ -53,6 +54,7 @@ async def test_cmd_setconf(controller):
 
 async def test_cmd_quit(controller):
     event = None
+
     def _callback(evt):
         nonlocal event
         event = evt

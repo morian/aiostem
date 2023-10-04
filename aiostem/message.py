@@ -1,5 +1,5 @@
 import re
-from typing import List, Optional, Tuple
+from typing import Optional
 
 from .exception import MessageError, ProtocolError
 
@@ -47,10 +47,10 @@ class MessageLineParser:
         """
         value = self.pop_arg(quoted)
         if value != name:
-            raise MessageError("expected argument '{}', got '{}'.".format(name, value))
+            raise MessageError(f"expected argument '{name}', got '{value}'.")
         return value
 
-    def pop_kwarg(self, quoted: bool = False) -> Tuple[str, str]:
+    def pop_kwarg(self, quoted: bool = False) -> tuple[str, str]:
         """Parse the next argument as a keyword argument.
 
         This returns a tuple with keyword and value.
@@ -67,7 +67,7 @@ class MessageLineParser:
             value = re.sub(r'\\([\\"])', r'\1', value)
         return (keyword, value)
 
-    def pop_kwarg_line(self) -> Tuple[str, str]:
+    def pop_kwarg_line(self) -> tuple[str, str]:
         """Parse the next argument as a keyword argument.
 
         The whole line is considered when returning the value, regardless of spaces.
@@ -82,7 +82,7 @@ class MessageLineParser:
         """Get the next keyword argument and ensures that `keyword` is `name`."""
         keyword, value = self.pop_kwarg(quoted)
         if keyword != name:
-            raise MessageError("expected argument '{}', got '{}'.".format(name, keyword))
+            raise MessageError(f"expected argument '{name}', got '{keyword}'.")
         return value
 
     def reset(self) -> None:
@@ -98,7 +98,7 @@ class MessageData:
     def __init__(self, header: str):
         """Create a new message data."""
         self.header = header
-        self.lines = []  # type: List[str]
+        self.lines = []  # type: list[str]
 
 
 class Message:
@@ -109,17 +109,14 @@ class Message:
         self._parsing_data = None  # type: Optional[MessageData]
         self._parsing_done = False
 
-        self._data_items = []  # type: List[MessageData]
+        self._data_items = []  # type: list[MessageData]
         self._event_type = None  # type: Optional[str]
         self._status_code = 0
         self._status_line = ''
 
     def _event_type_set(self) -> None:
         """Find the event type of the current event."""
-        if len(self.items) > 0:
-            line = self.items[0].header
-        else:
-            line = self.status_line
+        line = self.items[0].header if len(self.items) > 0 else self.status_line
 
         self._event_type = MessageLineParser(line).pop_arg()
 
@@ -143,7 +140,7 @@ class Message:
         return bool(self.status_code == 650)
 
     @property
-    def items(self) -> List[MessageData]:
+    def items(self) -> list[MessageData]:
         """Get the ordered list of items in this message."""
         return self._data_items
 
@@ -177,7 +174,7 @@ class Message:
                 self._parsing_data.lines.append(line)
         else:
             if len(line) < 4:
-                raise ProtocolError("Received line is too short: '{}'!".format(line))
+                raise ProtocolError(f"Received line is too short: '{line}'!")
 
             code = line[0:3]
             kind = line[3:4]
@@ -194,4 +191,4 @@ class Message:
             elif kind == '-':
                 self._data_items.append(MessageData(data))
             else:
-                raise ProtocolError("Unable to parse line '{}'".format(line))
+                raise ProtocolError(f"Unable to parse line '{line}'")

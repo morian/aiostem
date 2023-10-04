@@ -54,12 +54,11 @@ def hs_address_version(address: str, allow_suffix: bool = False) -> int:
     if address_len == HS_V3_ADDRESS_LENGTH:
         if is_valid_hs_v3_address(address):
             version = 3
-    elif address_len == HS_V2_ADDRESS_LENGTH:
-        if is_valid_hs_v2_address(address):
-            version = 2
+    elif address_len == HS_V2_ADDRESS_LENGTH and is_valid_hs_v2_address(address):
+        version = 2
 
     if version is None:
-        raise ValueError("Invalid hidden service address '{}'".format(address))
+        raise ValueError(f"Invalid hidden service address '{address}'")
     return version
 
 

@@ -37,7 +37,7 @@ class SingleArgument(BaseArgument):
     def __str__(self) -> str:
         """Get the value as sent on the socket."""
         if self.quoted:
-            return '"{}"'.format(add_quotes(self.value))
+            return f'"{add_quotes(self.value)}"'
         return self.value
 
 
@@ -68,5 +68,5 @@ class KeywordArgument(BaseArgument):
     def __str__(self) -> str:
         """Get the value as sent on the socket."""
         if self.quoted:
-            return '{0}="{1}"'.format(self.keyword, add_quotes(self.value))
-        return '{0}={1}'.format(self.keyword, self.value)
+            return f'{self.keyword}="{add_quotes(self.value)}"'
+        return f'{self.keyword}={self.value}'

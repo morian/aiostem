@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import ClassVar, Iterable
+from collections.abc import Iterable
+from typing import ClassVar
 
 from aiostem.command import Command
 
