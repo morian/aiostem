@@ -47,6 +47,10 @@ debian11-package:
   image: ${CI_REGISTRY}/dockers/ci/debian-build:11
   extends: .deb-common
 
+debian12-package:
+  image: ${CI_REGISTRY}/dockers/ci/debian-build:12
+  extends: .deb-common
+
 python3-linting:
   image: ${CI_REGISTRY}/dockers/ci/python-build:3.11-alpine
   stage: tests
