@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
 
 [project]
 name = 'aiostem'
@@ -48,23 +48,6 @@ aiostem = ['py.typed']
 [tool.pytest.ini_options]
 testpaths = 'tests'
 asyncio_mode = 'auto'
-
-[tool.flake8]
-exclude = [
-	'*.egg-info/',
-	'build/',
-	'debian/',
-	'dist/',
-	'htmlcov/',
-	'venv/',
-]
-extend-ignore = 'E203'
-max-line-length = 95
-max-complexity = 12
-inline-quotes = 'single'
-multiline-quotes = 'double'
-show-source = true
-statistics = true
 
 [tool.ruff]
 select = [

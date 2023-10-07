@@ -47,6 +47,12 @@ debian12-package:
   image: ${CI_REGISTRY}/dockers/ci/debian-build:12
   extends: .deb-common
 
+ubuntu2204-package:
+  image: ${CI_REGISTRY}/dockers/ci/ubuntu-build:22.04
+  extends: .deb-common
+  before_script:
+    - pip install -U setuptools
+
 python3-linting:
   image: ${CI_REGISTRY}/dockers/ci/python-build:3.12-alpine
   stage: tests
@@ -73,8 +79,11 @@ python3-tests:
     - name: "${CI_REGISTRY}/${CI_PROJECT_ROOT_NAMESPACE}/docker/tor-client:0.4.6.9"
       alias: torcontrol
       command: [
-        'tor', '-f', '/etc/tor/torrc',
-        'HashedControlPassword', '16:163184F7911BFBE760F8E71F6B13522B768BE174591BA285B3373FBC07'
+        'tor',
+        '-f',
+        '/etc/tor/torrc',
+        'HashedControlPassword',
+        '16:163184F7911BFBE760F8E71F6B13522B768BE174591BA285B3373FBC07'
       ]
   cache:
     <<: *pip_cache
