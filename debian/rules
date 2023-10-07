@@ -3,6 +3,7 @@
 
 export PYBUILD_NAME=aiostem
 export PYBUILD_DISABLE=test
+export PYBUILD_SYSTEM=pyproject
 
 %:
 	dh $@ --with python3 --buildsystem=pybuild
