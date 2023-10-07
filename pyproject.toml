@@ -2,6 +2,49 @@
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = 'aiostem'
+dynamic = ['version']
+authors = [
+	{name = 'Romain Bezut', email = 'morian@xdec.net'},
+]
+description = 'Asynchronous Tor controller library for asyncio and Python'
+readme = 'README.md'
+classifiers = [
+	'Intended Audience :: Developers',
+	'Intended Audience :: Information Technology',
+	'License :: OSI Approved :: MIT License',
+	'Operating System :: POSIX :: Linux',
+	'Programming Language :: Python',
+	'Programming Language :: Python :: 3',
+	'Programming Language :: Python :: 3 :: Only',
+	'Programming Language :: Python :: 3.7',
+	'Programming Language :: Python :: 3.8',
+	'Programming Language :: Python :: 3.9',
+	'Programming Language :: Python :: 3.10',
+	'Programming Language :: Python :: 3.11',
+	'Programming Language :: Python :: 3.12',
+]
+dependencies = [
+	'aiofiles',
+	'stem >= 1.8.2, < 1.9',
+]
+
+[tool.setuptools.packages.find]
+include = [
+	'aiostem',
+	'aiostem.event',
+	'aiostem.extra',
+	'aiostem.query',
+	'aiostem.reply',
+]
+
+[tool.setuptools.dynamic]
+version = {attr = 'aiostem.version.version'}
+
+[tool.setuptools.package-data]
+aiostem = ['py.typed']
+
 [tool.pytest.ini_options]
 testpaths = 'tests'
 asyncio_mode = 'auto'

@@ -39,10 +39,6 @@ python3-package:
     paths:
       - dist/
 
-debian10-package:
-  image: ${CI_REGISTRY}/dockers/ci/debian-build:10
-  extends: .deb-common
-
 debian11-package:
   image: ${CI_REGISTRY}/dockers/ci/debian-build:11
   extends: .deb-common

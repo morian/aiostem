@@ -1,3 +1,1 @@
-from pkg_resources import get_distribution
-
-version = get_distribution(__package__).version
+version: str = '0.2.9'

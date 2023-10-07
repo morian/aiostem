@@ -16,7 +16,7 @@ install-testing: install-aiostem
 	pip install -r tests/requirements-testing.txt
 
 .PHONY: install
-install: install-testing install-linter
+install: install-testing install-linting
 	@echo 'Installed development requirements'
 
 .PHONY: build
