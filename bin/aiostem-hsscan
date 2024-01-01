@@ -207,6 +207,7 @@ class HiddenServiceScanner:
             # Authenticate to our Tor controller and request a new identity.
             # This flushes everything left in cache from previous sessions.
             await controller.authenticate(options.password)
+            await controller.signal('ACTIVE')
             await controller.signal('NEWNYM')
 
             res = await controller.get_info('network-liveness')
