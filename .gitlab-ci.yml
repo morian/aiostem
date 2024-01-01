@@ -94,7 +94,7 @@ python3-tests:
   script:
     - >-
       coverage run --append bin/aiostem-hsscan --input tests/onionlist.txt
-      --control torcontrol:9051 --password aiostem --workers 2 --timeout 30
+      --control torcontrol:9051 --password aiostem --workers 2 --timeout 60
     - pytest --cov=aiostem --cov-append --cov-report=
     - coverage report
     - coverage xml
