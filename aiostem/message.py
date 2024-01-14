@@ -1,4 +1,5 @@
 import re
+from collections.abc import Iterable
 from typing import Optional
 
 from .exception import MessageError, ProtocolError
@@ -104,7 +105,7 @@ class MessageData:
 class Message:
     """Store any kind of message received by the controller."""
 
-    def __init__(self) -> None:
+    def __init__(self, lines: Iterable[str] = tuple()) -> None:
         """Initialize a new empty message."""
         self._parsing_data = None  # type: Optional[MessageData]
         self._parsing_done = False
@@ -113,6 +114,7 @@ class Message:
         self._event_type = None  # type: Optional[str]
         self._status_code = 0
         self._status_line = ''
+        self.add_lines(lines)
 
     def _event_type_set(self) -> None:
         """Find the event type of the current event."""
@@ -153,6 +155,11 @@ class Message:
     def status_line(self) -> str:
         """Get the raw text content of the end line."""
         return self._status_line
+
+    def add_lines(self, lines: Iterable[str]) -> None:
+        """Add multiple lines at one."""
+        for line in lines:
+            self.add_line(line)
 
     def add_line(self, line: str) -> None:
         """Add a new line from the controller."""
