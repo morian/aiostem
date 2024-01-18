@@ -217,9 +217,12 @@ class HiddenServiceScanner:
             async def _hs_check_task_cancel(event: Event) -> None:
                 """Triggered when the instance gets disconnected from the Controller."""
                 print('[!] Controller is disconnected from the control socket!')
-                task.cancel()
+                task.cancel('Controller was disconnected from the control socket')
 
-            task = asyncio.create_task(self._hs_check_task(controller, options, onions))
+            task = asyncio.create_task(
+                self._hs_check_task(controller, options, onions),
+                name='aiostem.bin.hsscan.checker',
+            )
             await controller.event_subscribe('DISCONNECT', _hs_check_task_cancel)
             await asyncio.gather(task, return_exceptions=True)
 

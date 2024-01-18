@@ -218,7 +218,7 @@ class Controller:
 
         rdtask = self._rdtask
         if rdtask is not None:
-            rdtask.cancel()
+            rdtask.cancel('Controller is being closed')
             with contextlib.suppress(asyncio.CancelledError):
                 await rdtask
         self._rdtask = None
@@ -233,7 +233,10 @@ class Controller:
         """Connect Tor's control socket."""
         reader, writer = await self._connector.connect()
         rqueue = asyncio.Queue()  # type: asyncio.Queue[Message | None]
-        rdtask = asyncio.create_task(self._reader_task(reader, rqueue))
+        rdtask = asyncio.create_task(
+            self._reader_task(reader, rqueue),
+            name='aiostem.controller.reader',
+        )
 
         self._connected = True
         self._rqueue = rqueue

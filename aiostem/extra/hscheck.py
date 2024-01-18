@@ -109,9 +109,9 @@ class HiddenServiceCheckEntry:
                 self._future.set_result(event)
             req.event = event
 
-    def cancel(self) -> bool:
+    def cancel(self, msg: str | None = None) -> bool:
         """Cancel this entry (we are no longer interested in it)."""
-        return self._future.cancel()
+        return self._future.cancel(msg)
 
 
 class HiddenServiceChecker:
@@ -183,7 +183,7 @@ class HiddenServiceChecker:
             entries.remove(entry)
             if not entries:
                 self._requests.pop(address)
-            entry.cancel()
+            entry.cancel('Entry has been cancelled because of a HS_FETCH error')
             raise
         return entry
 
@@ -197,7 +197,7 @@ class HiddenServiceChecker:
             entries.remove(entry)
             if not entries:
                 self._requests.pop(address)
-            entry.cancel()
+            entry.cancel('Entry was discarded and is no longer needed')
 
     async def _worker_entry(self) -> None:
         """Get request from the queue and perform the request."""
@@ -234,8 +234,11 @@ class HiddenServiceChecker:
 
     async def begin(self) -> None:
         """Start the worker tasks, subscribe to the controller."""
-        for _ in range(self.concurrency):
-            worker = asyncio.create_task(self._worker_entry())
+        for i in range(self.concurrency):
+            worker = asyncio.create_task(
+                self._worker_entry(),
+                name=f'aiostem.extra.hscheck.worker-{i}',
+            )
             self._workers.append(worker)
 
         await self.controller.event_subscribe('HS_DESC', self._event_info_cb)
@@ -250,7 +253,7 @@ class HiddenServiceChecker:
 
         try:
             for worker in self._workers:
-                worker.cancel()
+                worker.cancel('Service checker is being closed')
             await asyncio.wait(self._workers, return_when=asyncio.ALL_COMPLETED)
         finally:
             self._workers.clear()
