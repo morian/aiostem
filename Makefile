@@ -2,9 +2,13 @@
 sources = aiostem tests bin/aiostem-hsscan
 DEBUILD ?= /usr/bin/debuild
 
+.PHONY: install-devel
+install-devel:
+	pip install -r tests/requirements-devel.txt
+
 .PHONY: install-linting
 install-linting:
-	pip install -r tests/requirements-linter.txt
+	pip install -r tests/requirements-linting.txt
 
 .PHONY: install-aiostem
 install-aiostem:
@@ -16,7 +20,7 @@ install-testing: install-aiostem
 	pip install -r tests/requirements-testing.txt
 
 .PHONY: install
-install: install-testing install-linting
+install: install-devel install-testing install-linting
 	@echo 'Installed development requirements'
 
 .PHONY: build
