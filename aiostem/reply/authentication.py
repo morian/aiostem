@@ -2,10 +2,9 @@ import hashlib
 import hmac
 from typing import cast
 
-from aiostem.exception import ProtocolError
-from aiostem.message import Message, MessageLineParser
-from aiostem.query import AuthChallengeQuery
-
+from ..exception import ProtocolError
+from ..message import Message, MessageLineParser
+from ..query import AuthChallengeQuery
 from .base import Reply
 from .simple import SimpleReply
 

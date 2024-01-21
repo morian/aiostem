@@ -7,10 +7,10 @@ from collections.abc import Coroutine
 from types import TracebackType
 from typing import TYPE_CHECKING, Any, Callable, Union, cast
 
-from aiostem.controller import Controller
-from aiostem.event import Event, HsDescContentEvent, HsDescEvent
-from aiostem.exception import AiostemError
-from aiostem.util import hs_address_strip_tld, hs_address_version
+from ..controller import Controller
+from ..event import Event, HsDescContentEvent, HsDescEvent
+from ..exception import AiostemError
+from ..util import hs_address_strip_tld, hs_address_version
 
 
 class HiddenServiceFetchError(AiostemError):
@@ -222,12 +222,12 @@ class HiddenServiceChecker:
                 res = exc
             finally:
                 try:
-                    if callable(req.callback):
+                    if callable(req.callback):  # pragma: no branch
                         await req.callback(req, res)
                 # CancelledError is based on Exception on Python3.7.
-                except CancelledError:
+                except CancelledError:  # pragma: no cover
                     raise
-                except Exception:
+                except Exception:  # pragma: no cover
                     pass
                 finally:
                     self.queue.task_done()

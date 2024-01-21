@@ -1,6 +1,5 @@
-from aiostem.message import Message
-from aiostem.query import Query
-
+from ..message import Message
+from ..query import Query
 from .authentication import AuthChallengeReply, AuthenticateReply
 from .base import Reply, UnknownReply
 from .info import GetConfReply, GetInfoReply, ProtocolInfoReply

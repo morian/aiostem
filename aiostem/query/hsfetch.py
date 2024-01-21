@@ -2,8 +2,7 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from aiostem.command import Command
-
+from ..command import Command
 from .base import Query
 
 

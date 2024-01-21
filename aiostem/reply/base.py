@@ -2,9 +2,9 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from aiostem.exception import MessageError, ResponseError
-from aiostem.message import Message, MessageLineParser
-from aiostem.query import Query
+from ..exception import MessageError, ResponseError
+from ..message import Message, MessageLineParser
+from ..query import Query
 
 
 class BaseResponse:

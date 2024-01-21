@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
-from aiostem.argument import KeywordArgument
-from aiostem.command import Command
-
+from ..argument import KeywordArgument
+from ..command import Command
 from .base import Query
 
 

@@ -4,8 +4,7 @@ from typing import Any, ClassVar
 
 import aiofiles
 
-from aiostem.message import Message, MessageLineParser
-
+from ..message import Message, MessageLineParser
 from .simple import SimpleReply
 
 
@@ -105,7 +104,7 @@ class ProtocolInfoReply(SimpleReply):
             parser = MessageLineParser(item.header)
             verb = parser.pop_arg()
             func = parser_fn.get(verb)
-            if func:
+            if func:  # pragma: no branch
                 func(parser)
 
     @property

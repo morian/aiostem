@@ -44,8 +44,8 @@ version = {attr = 'aiostem.version.version'}
 aiostem = ['py.typed']
 
 [tool.pytest.ini_options]
-testpaths = 'tests'
-asyncio_mode = 'auto'
+testpaths = ['tests']
+asyncio_mode = 'strict'
 
 [tool.ruff]
 select = [
@@ -98,6 +98,7 @@ branch = true
 [tool.coverage.report]
 precision = 2
 exclude_lines = [
+	'def __repr__\(self\)',
 	'pragma: no cover',
 	'raise NotImplementedError',
 	'raise NotImplemented',
@@ -137,3 +138,9 @@ disallow_incomplete_defs = true
 disallow_untyped_decorators = true
 disallow_untyped_calls = true
 disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = [
+	'stem.*',
+]
+ignore_missing_imports = true

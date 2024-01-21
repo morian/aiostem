@@ -8,10 +8,7 @@ from contextlib import suppress
 from types import TracebackType
 from typing import Any, Callable, overload
 
-import aiostem.event as e
-import aiostem.query as q
-import aiostem.reply as r
-
+from . import event as e, query as q, reply as r
 from .command import Command
 from .connector import (
     DEFAULT_CONTROL_HOST,
@@ -87,7 +84,7 @@ class Controller:
     async def _handle_event(self, message: Message) -> None:
         """Handle the new received event (find and call the callbacks)."""
         name = message.event_type
-        if name is not None:
+        if name is not None:  # pragma: no branch
             event = e.event_parser(message)
 
             for callback in self._evt_callbacks.get(name, []):
@@ -101,9 +98,7 @@ class Controller:
 
     async def _notify_disconnect(self) -> None:
         """Generate a DISCONNECT event to tell everyone that we are now disconnected."""
-        message = Message()
-        message.add_line('650 DISCONNECT\r\n')
-        await self._handle_event(message)
+        await self._handle_event(Message(['650 DISCONNECT']))
 
     async def _reader_task(
         self,
@@ -131,7 +126,7 @@ class Controller:
                 self._connected = False
                 rqueue.put_nowait(None)
                 await self._notify_disconnect()
-            except asyncio.QueueFull:
+            except asyncio.QueueFull:  # pragma: no cover
                 pass
 
     async def _request(self, command: Command) -> Message:

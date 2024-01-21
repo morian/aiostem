@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import ClassVar
 
-from aiostem.message import Message, MessageLineParser
-from aiostem.reply.base import Event
+from ..message import Message, MessageLineParser
+from ..reply.base import Event
 
 
 class SignalEvent(Event):
