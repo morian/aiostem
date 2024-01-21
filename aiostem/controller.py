@@ -361,18 +361,14 @@ class Controller:
         query = q.SetConfQuery(items)
         return await self.request(query)
 
-    async def set_events(
-        self,
-        events: Iterable[str],
-        extended: bool = False,
-    ) -> r.SetEventsReply:
+    async def set_events(self, events: Iterable[str]) -> r.SetEventsReply:
         """Set the list of events that we subscribe to.
 
         This method should probably not be called directly, see event_subscribe.
         """
         # Remove internal events from the list in our request to the controller.
         events = set(events).difference(e.EVENTS_INTERNAL)
-        query = q.SetEventsQuery(events, extended)
+        query = q.SetEventsQuery(events)
         return await self.request(query)
 
     async def signal(self, signal: str) -> r.SignalReply:
