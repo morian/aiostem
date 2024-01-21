@@ -92,8 +92,7 @@ python3-tests:
     AIOSTEM_HOST: 'torcontrol'
     AIOSTEM_PASS: 'aiostem'
   services:
-    # Latest known version of Tor with support for OnionV2.
-    - name: "${CI_REGISTRY}/${CI_PROJECT_ROOT_NAMESPACE}/docker/tor-client:0.4.6.9"
+    - name: "${CI_REGISTRY}/${CI_PROJECT_ROOT_NAMESPACE}/docker/tor-client:0.4.8.10"
       alias: torcontrol
       command: [
         'tor',

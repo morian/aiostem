@@ -4,8 +4,14 @@ from functools import partial
 import pytest
 
 from aiostem import Controller
-from aiostem.event import NetworkLivenessEvent, SignalEvent, StatusClientEvent
-from aiostem.exception import ControllerError, ResponseError
+from aiostem.event import (
+    NetworkLivenessEvent,
+    SignalEvent,
+    StatusClientEvent,
+    UnknownEvent,
+    event_parser,
+)
+from aiostem.exception import ControllerError, ProtocolError, ResponseError
 from aiostem.message import Message
 
 # All test coroutines will be treated as marked.
@@ -27,6 +33,19 @@ class TestController:
         with pytest.raises(FileNotFoundError, match='No such file'):
             await controller.connect()
         assert controller.connected is False
+
+    async def test_authenticate_no_password(self, raw_controller):
+        with pytest.raises(FileNotFoundError, match='No such file'):
+            await raw_controller.authenticate()
+
+    async def test_cmd_auth_challenge(self, raw_controller):
+        res = await raw_controller.auth_challenge(b'NOT A TOKEN')
+        with pytest.raises(ProtocolError, match='Tor provided the wrong server nonce.'):
+            res.raise_for_server_hash_error(b'THIS IS A COOKIE')
+
+        token = res.client_token_build(b'THIS IS A COOKIE')
+        assert isinstance(token, bytes), token
+        assert len(token) == 32
 
     async def test_not_entered_from_port(self):
         controller = Controller.from_port('qweqwe', 9051)
@@ -73,6 +92,14 @@ class TestController:
         with pytest.raises(Exception, match='No such file or directory'):
             await res1.cookie_file_read()
 
+    async def test_cmd_hsfetch_v2_error(self, controller):
+        with pytest.raises(ResponseError, match='Invalid argument'):
+            await controller.hs_fetch('tor66sezptuu2nta')
+
+    async def test_cmd_drop_guard(self, controller):
+        res = await controller.drop_guards()
+        assert res.status_text == 'OK'
+
     @pytest.mark.timeout(2)
     async def test_cmd_quit(self, controller):
         test_event = asyncio.Event()
@@ -95,6 +122,10 @@ class TestController:
 
         await controller.event_unsubscribe('DISCONNECT', callback)
 
+    async def test_cmd_subscribe_bad_event(self, controller):
+        with pytest.raises(ResponseError, match='Unrecognized event'):
+            await controller.event_subscribe('INVALID_EVENT', lambda x: None)
+
     @pytest.mark.timeout(2)
     async def test_event_network(self, controller):
         loop = asyncio.get_running_loop()
@@ -106,13 +137,17 @@ class TestController:
         callback = partial(on_network_event, future)
         await controller.event_subscribe('NETWORK_LIVENESS', callback)
 
-        message = Message(['650 NETWORK_LIVENESS UP'])
+        message = Message('650 NETWORK_LIVENESS UP')
         await controller.push_spurious_event(message)
 
         evt = await asyncio.ensure_future(future)
         assert isinstance(evt, NetworkLivenessEvent)
         assert evt.network_status == 'UP'
         assert evt.is_connected is True
+
+    async def test_unknown_event(self):
+        evt = event_parser(Message('650 SPECIAL_EVENT'))
+        assert isinstance(evt, UnknownEvent)
 
     @pytest.mark.timeout(2)
     async def test_event_status_client(self, controller):
@@ -125,7 +160,7 @@ class TestController:
         callback = partial(on_status_event, future)
         await controller.event_subscribe('STATUS_CLIENT', callback)
 
-        message = Message(['650 STATUS_CLIENT NOTICE BOOTSTRAP PROGRESS=100'])
+        message = Message('650 STATUS_CLIENT NOTICE BOOTSTRAP PROGRESS=100')
         await controller.push_spurious_event(message)
 
         evt = await asyncio.ensure_future(future)

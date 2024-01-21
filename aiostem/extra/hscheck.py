@@ -80,7 +80,7 @@ class HiddenServiceCheckEntry:
     def _info_received(self, event: HsDescEvent) -> None:
         """Handle a descriptor fetch success (we have the info)."""
         req = self._requests.get(event.directory)
-        if req:
+        if req and not req.succeeded:
             if req.event is not None and not self._future.done():
                 self._future.set_result(req.event)
             req.status = True
@@ -157,7 +157,7 @@ class HiddenServiceChecker:
 
     async def _event_info_cb(self, event: Event) -> None:
         """Handle received descriptor event (received/created/requested)."""
-        if isinstance(event, HsDescEvent):
+        if isinstance(event, HsDescEvent):  # pragma: no branch
             entries = self._requests.get(event.address)
             if entries:
                 for entry in entries:
@@ -165,7 +165,7 @@ class HiddenServiceChecker:
 
     async def _event_data_cb(self, event: Event) -> None:
         """Handle received descriptor content."""
-        if isinstance(event, HsDescContentEvent):
+        if isinstance(event, HsDescContentEvent):  # pragma: no branch
             entries = self._requests.get(event.address)
             if entries:
                 for entry in entries:

@@ -2,16 +2,19 @@ import asyncio
 
 import pytest
 import pytest_asyncio
+from stem.descriptor.hidden_service import HiddenServiceDescriptorV2
 
 from aiostem.event import HsDescContentEvent
+from aiostem.exception import ProtocolError
 from aiostem.extra import (
     HiddenServiceChecker,
     HiddenServiceFetchError,
     HiddenServiceFetchRequest,
 )
+from aiostem.message import Message
 
-# All test coroutines will be treated as marked.
-pytestmark = pytest.mark.asyncio
+from .conftest import CONTROLLER_HS_RESULTS
+
 CHECKER_CONCURRENCY = 2
 
 
@@ -21,6 +24,43 @@ async def checker(controller):
         yield checker
 
 
+class TestHsDescriptors:
+    def test_hddesc(self):
+        domain = 'oftestt7ffa4tt7et5wab7xhnzeooavy2xdmn6dtfa4pot7dk4xhviid'
+        result = CONTROLLER_HS_RESULTS[domain]
+        descriptor = result.descriptors[0]
+        assert descriptor.auth_type == 'NO_AUTH'
+        assert descriptor.descriptor_id == 'NHN9fUdcd/9nJF6PSF6/IzdqkCiEoCsexfMv+7SGpCQ'
+        assert descriptor.replica is None
+        assert (
+            descriptor.index
+            == 'DE4B45474E4597865D4C98FBC2C157786909CA2062536EC5792CBEFB0D83F35B'
+        )
+
+    def test_hsdesc_content(self):
+        domain = 'facebookcorewwwi'
+        result = CONTROLLER_HS_RESULTS[domain]
+        content = result.contents[0]
+        assert content.descriptor_id == '6wn4xyr3l2m6g5z3dcnvygul2tozaxli'
+
+        stem_desc_1 = content.descriptor
+        assert isinstance(stem_desc_1, HiddenServiceDescriptorV2)
+        assert content.descriptor == stem_desc_1
+
+    def test_hsdesc_content_error(self):
+        line = [
+            '650',
+            'HS_DESC_CONTENT',
+            'facebookcorewwwi',
+            '6wn4xyr3l2m6g5z3dcnvygul2tozaxli',
+            '$F5B58FEE44573C3BFD7D176D918BA5B4057519D7~bistrv1',
+        ]
+        message = Message(' '.join(line))
+        with pytest.raises(ProtocolError, match='Event HS_DESC_CONTENT contains nothing.'):
+            HsDescContentEvent(message)
+
+
+@pytest.mark.asyncio()
 class TestHiddenServiceChecker:
     async def test_entered(self, controller, checker):
         assert checker.controller == controller

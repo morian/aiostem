@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import re
 from collections.abc import Iterable
-from typing import Optional
 
 from .exception import MessageError, ProtocolError
 
@@ -105,16 +106,21 @@ class MessageData:
 class Message:
     """Store any kind of message received by the controller."""
 
-    def __init__(self, lines: Iterable[str] = tuple()) -> None:
+    def __init__(self, lines: Iterable[str] | str | None = None) -> None:
         """Initialize a new empty message."""
-        self._parsing_data = None  # type: Optional[MessageData]
+        self._parsing_data = None  # type: MessageData | None
         self._parsing_done = False
 
         self._data_items = []  # type: list[MessageData]
-        self._event_type = None  # type: Optional[str]
+        self._event_type = None  # type: str | None
         self._status_code = 0
         self._status_line = ''
-        self.add_lines(lines)
+
+        if lines is not None:
+            if isinstance(lines, str):
+                self.add_line(lines)
+            else:
+                self.add_lines(lines)
 
     def _event_type_set(self) -> None:
         """Find the event type of the current event."""
@@ -132,7 +138,7 @@ class Message:
         return self._parsing_done
 
     @property
-    def event_type(self) -> Optional[str]:
+    def event_type(self) -> str | None:
         """Event type (when this message is an event)."""
         return self._event_type
 

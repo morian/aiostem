@@ -1,6 +1,7 @@
 import asyncio
 import os
 from dataclasses import dataclass
+from typing import Any
 
 import pytest_asyncio
 
@@ -58,6 +59,9 @@ class CustomController(Controller):
         self.ignore_requests = False
         self.raise_enabled = False
 
+    def evt_callbacks(self) -> dict[str, list[Any]]:
+        return self._evt_callbacks
+
     async def fake_hs_events(self, address: str) -> None:
         result = CONTROLLER_HS_RESULTS[address]
         for descriptor in result.descriptors:
@@ -87,7 +91,7 @@ class CustomController(Controller):
         else:
             await self.fake_hs_events(address)
 
-        return HsFetchReply(HsFetchQuery(address, servers), Message(['250 OK']))
+        return HsFetchReply(HsFetchQuery(address, servers), Message('250 OK'))
 
     async def push_spurious_event(self, message: Message) -> None:
         await self._handle_event(message)

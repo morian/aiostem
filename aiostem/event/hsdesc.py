@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, ClassVar
 
-from stem.descriptor.hidden_service import (  # type: ignore[import]
+from stem.descriptor.hidden_service import (
     BaseHiddenServiceDescriptor,
     HiddenServiceDescriptorV2,
     HiddenServiceDescriptorV3,

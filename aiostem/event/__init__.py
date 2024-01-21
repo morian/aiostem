@@ -27,7 +27,7 @@ def event_parser(message: Message) -> Event:
     """Find the appropriate event class to parse this message."""
     if message.event_type is not None:
         parser = EVENT_MAP.get(message.event_type, UnknownEvent)
-    else:
+    else:  # pragma: no cover
         parser = UnknownEvent
     return parser(message)
 

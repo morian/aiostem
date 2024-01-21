@@ -92,13 +92,13 @@ class Controller:
                 try:
                     coro = callback(event)
                     if asyncio.iscoroutine(coro):
-                        await coro  # type: ignore[misc]
-                except Exception as exc:
+                        await coro
+                except Exception as exc:  # pragma: no cover
                     logger.error("Error handling callback for '%s': %s", name, str(exc))
 
     async def _notify_disconnect(self) -> None:
         """Generate a DISCONNECT event to tell everyone that we are now disconnected."""
-        await self._handle_event(Message(['650 DISCONNECT']))
+        await self._handle_event(Message('650 DISCONNECT'))
 
     async def _reader_task(
         self,
@@ -251,7 +251,7 @@ class Controller:
                     await self.set_events(self._evt_callbacks.keys())
                 listeners.append(callback)
             except AiostemError:
-                if not len(listeners):
+                if not len(listeners):  # pragma: no branch
                     self._evt_callbacks.pop(event)
                 raise
 
@@ -264,11 +264,11 @@ class Controller:
                 listeners.remove(callback)
 
                 try:
-                    if not len(listeners):
+                    if not len(listeners):  # pragma: no branch
                         self._evt_callbacks.pop(event)
                         if event not in e.EVENTS_INTERNAL:
                             await self.set_events(self._evt_callbacks.keys())
-                except AiostemError:
+                except AiostemError:  # pragma: no cover
                     self._evt_callbacks[event] = backup_listeners
                     raise
 
