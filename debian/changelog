@@ -1,3 +1,13 @@
+python3-aiostem (0.2.10) unstable; urgency=low
+
+  * hsscan now set tor controller as active before running scans
+  * Remove EXTENDED flag on SETEVENTS (deprecated by Tor)
+  * Message can now take one or multiple lines as argument
+  * Python tasks now have names and cancel reasons
+  * Greatly improve tests and code coverage
+
+ -- Romain Bezut <morian@xdec.net>  Sun, 21 Oct 2024 22:00:00 +0000
+
 python3-aiostem (0.2.9) unstable; urgency=low
 
   * Fix typing and linting issues
