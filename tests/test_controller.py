@@ -3,8 +3,9 @@ from functools import partial
 
 import pytest
 
+from aiostem import Controller
 from aiostem.event import NetworkLivenessEvent, SignalEvent, StatusClientEvent
-from aiostem.exception import ResponseError
+from aiostem.exception import ControllerError, ResponseError
 from aiostem.message import Message
 
 # All test coroutines will be treated as marked.
@@ -15,6 +16,26 @@ class TestController:
     async def test_base_controller(self, raw_controller):
         assert raw_controller.authenticated is False
         assert raw_controller.connected is True
+
+    async def test_unauth_protoinfo(self, raw_controller):
+        res1 = await raw_controller.protocol_info()
+        res2 = await raw_controller.protocol_info()
+        assert res1 == res2
+
+    async def test_not_entered_from_path(self):
+        controller = Controller.from_path('/run/tor/not_a_valid_socket.sock')
+        with pytest.raises(FileNotFoundError, match='No such file'):
+            await controller.connect()
+        assert controller.connected is False
+
+    async def test_not_entered_from_port(self):
+        controller = Controller.from_port('qweqwe', 9051)
+        assert controller.connected is False
+
+        with pytest.raises(ControllerError, match='Controller is not connected'):
+            await controller.protocol_info()
+
+        await controller.close()
 
     async def test_authenticated_controller(self, controller):
         assert controller.connected

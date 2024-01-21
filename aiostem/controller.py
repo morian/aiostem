@@ -147,7 +147,7 @@ class Controller:
             rep = await rqueue.get()
 
         rqueue.task_done()
-        if rep is None:
+        if rep is None:  # pragma: no cover
             raise ControllerError('Controller has disconnected!')
         return rep
 
