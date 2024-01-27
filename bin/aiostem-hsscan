@@ -110,7 +110,7 @@ class HiddenServiceScanner:
 
     @staticmethod
     def _sock_split(sock: str) -> tuple[str, int]:
-        """Parses host:port and return both."""
+        """Parse host:port from a string and return both."""
         items = sock.split(':', 1)
         if len(items) == 1:
             items.insert(0, '127.0.0.1')
@@ -131,7 +131,7 @@ class HiddenServiceScanner:
         req: HiddenServiceFetchRequest,
         res: HsCallbackResponseType,
     ) -> None:
-        """The callback triggered when we get a scan result.
+        """Triggered when we get a scan result.
 
         Result can either be an exception or the HS_DESC_CONTENT event.
         """

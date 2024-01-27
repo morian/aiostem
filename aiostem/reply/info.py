@@ -80,7 +80,7 @@ class ProtocolInfoReply(SimpleReply):
         methods = parser.pop_kwarg_checked('METHODS')
         self._methods = tuple(methods.split(','))
 
-        if not parser.at_end:
+        if not parser.at_end:  # pragma: no branch
             cookie = parser.pop_kwarg_checked('COOKIEFILE', quoted=True)
             self._cookie_file = cookie
 
