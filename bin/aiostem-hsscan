@@ -10,7 +10,7 @@ from typing import Any, TypeAlias
 
 import aiofiles
 
-from aiostem import Controller
+from aiostem import Controller, Monitor
 from aiostem.event import Event, HsDescContentEvent
 from aiostem.extra import (
     HiddenServiceChecker,
@@ -207,12 +207,11 @@ class HiddenServiceScanner:
             # Authenticate to our Tor controller and request a new identity.
             # This flushes everything left in cache from previous sessions.
             await controller.authenticate(options.password)
-            await controller.signal('ACTIVE')
             await controller.signal('NEWNYM')
 
-            res = await controller.get_info('network-liveness')
-            status = res.values.get('network-liveness', 'UNKNOWN')
-            print(f'[I] Network status is reported to be {status}')
+            monitor = await stack.enter_async_context(Monitor(controller))
+            status = await monitor.wait_until_ready()
+            print(f'[I] Controller status: {status}')
 
             async def _hs_check_task_cancel(event: Event) -> None:
                 """Triggered when the instance gets disconnected from the Controller."""
