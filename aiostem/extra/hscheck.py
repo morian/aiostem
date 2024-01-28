@@ -3,9 +3,9 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from asyncio import CancelledError, TimeoutError
-from collections.abc import Coroutine
+from collections.abc import Callable, Coroutine
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, Callable, Union, cast
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 from ..controller import Controller
 from ..event import Event, HsDescContentEvent, HsDescEvent
@@ -207,7 +207,7 @@ class HiddenServiceChecker:
                 entry = await self._request_post(req.address)
                 try:
                     res = cast(
-                        Union[Exception, HsDescContentEvent],
+                        Exception | HsDescContentEvent,
                         await asyncio.wait_for(entry.future, req.timeout),
                     )
                 finally:
@@ -274,7 +274,7 @@ class HiddenServiceChecker:
 
 
 if TYPE_CHECKING:
-    HsCallbackResponseType = Union[HsDescContentEvent, Exception]
+    HsCallbackResponseType: TypeAlias = HsDescContentEvent | Exception
     HiddenServiceFetchCallback = Callable[
         ['HiddenServiceFetchRequest', HsCallbackResponseType],
         Coroutine[Any, Any, None],

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
+from dataclasses import dataclass, field
 
 from .exception import MessageError, ProtocolError
 
@@ -92,15 +93,12 @@ class MessageLineParser:
         self._cur_line = self._raw_line
 
 
+@dataclass(slots=True)
 class MessageData:
     """Class for keeping track of data messages."""
 
-    __slots__ = ('header', 'lines')
-
-    def __init__(self, header: str):
-        """Create a new message data."""
-        self.header = header
-        self.lines = []  # type: list[str]
+    header: str
+    lines: list[str] = field(default_factory=list)
 
 
 class Message:

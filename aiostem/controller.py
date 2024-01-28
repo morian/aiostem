@@ -3,10 +3,10 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import logging
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from contextlib import suppress
 from types import TracebackType
-from typing import Any, Callable, overload
+from typing import Any, overload
 
 from . import event as e, query as q, reply as r
 from .command import Command
@@ -180,22 +180,21 @@ class Controller:
         # Here we suppose that the user prefers a password authentication when
         # a password is provided (the cookie file may not be readable!).
         if 'NULL' in methods:
-            token = None
+            token_bytes = None  # type: bytes | None
         elif 'HASHEDPASSWORD' in methods:
-            token = password.encode()  # type: ignore[union-attr]
+            token_bytes = password.encode()  # type: ignore[union-attr]
         elif 'SAFECOOKIE' in methods:
             cookie = await protoinfo.cookie_file_read()
             if cookie is not None:
                 challenge = await self.auth_challenge()
                 challenge.raise_for_server_hash_error(cookie)
-                token = challenge.client_token_build(cookie)
+                token_bytes = challenge.client_token_build(cookie)
         elif 'COOKIE' in methods:
-            token = await protoinfo.cookie_file_read()
+            token_bytes = await protoinfo.cookie_file_read()
         else:
             raise ControllerError('No compatible authentication method found!')
 
-        if token is not None:
-            token = token.hex()
+        token = token_bytes.hex() if token_bytes is not None else None
         query = q.AuthenticateQuery(token)
         reply = await self.request(query)
         self._authenticated = bool(reply.status == 250)

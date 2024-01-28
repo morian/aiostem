@@ -1,3 +1,11 @@
+python3-aiostem (0.3.0) unstable; urgency=low
+
+  * Improve code coverage
+  * Drop support for Debian 11
+  * Drop support for python 3.9
+
+ -- Romain Bezut <morian@xdec.net>  Sun, 28 Jan 2024 11:00:00 +0000
+
 python3-aiostem (0.2.10) unstable; urgency=low
 
   * hsscan now set tor controller as active before running scans
@@ -6,7 +14,7 @@ python3-aiostem (0.2.10) unstable; urgency=low
   * Python tasks now have names and cancel reasons
   * Greatly improve tests and code coverage
 
- -- Romain Bezut <morian@xdec.net>  Sun, 21 Oct 2024 22:00:00 +0000
+ -- Romain Bezut <morian@xdec.net>  Sun, 21 Jan 2024 22:00:00 +0000
 
 python3-aiostem (0.2.9) unstable; urgency=low
 
