@@ -2,6 +2,7 @@
 
 from .controller import Controller
 from .exception import ResponseError
+from .monitor import ControllerStatus, Monitor
 from .version import version
 
 __author__ = 'Romain Bezut'
@@ -11,6 +12,8 @@ __version__ = version
 
 __all__ = [
     'Controller',
+    'ControllerStatus',
+    'Monitor',
     'ResponseError',
     'version',
 ]

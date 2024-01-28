@@ -1,5 +1,6 @@
 python3-aiostem (0.3.0) unstable; urgency=low
 
+  * Add a Monitor helper class to check Tor status
   * Improve code coverage
   * Drop support for Debian 11
   * Drop support for python 3.9
