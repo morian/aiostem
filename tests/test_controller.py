@@ -38,6 +38,7 @@ class TestController:
         with pytest.raises(FileNotFoundError, match='No such file'):
             await raw_controller.authenticate()
 
+    @pytest.mark.timeout(2)
     async def test_cmd_auth_challenge(self, raw_controller):
         res = await raw_controller.auth_challenge(b'NOT A TOKEN')
         with pytest.raises(ProtocolError, match='Tor provided the wrong server nonce.'):
@@ -46,6 +47,12 @@ class TestController:
         token = res.client_token_build(b'THIS IS A COOKIE')
         assert isinstance(token, bytes), token
         assert len(token) == 32
+
+    @pytest.mark.timeout(2)
+    async def test_cmd_auth_challenge_no_nonce(self, raw_controller):
+        res = await raw_controller.auth_challenge()
+        assert len(res.query.nonce) == 32
+        assert len(res.server_nonce) == 32
 
     async def test_not_entered_from_port(self):
         controller = Controller.from_port('qweqwe', 9051)
