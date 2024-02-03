@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from .exception import MessageError, ProtocolError
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 class MessageLineParser:

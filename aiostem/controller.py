@@ -5,7 +5,6 @@ import contextlib
 import logging
 from collections.abc import Callable, Iterable
 from contextlib import suppress
-from types import TracebackType
 from typing import TYPE_CHECKING, Any, overload
 
 from . import (
@@ -13,7 +12,6 @@ from . import (
     query as q,
     reply as r,
 )
-from .command import Command
 from .connector import (
     DEFAULT_CONTROL_HOST,
     DEFAULT_CONTROL_PATH,
@@ -27,7 +25,11 @@ from .message import Message
 from .util import hs_address_strip_tld
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     from typing_extensions import Self
+
+    from .command import Command
 
 
 DEFAULT_PROTOCOL_VERSION = q.ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION

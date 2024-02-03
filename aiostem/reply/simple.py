@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from ..message import Message
 from .base import Reply
+
+if TYPE_CHECKING:
+    from ..message import Message
 
 
 class SimpleReply(Reply):

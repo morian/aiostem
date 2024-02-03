@@ -3,17 +3,19 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from asyncio import CancelledError, TimeoutError
-from collections.abc import Callable, Coroutine
-from types import TracebackType
 from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
-from ..controller import Controller
 from ..event import Event, HsDescContentEvent, HsDescEvent
 from ..exception import AiostemError
 from ..util import hs_address_strip_tld, hs_address_version
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Coroutine
+    from types import TracebackType
+
     from typing_extensions import Self
+
+    from ..controller import Controller
 
 
 class HiddenServiceFetchError(AiostemError):

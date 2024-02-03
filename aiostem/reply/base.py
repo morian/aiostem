@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from ..exception import MessageError, ResponseError
-from ..message import Message, MessageLineParser
-from ..query import Query
+
+if TYPE_CHECKING:
+    from ..message import Message, MessageLineParser
+    from ..query import Query
 
 
 class BaseResponse:

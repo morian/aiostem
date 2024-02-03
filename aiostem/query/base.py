@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
-from ..command import Command
+if TYPE_CHECKING:
+    from ..command import Command
 
 
 class Query:

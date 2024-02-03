@@ -2,19 +2,22 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from asyncio import Condition, Lock, Task  # noqa: F401
+from asyncio import Condition, Lock
 from contextlib import suppress
 from dataclasses import dataclass
-from types import TracebackType
 from typing import TYPE_CHECKING, ClassVar
 
-from .controller import Controller
 from .event import NetworkLivenessEvent, StatusClientEvent
 from .exception import ControllerError, ResponseError
 from .message import Message
 
 if TYPE_CHECKING:
+    from asyncio import Task  # noqa: F401
+    from types import TracebackType
+
     from typing_extensions import Self
+
+    from .controller import Controller
 
 logger = logging.getLogger(__package__)
 

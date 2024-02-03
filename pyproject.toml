@@ -105,7 +105,7 @@ select = [
 	'S',      # flake8-bandit
 	'SIM',    # flake8-simplify
 	'SLF',    # flake8-self
-	#'TCH',    # flake8-type-checking
+	'TCH',    # flake8-type-checking
 	'UP',     # pyupgrade
 	'W',      # pycodestyle warnings
 ]

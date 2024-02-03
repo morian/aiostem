@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from ..command import Command
 from .base import Query
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 class SetEventsQuery(Query):
