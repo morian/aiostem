@@ -1,6 +1,5 @@
 .DEFAULT_GOAL := all
-sources = aiostem bin/aiostem-hsscan
-sources_all = $(sources) tests
+
 DEBUILD ?= /usr/bin/debuild
 
 .PHONY: install-devel
@@ -34,25 +33,24 @@ deb: debian/changelog
 
 .PHONY: format
 format:
-	isort $(sources_all)
-	black $(sources_all)
+	ruff check --select=I --fix-only
+	ruff format
 
 .PHONY: lint
 lint:
-	ruff check $(sources_all)
-	isort $(sources_all) --check-only --df
-	black $(sources_all) --check --diff
+	ruff check
+	ruff format --check --diff
 
 .PHONY: mypy
 mypy:
-	mypy $(sources)
+	mypy
 
 .PHONY: all
-all: lint mypy
+all: lint mypy testcov
 
 .PHONY: test
 test:
-	pytest --cov=aiostem
+	pytest
 
 .PHONY: testcov
 testcov: test

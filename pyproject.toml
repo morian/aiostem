@@ -26,6 +26,7 @@ dependencies = [
 	'aiofiles >= 23.0, < 24.0',
 	'stem >= 1.8.2, < 1.9',
 ]
+requires-python = '>=3.10'
 
 [tool.setuptools.packages.find]
 include = [
@@ -42,54 +43,6 @@ version = {attr = 'aiostem.version.version'}
 [tool.setuptools.package-data]
 aiostem = ['py.typed']
 
-[tool.pytest.ini_options]
-testpaths = ['tests']
-asyncio_mode = 'strict'
-
-[tool.ruff]
-select = [
-	'A',     # flake8-builtins
-	'ASYNC', # flake8-async
-	'B',     # flake8-bugbear
-	'COM',   # flake8-comprehensions
-	'D',     # pydocstyle
-	'DTZ',   # flake8-datetimez
-	'E',     # pycodestyle errors
-	'F',     # Pyflakes
-	'N',     # pep8-naming
-	'PIE',   # flake8-pie
-	'PT',    # flake8-pytest-style
-	'Q',     # flake8-quotes
-	'RET',   # flake8-return
-	'RSE',   # flake8-raise
-	'RUF',   # Ruff-specific rules
-	'SIM',   # flake8-simplify
-	'SLF',   # flake8-self
-	'UP',    # pyupgrade
-	'W',     # pycodestyle warnings
-]
-ignore = [
-	'D100',  # Missing docstring in public module
-	'D104',  # Missing docstring in public package
-	'D203',  # 1 blank line required before class docstring
-	'D213',  # Multi-line docstring summary should start at the second line
-]
-line-length = 95
-target-version = 'py310'
-
-[tool.ruff.flake8-quotes]
-docstring-quotes = 'double'
-inline-quotes = 'single'
-multiline-quotes = 'double'
-
-[tool.ruff.mccabe]
-max-complexity = 12
-
-[tool.ruff.per-file-ignores]
-'tests/*.py' = [
-	'D',     # pydocstyle
-]
-
 [tool.coverage.run]
 source = ['aiostem']
 branch = true
@@ -100,26 +53,94 @@ exclude_lines = [
 	'def __repr__\(self\)',
 	'pragma: no cover',
 	'raise NotImplementedError',
-	'raise NotImplemented',
 	'if TYPE_CHECKING:',
 	'@overload',
 ]
 
-[tool.black]
-color = true
-line-length = 95
-target-version = ['py310']
-skip-string-normalization = true
+[tool.coverage.paths]
+source = [
+	'aiostem/',
+]
 
-[tool.isort]
-line_length = 95
-known_first_party = 'aiostem'
-multi_line_output = 3
-include_trailing_comma = true
-force_grid_wrap = 0
-combine_as_imports = true
+[tool.pytest.ini_options]
+addopts = "--cov=aiostem"
+asyncio_mode = 'strict'
+testpaths = ['tests']
+
+[tool.ruff]
+include = ['aiostem/**/*.py', 'bin/aiostem-hsscan', 'tests/**/*.py']
+indent-width = 4
+line-length = 95
+output-format = 'grouped'
+
+[tool.ruff.format]
+indent-style = 'space'
+line-ending = 'lf'
+quote-style = 'single'
+skip-magic-trailing-comma = false
+
+[tool.ruff.lint]
+select = [
+	'A',      # flake8-builtins
+	'ASYNC',  # flake8-async
+	'B',      # flake8-bugbear
+	'C4',     # flake8-comprehensions
+	'C90',    # mccabe
+	'COM',    # flake8-commas
+	'D',      # pydocstyle
+	'DTZ',    # flake8-datetimez
+	'E',      # pycodestyle errors
+	'F',      # Pyflakes
+	'FA',     # flake8-future-annotations
+	'I',      # isort
+	'LOG',    # flake8-logging
+	'N',      # pep8-naming
+	'PIE',    # flake8-pie
+	'PT',     # flake8-pytest-style
+	'PYI',    # flake8-pyi
+	'Q',      # flake8-quotes
+	'RET',    # flake8-return
+	'RSE',    # flake8-raise
+	'RUF',    # Ruff-specific rules
+	'S',      # flake8-bandit
+	'SIM',    # flake8-simplify
+	'SLF',    # flake8-self
+	#'TCH',    # flake8-type-checking
+	'UP',     # pyupgrade
+	'W',      # pycodestyle warnings
+]
+ignore = [
+	'COM812', # missing-trailing-comma
+	'D100',   # Missing docstring in public module
+	'D104',   # Missing docstring in public package
+	'D203',   # 1 blank line required before class docstring
+	'D213',   # Multi-line docstring summary should start at the second line
+]
+
+[tool.ruff.lint.isort]
+case-sensitive = true
+combine-as-imports = true
+detect-same-package = false
+known-first-party = ['aiostem']
+force-wrap-aliases = true
+split-on-trailing-comma = false
+
+[tool.ruff.lint.flake8-quotes]
+docstring-quotes = 'double'
+inline-quotes = 'single'
+multiline-quotes = 'double'
+
+[tool.ruff.lint.mccabe]
+max-complexity = 12
+
+[tool.ruff.lint.per-file-ignores]
+'tests/*.py' = [
+	'D',      # pydocstyle
+	'S101',   # bandit: Use of `assert` detected
+]
 
 [tool.mypy]
+files = ['aiostem/**/*.py', 'bin/aiostem-hsscan']
 python_version = '3.10'
 namespace_packages = true
 explicit_package_bases = true

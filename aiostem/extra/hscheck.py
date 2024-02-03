@@ -12,6 +12,9 @@ from ..event import Event, HsDescContentEvent, HsDescEvent
 from ..exception import AiostemError
 from ..util import hs_address_strip_tld, hs_address_version
 
+if TYPE_CHECKING:
+    from typing_extensions import Self
+
 
 class HiddenServiceFetchError(AiostemError):
     """An error that occured when fetching a Hidden Service descriptor."""
@@ -222,13 +225,9 @@ class HiddenServiceChecker:
                 res = exc
             finally:
                 try:
-                    if callable(req.callback):  # pragma: no branch
-                        await req.callback(req, res)
-                # CancelledError is based on Exception on Python3.7.
-                except CancelledError:  # pragma: no cover
-                    raise
-                except Exception:  # pragma: no cover
-                    pass
+                    with contextlib.suppress(Exception):
+                        if callable(req.callback):  # pragma: no branch
+                            await req.callback(req, res)
                 finally:
                     self.queue.task_done()
 
@@ -258,7 +257,7 @@ class HiddenServiceChecker:
         finally:
             self._workers.clear()
 
-    async def __aenter__(self) -> HiddenServiceChecker:
+    async def __aenter__(self) -> Self:
         """Spawn the workers and start the show."""
         await self.begin()
         return self

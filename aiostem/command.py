@@ -46,7 +46,7 @@ class Command:
     def add_data(self, text: str) -> None:
         """Append the provided text payload in this command."""
         # Split and clean the lines in this text.
-        lines = map(lambda line: line.rstrip('\r'), text.split('\n'))
+        lines = [line.rstrip('\r') for line in text.split('\n')]
         self._data.extend(lines)
 
     def add_arg(self, value: str, quoted: bool = False) -> None:

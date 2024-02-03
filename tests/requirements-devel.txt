@@ -1,1 +1,1 @@
-pytest-sugar==0.9.7
+pytest-sugar==1.0.0

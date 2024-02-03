@@ -6,9 +6,13 @@ import logging
 from collections.abc import Callable, Iterable
 from contextlib import suppress
 from types import TracebackType
-from typing import Any, overload
+from typing import TYPE_CHECKING, Any, overload
 
-from . import event as e, query as q, reply as r
+from . import (
+    event as e,
+    query as q,
+    reply as r,
+)
 from .command import Command
 from .connector import (
     DEFAULT_CONTROL_HOST,
@@ -21,6 +25,10 @@ from .connector import (
 from .exception import AiostemError, ControllerError
 from .message import Message
 from .util import hs_address_strip_tld
+
+if TYPE_CHECKING:
+    from typing_extensions import Self
+
 
 DEFAULT_PROTOCOL_VERSION = q.ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
 EventCallbackType = Callable[[e.Event], Any]
@@ -67,7 +75,7 @@ class Controller:
         """Tell whether we are connected to the remote socket."""
         return self._connected and self._writer is not None and self._rqueue is not None
 
-    async def __aenter__(self) -> Controller:
+    async def __aenter__(self) -> Self:
         """Enter Controller's context, connect to the target."""
         await self.connect()
         return self
@@ -307,37 +315,48 @@ class Controller:
         return self._protoinfo
 
     @overload
-    async def request(self, query: q.AuthenticateQuery) -> r.AuthenticateReply: ...
+    async def request(self, query: q.AuthenticateQuery) -> r.AuthenticateReply:
+        ...
 
     @overload
-    async def request(self, query: q.AuthChallengeQuery) -> r.AuthChallengeReply: ...
+    async def request(self, query: q.AuthChallengeQuery) -> r.AuthChallengeReply:
+        ...
 
     @overload
-    async def request(self, query: q.DropGuardsQuery) -> r.DropGuardsReply: ...
+    async def request(self, query: q.DropGuardsQuery) -> r.DropGuardsReply:
+        ...
 
     @overload
-    async def request(self, query: q.GetConfQuery) -> r.GetConfReply: ...
+    async def request(self, query: q.GetConfQuery) -> r.GetConfReply:
+        ...
 
     @overload
-    async def request(self, query: q.GetInfoQuery) -> r.GetInfoReply: ...
+    async def request(self, query: q.GetInfoQuery) -> r.GetInfoReply:
+        ...
 
     @overload
-    async def request(self, query: q.HsFetchQuery) -> r.HsFetchReply: ...
+    async def request(self, query: q.HsFetchQuery) -> r.HsFetchReply:
+        ...
 
     @overload
-    async def request(self, query: q.ProtocolInfoQuery) -> r.ProtocolInfoReply: ...
+    async def request(self, query: q.ProtocolInfoQuery) -> r.ProtocolInfoReply:
+        ...
 
     @overload
-    async def request(self, query: q.QuitQuery) -> r.QuitReply: ...
+    async def request(self, query: q.QuitQuery) -> r.QuitReply:
+        ...
 
     @overload
-    async def request(self, query: q.SetConfQuery) -> r.SetConfReply: ...
+    async def request(self, query: q.SetConfQuery) -> r.SetConfReply:
+        ...
 
     @overload
-    async def request(self, query: q.SetEventsQuery) -> r.SetEventsReply: ...
+    async def request(self, query: q.SetEventsQuery) -> r.SetEventsReply:
+        ...
 
     @overload
-    async def request(self, query: q.SignalQuery) -> r.SignalReply: ...
+    async def request(self, query: q.SignalQuery) -> r.SignalReply:
+        ...
 
     async def request(self, query: q.Query) -> r.Reply:
         """Perform a provided `query` and returns the appropriate response."""
