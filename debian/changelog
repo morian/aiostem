@@ -1,3 +1,11 @@
+python3-aiostem (0.3.1) unstable; urgency=low
+
+  * Fix requests hanging after Controller disconnect.
+  * Use an AsyncExitStack to handle context managers.
+  * Be more strict in coding style, increase linting.
+
+ -- Romain Bezut <morian@xdec.net>  Sun,  4 Feb 2024 19:00:00 +0000
+
 python3-aiostem (0.3.0) unstable; urgency=low
 
   * Add a Monitor helper class to check Tor status
