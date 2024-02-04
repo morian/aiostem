@@ -41,17 +41,27 @@ class TestMonitor:
     async def test_monitor_not_entered(self, controller):
         monitor = Monitor(controller)
         assert monitor.is_healthy is False
+        assert monitor.is_entered is False
 
         status = await monitor.wait_for_error()
         assert isinstance(status, ControllerStatus), type(status)
         assert status.healthcheck() is False
         assert status == monitor.status
 
+        await monitor.__aexit__(None, None, None)
+        assert monitor.is_entered is False
+
     @pytest.mark.timeout(5)
     async def test_monitor_entered(self, controller):
         async with Monitor(controller) as monitor:
             with pytest.raises(RuntimeError, match='is already running'):
                 await monitor.__aenter__()
+
+    @pytest.mark.timeout(5)
+    async def test_monitor_keepalive_signal(self, controller):
+        async with Monitor(controller, keepalive=True):
+            await controller.has_received_active.wait()
+            assert controller.last_signals == ['ACTIVE']
 
     @pytest.mark.timeout(5)
     async def test_monitor_events(self, controller):

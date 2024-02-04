@@ -9,7 +9,7 @@ from aiostem import Controller
 from aiostem.event import HsDescContentEvent, HsDescEvent
 from aiostem.message import Message
 from aiostem.query import HsFetchQuery
-from aiostem.reply import HsFetchReply
+from aiostem.reply import HsFetchReply, SignalReply
 
 
 @dataclass
@@ -57,6 +57,8 @@ class CustomController(Controller):
         self.ignore_condition = asyncio.Condition()
         self.ignore_enabled = False
         self.ignore_requests = False
+        self.has_received_active = asyncio.Event()
+        self.last_signals = []
         self.raise_enabled = False
 
     def evt_callbacks(self) -> dict[str, list[Any]]:
@@ -95,6 +97,13 @@ class CustomController(Controller):
 
     async def push_spurious_event(self, message: Message) -> None:
         await self._handle_event(message)
+
+    async def signal(self, signal: str) -> SignalReply:
+        result = await super().signal(signal)
+        self.last_signals.append(signal)
+        if signal == 'ACTIVE':
+            self.has_received_active.set()
+        return result
 
 
 @pytest_asyncio.fixture()

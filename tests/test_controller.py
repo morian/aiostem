@@ -22,11 +22,16 @@ class TestController:
     async def test_base_controller(self, raw_controller):
         assert raw_controller.authenticated is False
         assert raw_controller.connected is True
+        assert raw_controller.entered is True
 
     async def test_unauth_protoinfo(self, raw_controller):
         res1 = await raw_controller.protocol_info()
         res2 = await raw_controller.protocol_info()
         assert res1 == res2
+
+    async def test_already_entered(self, raw_controller):
+        with pytest.raises(RuntimeError, match='Controller is already entered'):
+            await raw_controller.connect()
 
     async def test_not_entered_from_path(self):
         controller = Controller.from_path('/run/tor/not_a_valid_socket.sock')

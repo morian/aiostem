@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import logging
 from collections.abc import Callable, Iterable
-from contextlib import suppress
-from typing import TYPE_CHECKING, Any, TypeAlias, overload
+from contextlib import AsyncExitStack, suppress
+from typing import TYPE_CHECKING, Any, TypeAlias, cast, overload
 
 from . import (
     event as e,
@@ -43,9 +42,10 @@ class Controller:
     def __init__(self, connector: ControlConnector) -> None:
         """Initialize a new controller from a provided connector."""
         self._evt_callbacks = {}  # type: dict[str, list[EventCallbackType]]
-        self._request_lock = asyncio.Lock()
         self._events_lock = asyncio.Lock()
+        self._request_lock = asyncio.Lock()
         self._authenticated = False
+        self._context = None  # type: AsyncExitStack | None
         self._connected = False
         self._connector = connector
         self._protoinfo = None  # type: r.ProtocolInfoReply | None
@@ -75,21 +75,70 @@ class Controller:
     @property
     def connected(self) -> bool:
         """Tell whether we are connected to the remote socket."""
-        return self._connected and self._writer is not None and self._rqueue is not None
+        return bool(self._connected and self._writer is not None and self._rqueue is not None)
+
+    @property
+    def entered(self) -> bool:
+        """Tell whether the context manager is entered."""
+        return bool(self._context is not None)
 
     async def __aenter__(self) -> Self:
         """Enter Controller's context, connect to the target."""
-        await self.connect()
+        if self.entered:
+            raise RuntimeError('Controller is already entered!')
+
+        context = await AsyncExitStack().__aenter__()
+        try:
+            reader, writer = await self._connector.connect()
+            context.push_async_callback(writer.wait_closed)
+            context.callback(writer.close)
+
+            rqueue = asyncio.Queue()  # type: asyncio.Queue[Message | None]
+            rdtask = asyncio.create_task(
+                self._reader_task(reader, rqueue),
+                name='aiostem.controller.reader',
+            )
+
+            async def cancel_reader(task: asyncio.Task[None]) -> None:
+                task.cancel('Controller is closing')
+                await asyncio.gather(task, return_exceptions=True)
+
+            context.push_async_callback(cancel_reader, rdtask)
+        except BaseException:
+            await context.aclose()
+            raise
+        else:
+            self._context = context
+            self._connected = True
+            self._rqueue = rqueue
+            self._rdtask = rdtask
+            self._writer = writer
         return self
 
     async def __aexit__(
         self,
-        etype: type[BaseException] | None,
-        evalue: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> bool:
         """Exit Controller's context."""
-        await self.close()
+        context = self._context
+        try:
+            if context is not None:
+                # Can arise while closing an underlying UNIX socket
+                with suppress(BrokenPipeError):
+                    await context.__aexit__(exc_type, exc_val, exc_tb)
+        finally:
+            self._evt_callbacks.clear()
+            self._authenticated = False
+            self._connected = False
+            self._protoinfo = None
+            self._rdtask = None
+            self._rqueue = None
+            self._writer = None
+
+        # Do not prevent the original exception from going further.
+        return False
 
     async def _handle_event(self, message: Message) -> None:
         """Handle the new received event (find and call the callbacks)."""
@@ -119,25 +168,20 @@ class Controller:
         try:
             message = Message()
 
-            while True:
-                line = await reader.readline()
-                if not line:
-                    break
-
+            while line := await reader.readline():
                 message.add_line(line.decode('ascii'))
                 if message.parsed:
                     if message.is_event:
                         await self._handle_event(message)
                     else:
                         await rqueue.put(message)
+
                     message = Message()
         finally:
-            try:
-                self._connected = False
+            self._connected = False
+            with suppress(asyncio.QueueFull):
                 rqueue.put_nowait(None)
-                await self._notify_disconnect()
-            except asyncio.QueueFull:  # pragma: no cover
-                pass
+            await self._notify_disconnect()
 
     async def _request(self, command: Command) -> Message:
         """Send any kind of command to the controller.
@@ -145,21 +189,23 @@ class Controller:
         A reply is dequeued and expected.
         """
         async with self._request_lock:
-            if self._rqueue is None or self._writer is None:
+            # if self._rqueue is None or self._writer is None:
+            if not self.connected:
                 raise ControllerError('Controller is not connected!')
 
-            rqueue = self._rqueue
-            writer = self._writer
-            payload = str(command).encode('ascii')
-            writer.write(payload)
+            # Casts are valid here since we check `self.connected`.
+            rqueue = cast(asyncio.Queue[Message | None], self._rqueue)
+
+            writer = cast(asyncio.StreamWriter, self._writer)
+            writer.write(str(command).encode('ascii'))
             await writer.drain()
 
-            rep = await rqueue.get()
+            resp = await rqueue.get()
+            rqueue.task_done()
 
-        rqueue.task_done()
-        if rep is None:  # pragma: no cover
+        if resp is None:  # pragma: no cover
             raise ControllerError('Controller has disconnected!')
-        return rep
+        return resp
 
     async def auth_challenge(self, nonce: bytes | None = None) -> r.AuthChallengeReply:
         """Query Tor's controller so we perform a SAFECOOKIE authentication method.
@@ -212,40 +258,11 @@ class Controller:
 
     async def close(self) -> None:
         """Close this connection and reset the controller."""
-        writer = self._writer
-        if writer is not None:
-            writer.close()
-            # Can arise while closing underlying UNIX socket
-            with suppress(BrokenPipeError):
-                await writer.wait_closed()
-        self._writer = None
-
-        rdtask = self._rdtask
-        if rdtask is not None:
-            rdtask.cancel('Controller is being closed')
-            with contextlib.suppress(asyncio.CancelledError):
-                await rdtask
-        self._rdtask = None
-
-        self._evt_callbacks = {}
-        self._authenticated = False
-        self._connected = False
-        self._protoinfo = None
-        self._rqueue = None
+        await self.__aexit__(None, None, None)
 
     async def connect(self) -> None:
         """Connect Tor's control socket."""
-        reader, writer = await self._connector.connect()
-        rqueue = asyncio.Queue()  # type: asyncio.Queue[Message | None]
-        rdtask = asyncio.create_task(
-            self._reader_task(reader, rqueue),
-            name='aiostem.controller.reader',
-        )
-
-        self._connected = True
-        self._rqueue = rqueue
-        self._rdtask = rdtask
-        self._writer = writer
+        await self.__aenter__()
 
     async def drop_guards(self) -> r.DropGuardsReply:
         """Send a 'DROPGUARDS' command to the controller."""
