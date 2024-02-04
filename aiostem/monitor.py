@@ -2,17 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from asyncio import Condition, Lock
-from contextlib import suppress
+from asyncio import Condition, Task
+from contextlib import AsyncExitStack, suppress
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar
 
-from .event import NetworkLivenessEvent, StatusClientEvent
+from .event import Event, NetworkLivenessEvent, StatusClientEvent
 from .exception import ControllerError, ResponseError
 from .message import Message
 
 if TYPE_CHECKING:
-    from asyncio import Task  # noqa: F401
     from types import TracebackType
 
     from typing_extensions import Self
@@ -55,13 +54,78 @@ class Monitor:
 
         `keepalive` tells whether we should run a task to keep Tor 'ACTIVE'.
         """
+        self._context = None  # type: AsyncExitStack | None
         self._condition = Condition()
         self._controller = controller
         self._do_keepalive = keepalive
-        self._lock = Lock()
-        self._entered = False
         self._status = ControllerStatus()
-        self._task_keepalive = None  # type: Task[None] | None
+
+    async def __aenter__(self) -> Self:
+        """Enter the monitor context."""
+        if self.is_entered:
+            raise RuntimeError('Monitor is already running!')
+
+        controller = self._controller
+        context = await AsyncExitStack().__aenter__()
+        try:
+            # Get notified when a 'STATUS_CLIENT' event occurs.
+            await controller.event_subscribe('STATUS_CLIENT', self._on_ctrl_client_status)
+            context.push_async_callback(
+                controller.event_unsubscribe, 'STATUS_CLIENT', self._on_ctrl_client_status
+            )
+
+            # Get notified when a 'NETWORK_LIVENESS' event occurs.
+            await controller.event_subscribe('NETWORK_LIVENESS', self._on_ctrl_liveness_status)
+            context.push_async_callback(
+                controller.event_unsubscribe, 'NETWORK_LIVENESS', self._on_ctrl_liveness_status
+            )
+
+            if self._do_keepalive:  # pragma: no branch
+                # Only enable the keep alive task when it is needed.
+                # This option was introduced in Tor `0.4.6.2`.
+                try:
+                    reply = await self._controller.get_conf('DormantTimeoutEnabled')
+                    dormant = bool(reply.values.get('DormantTimeoutEnabled', True))
+                except ResponseError:  # pragma: no cover
+                    dormant = True
+
+                if dormant:  # pragma: no branch
+                    task_keepalive = asyncio.create_task(
+                        self._task_keepalive_run(),
+                        name='aiostem.monitor.keepalive',
+                    )
+
+                    async def cancel_keepalive(task: Task[None]) -> None:
+                        task.cancel('Monitor is closing')
+                        await asyncio.gather(task, return_exceptions=True)
+
+                    context.push_async_callback(cancel_keepalive, task_keepalive)
+
+            await self._fetch_controller_status()
+        except BaseException:  # pragma: no branch
+            await context.aclose()
+            raise
+        else:
+            self._context = context
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> bool:
+        """Exit this monitor instance, propagate any error."""
+        context = self._context
+        try:
+            if context is not None:
+                with suppress(ControllerError):
+                    await context.__aexit__(exc_type, exc_val, exc_tb)
+        finally:
+            self._context = None
+
+        # Do not prevent the original exception from going further.
+        return False
 
     async def _task_keepalive_run(self) -> None:
         """Triggered when we need to perform regular actions."""
@@ -97,129 +161,51 @@ class Monitor:
 
         return self.is_healthy
 
-    async def _on_ctrl_liveness_status(self, event: NetworkLivenessEvent) -> None:
+    async def _on_ctrl_liveness_status(self, event: Event) -> None:
         """Triggered when a new 'NETWORK_LIVENESS' event occurs."""
-        statuses = {'UP': True, 'DOWN': False}
-        status = statuses.get(event.network_status)
-        if status is not None:  # pragma: no branch
-            async with self._condition:
-                logger.debug('Network liveness: %s', event.network_status)
-                self._status.net_liveness = status
-                self._condition.notify_all()
+        if isinstance(event, NetworkLivenessEvent):  # pragma: no branch
+            statuses = {'UP': True, 'DOWN': False}
+            status = statuses.get(event.network_status)
+            if status is not None:  # pragma: no branch
+                async with self._condition:
+                    logger.debug('Network liveness: %s', event.network_status)
+                    self._status.net_liveness = status
+                    self._condition.notify_all()
 
-    async def _on_ctrl_client_status(self, event: StatusClientEvent) -> None:
+    async def _on_ctrl_client_status(self, event: Event) -> None:
         """Triggered when a new 'STATUS_CLIENT' event occurs.
 
         Note that this is an event handler executed in the receive loop from the controller.
         You cannot perform new controller requests from here, use a queue or something else.
         """
-        match event.action:
-            case 'BOOTSTRAP':
-                progress = event.arguments.get('PROGRESS')
-                if progress is not None:  # pragma: no branch
-                    with suppress(ValueError):
-                        self._status.bootstrap = int(progress)
-            case 'CIRCUIT_ESTABLISHED':
-                self._status.has_circuits = True
-            case 'CIRCUIT_NOT_ESTABLISHED':
-                self._status.has_circuits = False
-            case 'ENOUGH_DIR_INFO':
-                self._status.has_dir_info = True
-            case 'NOT_ENOUGH_DIR_INFO':
-                self._status.has_dir_info = False
-            case _:
-                # We are not not interested in this event.
-                return
+        if isinstance(event, StatusClientEvent):  # pragma: no branch
+            match event.action:
+                case 'BOOTSTRAP':
+                    progress = event.arguments.get('PROGRESS')
+                    if progress is not None:  # pragma: no branch
+                        with suppress(ValueError):
+                            self._status.bootstrap = int(progress)
+                case 'CIRCUIT_ESTABLISHED':
+                    self._status.has_circuits = True
+                case 'CIRCUIT_NOT_ESTABLISHED':
+                    self._status.has_circuits = False
+                case 'ENOUGH_DIR_INFO':
+                    self._status.has_dir_info = True
+                case 'NOT_ENOUGH_DIR_INFO':
+                    self._status.has_dir_info = False
+                case _:
+                    # We are not not interested in this event.
+                    return
 
-        # Maybe we need to do something about the current working state.
-        async with self._condition:
-            logger.debug('ClientStatus: %s %s', event.action, event.arguments)
-            self._condition.notify_all()
+            # Maybe we need to do something about the current working state.
+            async with self._condition:
+                logger.debug('ClientStatus: %s %s', event.action, event.arguments)
+                self._condition.notify_all()
 
-    async def _begin(self) -> None:
-        """Start this monitor instance."""
-        if self._entered:
-            raise RuntimeError('Monitor is already running!')
-
-        await self._controller.event_subscribe(
-            'STATUS_CLIENT',
-            self._on_ctrl_client_status,  # type: ignore[arg-type]
-        )
-        await self._controller.event_subscribe(
-            'NETWORK_LIVENESS',
-            self._on_ctrl_liveness_status,  # type: ignore[arg-type]
-        )
-        keepalive = None
-
-        if self._do_keepalive:  # pragma: no branch
-            # Only enable the keep alive task when it is needed.
-            # This option was introduced in Tor `0.4.6.2`.
-            try:
-                reply = await self._controller.get_conf('DormantTimeoutEnabled')
-                dormant = bool(reply.values.get('DormantTimeoutEnabled', True))
-            except ResponseError:  # pragma: no cover
-                dormant = True
-
-            if dormant:  # pragma: no branch
-                keepalive = asyncio.create_task(
-                    self._task_keepalive_run(),
-                    name='aiostem.monitor.keepalive',
-                )
-
-        self._task_keepalive = keepalive
-
-        async with self._condition:
-            # Fetch the initial controller status to build our self._status.
-            await self._fetch_controller_status()
-            self._condition.notify_all()
-
-        self._entered = True
-
-    async def __aenter__(self) -> Self:
-        """Enter the monitor context."""
-        async with self._lock:
-            try:
-                await self._begin()
-            except BaseException:
-                await self._close()
-                raise
-        return self
-
-    async def _close(self) -> None:
-        """Close everything so this monitor can exit properly."""
-        # Maybe the controller is no longer available.
-        with suppress(ControllerError):
-            await self._controller.event_unsubscribe(
-                'STATUS_CLIENT',
-                self._on_ctrl_client_status,  # type: ignore[arg-type]
-            )
-        with suppress(ControllerError):
-            await self._controller.event_unsubscribe(
-                'NETWORK_LIVENESS',
-                self._on_ctrl_liveness_status,  # type: ignore[arg-type]
-            )
-
-        tasks = []
-        if self._task_keepalive is not None:
-            tasks.append(self._task_keepalive)
-        for task in tasks:
-            task.cancel('Monitor is closing')
-        if len(tasks):
-            await asyncio.gather(*tasks, return_exceptions=True)
-
-        self._task_keepalive = None
-        self._entered = False
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_val: BaseException | None,
-        exc_tb: TracebackType | None,
-    ) -> bool:
-        """Exit this monitor, propagate any error."""
-        async with self._lock:
-            await self._close()
-        return False
+    @property
+    def is_entered(self) -> bool:
+        """Tells whether the monitor is entered."""
+        return bool(self._context is not None)
 
     @property
     def is_healthy(self) -> bool:

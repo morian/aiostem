@@ -5,7 +5,7 @@ import contextlib
 import logging
 from collections.abc import Callable, Iterable
 from contextlib import suppress
-from typing import TYPE_CHECKING, Any, overload
+from typing import TYPE_CHECKING, Any, TypeAlias, overload
 
 from . import (
     event as e,
@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 
 
 DEFAULT_PROTOCOL_VERSION = q.ProtocolInfoQuery.DEFAULT_PROTOCOL_VERSION
-EventCallbackType = Callable[[e.Event], Any]
+EventCallbackType: TypeAlias = Callable[[e.Event], Any]
 logger = logging.getLogger(__package__)
 
 

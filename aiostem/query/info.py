@@ -16,7 +16,7 @@ class BaseInfoQuery(Query):
 
     def __repr__(self) -> str:
         """Representation of this query."""
-        return '<{} {}>'.format(self.COMMAND_NAME, ' '.join(self.keys))
+        return '<{} items="{}">'.format(self.COMMAND_NAME, ','.join(self.keys))
 
     @property
     def command(self) -> Command:
