@@ -102,7 +102,7 @@ class Monitor:
                     context.push_async_callback(cancel_keepalive, task_keepalive)
 
             await self._fetch_controller_status()
-        except BaseException:  # pragma: no branch
+        except BaseException:  # pragma: no cover
             await context.aclose()
             raise
         else:
