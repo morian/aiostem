@@ -64,8 +64,8 @@ clean:
 	$(RM) -r *.egg-info
 	$(RM) -r .mypy_cache
 	$(RM) -r .pytest_cache
-	$(RM) -r .ruff_cache
 	$(RM) -r build
 	$(RM) -r dist
 	$(RM) -r htmlcov
 	find aiostem tests -name '*.py[cod]' -delete
+	ruff clean
