@@ -139,7 +139,7 @@ class HiddenServiceScanner:
             print(f'[-] failed to fetch {req.address}.onion (reason: {res!s})')
         elif isinstance(res, Exception):
             print(
-                "[-] unexpected error while fetching {}.onion: {}='{}'".format(
+                "[-] unexpected error while fetching {}.onion: {}='{}'".format(  # noqa: UP032
                     req.address,
                     type(res).__name__,
                     str(res),

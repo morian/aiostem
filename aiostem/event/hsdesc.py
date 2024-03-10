@@ -38,7 +38,7 @@ class HsDescEvent(Event):
 
     def __repr__(self) -> str:
         """Get the representation of this event."""
-        return "<{} address='{}' directory='{}' action='{}'>".format(
+        return "<{} address='{}' directory='{}' action='{}'>".format(  # noqa: UP032
             type(self).__name__,
             self.address,
             self.directory,
@@ -151,7 +151,7 @@ class HsDescContentEvent(Event):
 
     def __repr__(self) -> str:
         """Get the representation of this event."""
-        return "<{} address='{}' directory='{}' descid='{}'>".format(
+        return "<{} address='{}' directory='{}' descid='{}'>".format(  # noqa: UP032
             type(self).__name__,
             self.address,
             self.directory,
