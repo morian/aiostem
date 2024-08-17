@@ -60,7 +60,7 @@ class TestHsDescriptors:
             HsDescContentEvent(message)
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 class TestHiddenServiceChecker:
     async def test_entered(self, controller, checker):
         assert checker.controller == controller

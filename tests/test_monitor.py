@@ -23,13 +23,13 @@ class FakeMonitor(Monitor):
     async def on_ctrl_liveness_status(self, event: NetworkLivenessEvent) -> None:
         await self._on_ctrl_liveness_status(event)
 
-    async def wait_until_ready(self, timeout: float | None = None) -> ControllerStatus:
+    async def wait_until_ready(self) -> ControllerStatus:
         self.event_until_ready.set()
-        return await super().wait_until_ready(timeout)
+        return await super().wait_until_ready()
 
-    async def wait_for_error(self, timeout: float | None = None) -> ControllerStatus:
+    async def wait_for_error(self) -> ControllerStatus:
         self.event_for_error.set()
-        return await super().wait_for_error(timeout)
+        return await super().wait_for_error()
 
 
 def build_event(line: str) -> Event:

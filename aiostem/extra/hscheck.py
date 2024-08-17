@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import asyncio
+import builtins
 import contextlib
-from asyncio import CancelledError, TimeoutError
+from asyncio import CancelledError
 from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
 from ..event import Event, HsDescContentEvent, HsDescEvent
@@ -12,8 +13,7 @@ from ..util import hs_address_strip_tld, hs_address_version
 if TYPE_CHECKING:
     from collections.abc import Callable, Coroutine
     from types import TracebackType
-
-    from typing_extensions import Self
+    from typing import Self
 
     from ..controller import Controller
 
@@ -218,7 +218,7 @@ class HiddenServiceChecker:
                 finally:
                     self._request_discard(req.address, entry)
             # These handlers are here to convert expected errors to HiddenServiceFetchError.
-            except TimeoutError:
+            except builtins.TimeoutError:
                 res = HiddenServiceFetchError('TIMEOUT')
             except CancelledError:
                 res = HiddenServiceFetchError('CANCELLED')

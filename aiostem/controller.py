@@ -25,8 +25,7 @@ from .util import hs_address_strip_tld
 
 if TYPE_CHECKING:
     from types import TracebackType
-
-    from typing_extensions import Self
+    from typing import Self
 
     from .command import Command
 

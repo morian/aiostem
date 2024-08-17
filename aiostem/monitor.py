@@ -13,8 +13,7 @@ from .message import Message
 
 if TYPE_CHECKING:
     from types import TracebackType
-
-    from typing_extensions import Self
+    from typing import Self
 
     from .controller import Controller
 
@@ -217,16 +216,16 @@ class Monitor:
         """Get the current controller status."""
         return self._status
 
-    async def wait_for_error(self, timeout: float | None = None) -> ControllerStatus:
+    async def wait_for_error(self) -> ControllerStatus:
         """Wait until the controller stops being healthy."""
         async with self._condition:
             while self._status.healthcheck():
-                await asyncio.wait_for(self._condition.wait(), timeout)
+                await self._condition.wait()
         return self._status
 
-    async def wait_until_ready(self, timeout: float | None = None) -> ControllerStatus:
+    async def wait_until_ready(self) -> ControllerStatus:
         """Wait until the controller is ready and healthy."""
         async with self._condition:
             while not self._status.healthcheck():
-                await asyncio.wait_for(self._condition.wait(), timeout)
+                await self._condition.wait()
         return self._status

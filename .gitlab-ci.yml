@@ -46,8 +46,8 @@ debian12-package:
   image: ${CI_REGISTRY}/dockers/ci/debian-build:12
   extends: .deb-common
 
-ubuntu2204-package:
-  image: ${CI_REGISTRY}/dockers/ci/ubuntu-build:22.04
+ubuntu2404-package:
+  image: ${CI_REGISTRY}/dockers/ci/ubuntu-build:24.04
   extends: .deb-common
   before_script:
     - pip install -U setuptools

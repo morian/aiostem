@@ -18,7 +18,6 @@ classifiers = [
 	'Programming Language :: Python',
 	'Programming Language :: Python :: 3',
 	'Programming Language :: Python :: 3 :: Only',
-	'Programming Language :: Python :: 3.10',
 	'Programming Language :: Python :: 3.11',
 	'Programming Language :: Python :: 3.12',
 ]
@@ -26,7 +25,7 @@ dependencies = [
 	'aiofiles >= 23.0, < 24.0',
 	'stem >= 1.8.2, < 1.9',
 ]
-requires-python = '>=3.10'
+requires-python = '>=3.11'
 
 [tool.setuptools.packages.find]
 include = [
@@ -141,7 +140,7 @@ max-complexity = 12
 
 [tool.mypy]
 files = ['aiostem/**/*.py', 'bin/aiostem-hsscan']
-python_version = '3.10'
+python_version = '3.11'
 namespace_packages = true
 explicit_package_bases = true
 show_error_codes = true
