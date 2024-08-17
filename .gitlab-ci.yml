@@ -49,8 +49,6 @@ debian12-package:
 ubuntu2404-package:
   image: ${CI_REGISTRY}/dockers/ci/ubuntu-build:24.04
   extends: .deb-common
-  before_script:
-    - pip install -U setuptools
 
 python3-linter:
   image: ${CI_REGISTRY}/dockers/ci/python-build:3.12-alpine
