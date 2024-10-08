@@ -135,6 +135,7 @@ class Controller:
             self._rdtask = None
             self._rqueue = None
             self._writer = None
+            self._context = None
 
         # Do not prevent the original exception from going further.
         return False

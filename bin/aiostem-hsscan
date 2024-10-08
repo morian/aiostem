@@ -118,7 +118,7 @@ class HiddenServiceScanner:
 
     async def _onions_load(self, filepath: str) -> set[str]:
         """Load the input list of onion domains to scan."""
-        async with aiofiles.open(filepath, 'r') as fp:
+        async with aiofiles.open(filepath) as fp:
             contents = await fp.read()
 
         # This generator iterates on all the lines (stripped).

@@ -30,7 +30,7 @@ variables:
 
 
 python3-package:
-  image: ${CI_REGISTRY}/dockers/ci/python-build:3.12-alpine
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.13-alpine
   stage: build
   cache:
     <<: *pip_cache
@@ -51,7 +51,7 @@ ubuntu2404-package:
   extends: .deb-common
 
 python3-linter:
-  image: ${CI_REGISTRY}/dockers/ci/python-build:3.12-alpine
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.13-alpine
   stage: tests
   cache:
     <<: *pip_cache
@@ -71,7 +71,7 @@ python3-linter:
   allow_failure: true
 
 python3-mypy:
-  image: ${CI_REGISTRY}/dockers/ci/python-build:3.12-alpine
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.13-alpine
   stage: tests
   cache:
     <<: *pip_cache
@@ -89,7 +89,7 @@ python3-mypy:
   allow_failure: true
 
 python3-tests:
-  image: ${CI_REGISTRY}/dockers/ci/python-build:3.12-alpine
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.13-alpine
   stage: tests
   needs: []
   variables:
@@ -123,7 +123,7 @@ python3-tests:
       junit: pytest.xml
 
 python3-publish:
-  image: ${CI_REGISTRY}/dockers/ci/python-build:3.12-alpine
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.13-alpine
   stage: publish
   variables:
     TWINE_REPOSITORY_URL: ${CI_SERVER_URL}/api/v4/projects/${CI_PROJECT_ID}/packages/pypi
