@@ -7,7 +7,8 @@ from ..reply.base import Event
 
 
 class DisconnectEvent(Event):
-    """Disconnect notification from the controller.
+    """
+    Disconnect notification from the controller.
 
     This pseudo-event is generated from the controller when an
     EOF is encountered while reading on the control socket.

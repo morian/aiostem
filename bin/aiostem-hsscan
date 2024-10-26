@@ -131,7 +131,8 @@ class HiddenServiceScanner:
         req: HiddenServiceFetchRequest,
         res: HsCallbackResponseType,
     ) -> None:
-        """Triggered when we get a scan result.
+        """
+        Triggered when we get a scan result.
 
         Result can either be an exception or the HS_DESC_CONTENT event.
         """

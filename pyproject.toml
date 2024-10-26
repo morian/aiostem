@@ -64,6 +64,7 @@ source = [
 
 [tool.pytest.ini_options]
 addopts = "--cov=aiostem"
+asyncio_default_fixture_loop_scope = 'function'
 asyncio_mode = 'strict'
 testpaths = ['tests']
 
@@ -118,7 +119,7 @@ ignore = [
 	'D100',   # Missing docstring in public module
 	'D104',   # Missing docstring in public package
 	'D203',   # 1 blank line required before class docstring
-	'D213',   # Multi-line docstring summary should start at the second line
+	'D212',   # Multi-line docstring summary should start at the second line
 ]
 
 [tool.ruff.lint.isort]

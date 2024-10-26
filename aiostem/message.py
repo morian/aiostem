@@ -48,7 +48,8 @@ class MessageLineParser:
         return text
 
     def pop_arg_checked(self, name: str, quoted: bool = False) -> str:
-        """Parse the next argument and check that the returned value is `name`.
+        """
+        Parse the next argument and check that the returned value is `name`.
 
         Raises an error when the next argument is not what was expected.
         """
@@ -59,7 +60,8 @@ class MessageLineParser:
         return value
 
     def pop_kwarg(self, quoted: bool = False) -> tuple[str, str]:
-        """Parse the next argument as a keyword argument.
+        """
+        Parse the next argument as a keyword argument.
 
         This returns a tuple with keyword and value.
         """
@@ -77,7 +79,8 @@ class MessageLineParser:
         return (keyword, value)
 
     def pop_kwarg_line(self) -> tuple[str, str]:
-        """Parse the next argument as a keyword argument.
+        """
+        Parse the next argument as a keyword argument.
 
         The whole line is considered when returning the value, regardless of spaces.
         """
@@ -136,7 +139,8 @@ class Message:
 
     @property
     def parsed(self) -> bool:
-        """Return True when this message is fully parsed.
+        """
+        Return True when this message is fully parsed.
 
         This marks the end of a message and the start of another one from the
         controller's point of view (message is then forwarded appropriately).

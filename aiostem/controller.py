@@ -48,8 +48,7 @@ class Controller:
         self._connected = False
         self._connector = connector
         self._protoinfo = None  # type: r.ProtocolInfoReply | None
-        self._rqueue = None  # type: asyncio.Queue[Message | None] | None
-        self._rdtask = None  # type: asyncio.Task[None] | None
+        self._replies = None  # type: asyncio.Queue[Message | None] | None
         self._writer = None  # type: asyncio.StreamWriter | None
 
     @classmethod
@@ -74,7 +73,7 @@ class Controller:
     @property
     def connected(self) -> bool:
         """Tell whether we are connected to the remote socket."""
-        return bool(self._connected and self._writer is not None and self._rqueue is not None)
+        return bool(self._connected and self._writer is not None and self._replies is not None)
 
     @property
     def entered(self) -> bool:
@@ -93,9 +92,9 @@ class Controller:
             context.push_async_callback(writer.wait_closed)
             context.callback(writer.close)
 
-            rqueue = asyncio.Queue()  # type: asyncio.Queue[Message | None]
+            replies = asyncio.Queue()  # type: asyncio.Queue[Message | None]
             rdtask = asyncio.create_task(
-                self._reader_task(reader, rqueue),
+                self._reader_task(reader, replies),
                 name='aiostem.controller.reader',
             )
 
@@ -110,8 +109,7 @@ class Controller:
         else:
             self._context = context
             self._connected = True
-            self._rqueue = rqueue
-            self._rdtask = rdtask
+            self._replies = replies
             self._writer = writer
         return self
 
@@ -121,7 +119,13 @@ class Controller:
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> bool:
-        """Exit Controller's context."""
+        """
+        Exit the controller's context and close the underlying socket.
+
+        Returns:
+            :obj:`False` to let any exception flow through the call stack.
+
+        """
         context = self._context
         try:
             if context is not None:
@@ -129,14 +133,13 @@ class Controller:
                 with suppress(BrokenPipeError):
                     await context.__aexit__(exc_type, exc_val, exc_tb)
         finally:
-            self._evt_callbacks.clear()
             self._authenticated = False
             self._connected = False
-            self._protoinfo = None
-            self._rdtask = None
-            self._rqueue = None
-            self._writer = None
             self._context = None
+            self._evt_callbacks.clear()
+            self._protoinfo = None
+            self._replies = None
+            self._writer = None
 
         # Do not prevent the original exception from going further.
         return False
@@ -158,12 +161,13 @@ class Controller:
 
     async def _notify_disconnect(self) -> None:
         """Generate a DISCONNECT event to tell everyone that we are now disconnected."""
-        await self._handle_event(Message('650 DISCONNECT'))
+        message = Message('650 DISCONNECT')
+        await self._handle_event(message)
 
     async def _reader_task(
         self,
         reader: asyncio.StreamReader,
-        rqueue: asyncio.Queue[Message | None],
+        replies: asyncio.Queue[Message | None],
     ) -> None:
         """Read from the socket and dispatch all contents."""
         try:
@@ -175,35 +179,38 @@ class Controller:
                     if message.is_event:
                         await self._handle_event(message)
                     else:
-                        await rqueue.put(message)
+                        await replies.put(message)
 
                     message = Message()
         finally:
             self._connected = False
+            # This is needed here because we may be stuck waiting on a reply.
             with suppress(asyncio.QueueFull):
-                rqueue.put_nowait(None)
+                replies.put_nowait(None)
             await self._notify_disconnect()
 
     async def _request(self, command: Command) -> Message:
-        """Send any kind of command to the controller.
+        """
+        Send any kind of command to the controller.
 
         A reply is dequeued and expected.
         """
         async with self._request_lock:
-            # if self._rqueue is None or self._writer is None:
+            # if self._replies is None or self._writer is None:
             if not self.connected:
                 msg = 'Controller is not connected!'
                 raise ControllerError(msg)
 
             # Casts are valid here since we check `self.connected`.
-            rqueue = cast(asyncio.Queue[Message | None], self._rqueue)
-
+            replies = cast(asyncio.Queue[Message | None], self._replies)
             writer = cast(asyncio.StreamWriter, self._writer)
-            writer.write(str(command).encode('ascii'))
+
+            frame = str(command).encode('ascii')
+            writer.write(frame)
             await writer.drain()
 
-            resp = await rqueue.get()
-            rqueue.task_done()
+            resp = await replies.get()
+            replies.task_done()
 
         if resp is None:  # pragma: no cover
             msg = 'Controller has disconnected!'
@@ -211,7 +218,8 @@ class Controller:
         return resp
 
     async def auth_challenge(self, nonce: bytes | None = None) -> r.AuthChallengeReply:
-        """Query Tor's controller so we perform a SAFECOOKIE authentication method.
+        """
+        Query Tor's controller so we perform a SAFECOOKIE authentication method.
 
         This method is not meant to be called directly but is used by `authenticate`
         when 'SAFECOOKIE' is the chosen authentication method.
@@ -220,7 +228,8 @@ class Controller:
         return await self.request(query)
 
     async def authenticate(self, password: str | None = None) -> r.AuthenticateReply:
-        """Authenticate to Tor's controller.
+        """
+        Authenticate to Tor's controller.
 
         When no password is provided, cookie authentications are attempted.
         """
@@ -312,8 +321,13 @@ class Controller:
         query = q.GetInfoQuery(*args)
         return await self.request(query)
 
-    async def hs_fetch(self, address: str, servers: list[str] | None = None) -> r.HsFetchReply:
-        """Request a hidden service descriptor fetch.
+    async def hs_fetch(
+        self,
+        address: str,
+        servers: Iterable[str] | None = None,
+    ) -> r.HsFetchReply:
+        """
+        Request a hidden service descriptor fetch.
 
         The result does not contain the descriptor, which is provided asynchronously
         through events (HS_DESC and HS_DESC_CONTENT).
@@ -328,9 +342,10 @@ class Controller:
         self,
         version: int = DEFAULT_PROTOCOL_VERSION,
     ) -> r.ProtocolInfoReply:
-        """Get control protocol information from the remote Tor process.
+        """
+        Get control protocol information from the remote Tor process.
 
-        Default version is 1, this is the only version supported by Tor.
+        Default version is 1, this is currently the only version supported by Tor.
         """
         if self.authenticated or not self._protoinfo:
             query = q.ProtocolInfoQuery(version)
@@ -381,7 +396,8 @@ class Controller:
         return await self.request(query)
 
     async def set_events(self, events: Iterable[str]) -> r.SetEventsReply:
-        """Set the list of events that we subscribe to.
+        """
+        Set the list of events that we subscribe to.
 
         This method should probably not be called directly, see event_subscribe.
         """

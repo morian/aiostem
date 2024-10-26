@@ -18,7 +18,8 @@ def is_valid_hs_v2_address(address: str) -> bool:
 
 
 def is_valid_hs_v3_address(address: str) -> bool:
-    """Tell whether this address is a valid hidden service v3.
+    """
+    Tell whether this address is a valid hidden service v3.
 
     Here we go beyond the simple match and also check for the integrated checksum.
     """
@@ -42,7 +43,8 @@ def hs_address_strip_tld(address: str) -> str:
 
 
 def hs_address_version(address: str, allow_suffix: bool = False) -> int:
-    """Get the hidden service version based on its name.
+    """
+    Get the hidden service version based on its name.
 
     This returns 2 or 3, or raises a ValueError.
     """

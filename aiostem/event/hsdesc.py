@@ -93,7 +93,8 @@ class HsDescEvent(Event):
 
     @property
     def action(self) -> str:
-        """Get the type of event we received.
+        """
+        Get the type of event we received.
 
         REQUESTED, FAILED, UPLOAD, RECEIVED, UPLOADED, IGNORE, CREATED
         """

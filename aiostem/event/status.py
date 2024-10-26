@@ -38,7 +38,8 @@ class BaseStatusEvent(Event):
 
     @property
     def severity(self) -> str:
-        """Get the message severity.
+        """
+        Get the message severity.
 
         This can be NOTICE, WARN, ERR.
         """

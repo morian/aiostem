@@ -7,7 +7,8 @@ from .base import Query
 
 
 class SignalQuery(Query):
-    """Build a Signal query to send to Tor.
+    """
+    Build a Signal query to send to Tor.
 
     RELOAD         reload configuration
     SHUTDOWN       shutdown the remote Tor daemon

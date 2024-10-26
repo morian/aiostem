@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from typing import ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from ..command import Command
 from .base import Query
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
 
 
 class HsFetchQuery(Query):
@@ -11,7 +14,7 @@ class HsFetchQuery(Query):
 
     COMMAND_NAME: ClassVar[str] = 'HSFETCH'
 
-    def __init__(self, address: str, servers: list[str] | None = None) -> None:
+    def __init__(self, address: str, servers: Iterable[str] | None = None) -> None:
         """Initialize a new HSFETCH query."""
         if servers is None:
             servers = []
@@ -22,14 +25,15 @@ class HsFetchQuery(Query):
     def command(self) -> Command:
         """Build the real command that will be used."""
         cmd = Command(self.COMMAND_NAME)
-        cmd.add_arg(self.address)
-        for server in self.servers:
+        cmd.add_arg(self._address)
+        for server in self._servers:
             cmd.add_kwarg('SERVER', server)
         return cmd
 
     @property
     def address(self) -> str:
-        """Address of the onion domain to look for.
+        """
+        Address of the onion domain to look for.
 
         v2 addresses are 16 x base32 characters
         v3 addresses are 56 x base32 characters
@@ -38,6 +42,6 @@ class HsFetchQuery(Query):
         return self._address
 
     @property
-    def servers(self) -> list[str]:
+    def servers(self) -> Sequence[str]:
         """List of servers to request for this address."""
-        return self._servers
+        return list(self._servers)

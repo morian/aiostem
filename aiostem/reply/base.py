@@ -19,7 +19,8 @@ class BaseResponse:
 
     @staticmethod
     def _keyword_parse(parser: MessageLineParser) -> dict[str, str]:
-        """Parse keyword arguments from the provided MessageLineParser.
+        """
+        Parse keyword arguments from the provided MessageLineParser.
 
         This first try to parse as quoted, otherwise as non-quoted.
         """

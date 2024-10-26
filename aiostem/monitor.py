@@ -49,7 +49,8 @@ class Monitor:
         *,
         keepalive: bool = True,
     ) -> None:
-        """Create a new instance of a Tor checker.
+        """
+        Create a new instance of a Tor checker.
 
         `keepalive` tells whether we should run a task to keep Tor 'ACTIVE'.
         """
@@ -173,7 +174,8 @@ class Monitor:
                     self._condition.notify_all()
 
     async def _on_ctrl_client_status(self, event: Event) -> None:
-        """Triggered when a new 'STATUS_CLIENT' event occurs.
+        """
+        Triggered when a new 'STATUS_CLIENT' event occurs.
 
         Note that this is an event handler executed in the receive loop from the controller.
         You cannot perform new controller requests from here, use a queue or something else.

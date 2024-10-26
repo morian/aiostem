@@ -130,7 +130,8 @@ class HiddenServiceChecker:
         concurrency: int = DEFAULT_CONCURRENCY,
         queue: asyncio.Queue[HiddenServiceFetchRequest] | None = None,
     ) -> None:
-        """Create a new hidden service checker.
+        """
+        Create a new hidden service checker.
 
         `controller` is a connected and authenticated controller.
         `concurrency` is the number of workers we want to spawn.
@@ -193,7 +194,8 @@ class HiddenServiceChecker:
         return entry
 
     def _request_discard(self, address: str, entry: HiddenServiceCheckEntry) -> None:
-        """Discard a pending hidden service fetch request.
+        """
+        Discard a pending hidden service fetch request.
 
         This needs to be called when we no longer want to be notified.
         """
@@ -283,7 +285,8 @@ if TYPE_CHECKING:
 
 
 class HiddenServiceFetchRequest:
-    """Describe a single a hidden service request.
+    """
+    Describe a single a hidden service request.
 
     It is meant to be queued to the HiddenServiceChecker's queue.
     """
