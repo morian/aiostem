@@ -7,7 +7,7 @@ from aiostem.message import Message, MessageError, MessageLineParser
 class TestMessage:
     def test_message_already_parsed(self):
         message = Message('250 OK')
-        with pytest.raises(MessageError, match='Cannot append an already parsed message.'):
+        with pytest.raises(MessageError, match='Cannot append to an already parsed message.'):
             message.add_line('250 OK')
 
     def test_line_too_short(self):
