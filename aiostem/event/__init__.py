@@ -1,10 +1,15 @@
-from aiostem.message import Message
-from aiostem.reply.base import Event, UnknownEvent
+from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+from ..reply.base import Event, UnknownEvent
 from .hsdesc import HsDescContentEvent, HsDescEvent
 from .network import DisconnectEvent, NetworkLivenessEvent
 from .signal import SignalEvent
 from .status import StatusClientEvent, StatusGeneralEvent, StatusServerEvent
+
+if TYPE_CHECKING:
+    from ..message import Message
 
 EVENT_MAP: dict[str, type[Event]] = {
     'DISCONNECT': DisconnectEvent,

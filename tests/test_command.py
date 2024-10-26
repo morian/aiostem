@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from aiostem.command import Command
 from aiostem.query import HsFetchQuery
 

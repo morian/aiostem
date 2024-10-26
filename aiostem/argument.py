@@ -1,10 +1,7 @@
+from __future__ import annotations
+
 import re
 from abc import abstractmethod
-
-
-def add_quotes(value: str) -> str:
-    """Quote `value` so it can be used by Tor's controller."""
-    return re.sub(r'([\\"])', r'\\\1', value)
 
 
 class BaseArgument:
@@ -13,7 +10,13 @@ class BaseArgument:
     @abstractmethod
     def __str__(self) -> str:
         """Need to be implemented by subclasses."""
-        raise NotImplementedError('__str__() must be implemented by BaseArgument subclass')
+        msg = '__str__() must be implemented by BaseArgument subclass'
+        raise NotImplementedError(msg)
+
+    @staticmethod
+    def _quote(value: str) -> str:
+        """Quote `value` so it can be used by Tor's controller."""
+        return re.sub(r'([\\"])', r'\\\1', value)
 
 
 class SingleArgument(BaseArgument):
@@ -37,7 +40,8 @@ class SingleArgument(BaseArgument):
     def __str__(self) -> str:
         """Get the value as sent on the socket."""
         if self.quoted:
-            return f'"{add_quotes(self.value)}"'
+            quoted = self._quote(self.value)
+            return f'"{quoted}"'
         return self.value
 
 
@@ -68,5 +72,6 @@ class KeywordArgument(BaseArgument):
     def __str__(self) -> str:
         """Get the value as sent on the socket."""
         if self.quoted:
-            return f'{self.keyword}="{add_quotes(self.value)}"'
+            quoted = self._quote(self.value)
+            return f'{self.keyword}="{quoted}"'
         return f'{self.keyword}={self.value}'

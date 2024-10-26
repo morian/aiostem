@@ -1,5 +1,7 @@
-from ..message import Message
-from ..query import Query
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from .authentication import AuthChallengeReply, AuthenticateReply
 from .base import Reply, UnknownReply
 from .info import GetConfReply, GetInfoReply, ProtocolInfoReply
@@ -11,6 +13,10 @@ from .simple import (
     SetEventsReply,
     SignalReply,
 )
+
+if TYPE_CHECKING:
+    from ..message import Message
+    from ..query import Query
 
 REPLY_MAP: dict[str, type[Reply]] = {
     'AUTHENTICATE': AuthenticateReply,

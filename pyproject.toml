@@ -129,6 +129,7 @@ detect-same-package = false
 known-first-party = ['aiostem']
 force-wrap-aliases = true
 split-on-trailing-comma = false
+required-imports = ['from __future__ import annotations']
 
 [tool.ruff.lint.flake8-quotes]
 docstring-quotes = 'double'

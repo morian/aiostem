@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .authentication import AuthChallengeQuery, AuthenticateQuery
 from .base import Query
 from .events import SetEventsQuery

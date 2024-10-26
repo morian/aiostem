@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from aiostem.argument import KeywordArgument, SingleArgument
 
 

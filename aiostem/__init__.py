@@ -1,5 +1,7 @@
 """Asynchronous Tor controller library for asyncio and Python."""
 
+from __future__ import annotations
+
 from .controller import Controller
 from .exception import ResponseError
 from .monitor import ControllerStatus, Monitor

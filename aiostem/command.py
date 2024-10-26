@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from .argument import BaseArgument, KeywordArgument, SingleArgument
 
 
