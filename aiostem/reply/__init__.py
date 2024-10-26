@@ -34,6 +34,7 @@ def reply_parser(query: Query, message: Message) -> Reply:
 
 
 __all__ = [
+    'REPLY_MAP',
     'AuthChallengeReply',
     'AuthenticateReply',
     'DropGuardsReply',
@@ -42,7 +43,6 @@ __all__ = [
     'HsFetchReply',
     'ProtocolInfoReply',
     'QuitReply',
-    'REPLY_MAP',
     'Reply',
     'SetConfReply',
     'SetEventsReply',

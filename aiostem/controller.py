@@ -84,7 +84,8 @@ class Controller:
     async def __aenter__(self) -> Self:
         """Enter Controller's context, connect to the target."""
         if self.entered:
-            raise RuntimeError('Controller is already entered!')
+            msg = 'Controller is already entered!'
+            raise RuntimeError(msg)
 
         context = await AsyncExitStack().__aenter__()
         try:
@@ -152,8 +153,8 @@ class Controller:
                     coro = callback(event)
                     if asyncio.iscoroutine(coro):
                         await coro
-                except Exception as exc:  # pragma: no cover
-                    logger.error("Error handling callback for '%s': %s", name, str(exc))
+                except Exception:  # pragma: no cover
+                    logger.exception("Error handling callback for '%s'", name)
 
     async def _notify_disconnect(self) -> None:
         """Generate a DISCONNECT event to tell everyone that we are now disconnected."""
@@ -191,7 +192,8 @@ class Controller:
         async with self._request_lock:
             # if self._rqueue is None or self._writer is None:
             if not self.connected:
-                raise ControllerError('Controller is not connected!')
+                msg = 'Controller is not connected!'
+                raise ControllerError(msg)
 
             # Casts are valid here since we check `self.connected`.
             rqueue = cast(asyncio.Queue[Message | None], self._rqueue)
@@ -204,7 +206,8 @@ class Controller:
             rqueue.task_done()
 
         if resp is None:  # pragma: no cover
-            raise ControllerError('Controller has disconnected!')
+            msg = 'Controller has disconnected!'
+            raise ControllerError(msg)
         return resp
 
     async def auth_challenge(self, nonce: bytes | None = None) -> r.AuthChallengeReply:
@@ -248,7 +251,8 @@ class Controller:
         elif 'COOKIE' in methods:
             token_bytes = await protoinfo.cookie_file_read()
         else:
-            raise ControllerError('No compatible authentication method found!')
+            msg = 'No compatible authentication method found!'
+            raise ControllerError(msg)
 
         token = token_bytes.hex() if token_bytes is not None else None
         query = q.AuthenticateQuery(token)

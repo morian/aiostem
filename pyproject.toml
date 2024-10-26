@@ -23,7 +23,7 @@ classifiers = [
 	'Programming Language :: Python :: 3.13',
 ]
 dependencies = [
-	'aiofiles >= 23.0, < 24.0',
+	'aiofiles >= 23.0, < 25.0',
 	'stem >= 1.8.2, < 1.9',
 ]
 requires-python = '>=3.11'
@@ -90,9 +90,11 @@ select = [
 	'D',      # pydocstyle
 	'DTZ',    # flake8-datetimez
 	'E',      # pycodestyle errors
+	'ERA',    # eradicate
 	'F',      # Pyflakes
 	'FA',     # flake8-future-annotations
 	'I',      # isort
+	'INP',    # flake8-no-pep420
 	'LOG',    # flake8-logging
 	'N',      # pep8-naming
 	'PIE',    # flake8-pie
@@ -105,7 +107,9 @@ select = [
 	'S',      # flake8-bandit
 	'SIM',    # flake8-simplify
 	'SLF',    # flake8-self
+	'T20',    # flake8-print
 	'TCH',    # flake8-type-checking
+	'TRY',    # tryceratops
 	'UP',     # pyupgrade
 	'W',      # pycodestyle warnings
 ]
@@ -134,6 +138,9 @@ multiline-quotes = 'double'
 max-complexity = 12
 
 [tool.ruff.lint.per-file-ignores]
+'bin/*' = [
+	'T201',   # `print` found
+]
 'tests/*.py' = [
 	'D',      # pydocstyle
 	'S101',   # bandit: Use of `assert` detected

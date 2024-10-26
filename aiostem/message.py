@@ -38,7 +38,8 @@ class MessageLineParser:
         pattern = self.REGEX_SINGLE_Q if quoted else self.REGEX_SINGLE_N
         match = pattern.match(self._cur_line)
         if match is None:
-            raise MessageError('No matching argument in provided line.')
+            msg = 'No matching argument in provided line.'
+            raise MessageError(msg)
 
         self._cur_line = self._cur_line[match.end(0) :].lstrip()
         text = match.group(1)
@@ -53,7 +54,8 @@ class MessageLineParser:
         """
         value = self.pop_arg(quoted)
         if value != name:
-            raise MessageError(f"expected argument '{name}', got '{value}'.")
+            msg = f"expected argument '{name}', got '{value}'."
+            raise MessageError(msg)
         return value
 
     def pop_kwarg(self, quoted: bool = False) -> tuple[str, str]:
@@ -64,7 +66,8 @@ class MessageLineParser:
         pattern = self.REGEX_KEYWORD_Q if quoted else self.REGEX_KEYWORD_N
         match = pattern.match(self._cur_line)
         if match is None:
-            raise MessageError('No matching keyword argument in provided line.')
+            msg = 'No matching keyword argument in provided line.'
+            raise MessageError(msg)
         self._cur_line = self._cur_line[match.end(0) :].lstrip()
 
         keyword = match.group(1)
@@ -80,7 +83,8 @@ class MessageLineParser:
         """
         match = self.REGEX_KEYWORD_L.match(self._cur_line)
         if match is None:
-            raise MessageError('No matching keyword argument in provided line.')
+            msg = 'No matching keyword argument in provided line.'
+            raise MessageError(msg)
         self._cur_line = self._cur_line[match.end(0) :].lstrip()
         return (match.group(1), match.group(2))
 
@@ -88,7 +92,8 @@ class MessageLineParser:
         """Get the next keyword argument and ensures that `keyword` is `name`."""
         keyword, value = self.pop_kwarg(quoted)
         if keyword != name:
-            raise MessageError(f"expected argument '{name}', got '{keyword}'.")
+            msg = f"expected argument '{name}', got '{keyword}'."
+            raise MessageError(msg)
         return value
 
     def reset(self) -> None:
@@ -171,7 +176,8 @@ class Message:
     def add_line(self, line: str) -> None:
         """Add a new line from the controller."""
         if self.parsed:
-            raise MessageError('Cannot append an already parsed message.')
+            msg = 'Cannot append to an already parsed message.'
+            raise MessageError(msg)
 
         if line.endswith('\r\n'):
             line = line[:-2]
@@ -188,7 +194,8 @@ class Message:
                 self._parsing_data.lines.append(line)
         else:
             if len(line) < 4:
-                raise ProtocolError(f"Received line is too short: '{line}'!")
+                msg = f"Received line is too short: '{line}'!"
+                raise ProtocolError(msg)
 
             code = line[0:3]
             kind = line[3:4]
@@ -205,4 +212,5 @@ class Message:
             elif kind == '-':
                 self._data_items.append(MessageData(data))
             else:
-                raise ProtocolError(f"Unable to parse line '{line}'")
+                msg = f"Unable to parse line '{line}'"
+                raise ProtocolError(msg)

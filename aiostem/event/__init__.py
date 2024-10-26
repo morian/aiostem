@@ -33,9 +33,9 @@ def event_parser(message: Message) -> Event:
 
 
 __all__ = [
-    'DisconnectEvent',
     'EVENTS_INTERNAL',
     'EVENT_MAP',
+    'DisconnectEvent',
     'Event',
     'HsDescContentEvent',
     'HsDescEvent',

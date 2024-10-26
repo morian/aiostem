@@ -163,11 +163,13 @@ class HsDescContentEvent(Event):
         super()._message_parse(message)
 
         if len(message.items) == 0:
-            raise ProtocolError('Event HS_DESC_CONTENT contains nothing.')
+            msg = 'Event HS_DESC_CONTENT contains nothing.'
+            raise ProtocolError(msg)
 
         item = message.items[0]
         if not isinstance(item, MessageData):
-            raise ProtocolError('Event HS_DESC_CONTENT contains no data.')
+            msg = 'Event HS_DESC_CONTENT contains no data.'
+            raise ProtocolError(msg)
 
         parser = MessageLineParser(item.header)
         parser.pop_arg_checked(self.EVENT_NAME)

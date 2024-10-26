@@ -78,7 +78,8 @@ class CustomController(Controller):
 
         if self.raise_enabled is True:
             self.raise_enabled = False
-            raise Exception('pytest exception!')
+            msg = 'pytest exception!'
+            raise Exception(msg)  # noqa: TRY002
 
         if self.ignore_enabled is True:
             # Only push 'REQUESTED' messages here when asked to.

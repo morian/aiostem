@@ -62,7 +62,8 @@ class Monitor:
     async def __aenter__(self) -> Self:
         """Enter the monitor context."""
         if self.is_entered:
-            raise RuntimeError('Monitor is already running!')
+            msg = 'Monitor is already running!'
+            raise RuntimeError(msg)
 
         controller = self._controller
         context = await AsyncExitStack().__aenter__()

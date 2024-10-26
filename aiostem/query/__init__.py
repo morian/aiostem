@@ -14,9 +14,9 @@ __all__ = [
     'GetInfoQuery',
     'HsFetchQuery',
     'ProtocolInfoQuery',
+    'Query',
     'QuitQuery',
     'SetConfQuery',
     'SetEventsQuery',
     'SignalQuery',
-    'Query',
 ]

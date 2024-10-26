@@ -58,7 +58,8 @@ def hs_address_version(address: str, allow_suffix: bool = False) -> int:
         version = 2
 
     if version is None:
-        raise ValueError(f"Invalid hidden service address '{address}'")
+        msg = f"Invalid hidden service address '{address}'"
+        raise ValueError(msg)
     return version
 
 

@@ -57,7 +57,8 @@ class AuthChallengeReply(Reply):
         """Check that the server hash is consistent with what we compute."""
         computed = self.server_token_build(cookie)
         if computed != self.server_hash:
-            raise ProtocolError('Tor provided the wrong server nonce.')
+            msg = 'Tor provided the wrong server nonce.'
+            raise ProtocolError(msg)
 
     def server_token_build(self, cookie: bytes) -> bytes:
         """Build a token suitable for server hash check from the client."""
