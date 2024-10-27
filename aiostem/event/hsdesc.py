@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from stem.descriptor.hidden_service import (
     BaseHiddenServiceDescriptor,
@@ -24,12 +24,12 @@ _DESCRIPTOR_CLASS_MAP: Mapping[int, type[BaseHiddenServiceDescriptor]] = {
 
 
 class HsDescEvent(Event):
-    """We have a new Hidden Service descriptor event."""
+    """Parser for a `HS_DESC` event."""
 
     EVENT_NAME: ClassVar[str] = 'HS_DESC'
 
     def __init__(self, message: Message) -> None:
-        """Initialize a hidden service descriptor event."""
+        """Create an event parser from a received event message."""
         self._action = ''  # type: str
         self._address = ''  # type: str
         self._auth_type = ''  # type: str
@@ -141,18 +141,18 @@ class HsDescEvent(Event):
 
 
 class HsDescContentEvent(Event):
-    """We have a new Hidden Service descriptor content."""
+    """Parser for a `HS_DESC_CONTENT` event."""
 
     EVENT_NAME: ClassVar[str] = 'HS_DESC_CONTENT'
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, message: Message) -> None:
         """Initialize a hidden service descriptor content event."""
         self._address = ''  # type: str
         self._descriptor = None  # type: BaseHiddenServiceDescriptor | None
         self._descriptor_id = ''  # type: str
         self._descriptor_raw = ''  # type: str
         self._directory = ''  # type: str
-        super().__init__(*args, **kwargs)
+        super().__init__(message)
 
     def __repr__(self) -> str:
         """Get the representation of this event."""
@@ -186,7 +186,7 @@ class HsDescContentEvent(Event):
 
     @property
     def address(self) -> str:
-        """Get the hidden Service address related to this event."""
+        """Get the hidden service address related to this event."""
         return self._address
 
     @property

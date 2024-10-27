@@ -1,11 +1,14 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import aiofiles
 
 from ..message import Message, MessageLineParser
 from .simple import SimpleReply
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class BaseInfoReply(SimpleReply):
@@ -35,7 +38,7 @@ class BaseInfoReply(SimpleReply):
             self._items[key] = value
 
     @property
-    def values(self) -> dict[str, str]:
+    def values(self) -> Mapping[str, str]:
         """Get the list of parsed items."""
         return self._items
 

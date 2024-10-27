@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from .exception import MessageError, ProtocolError
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
 
 
 class MessageLineParser:
@@ -220,7 +220,7 @@ class Message:
         return bool(self.status_code == 650)
 
     @property
-    def items(self) -> list[MessageData]:
+    def items(self) -> Sequence[MessageData]:
         """Get the ordered list of data items in this message."""
         return self._data_items
 

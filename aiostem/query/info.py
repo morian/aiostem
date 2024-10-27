@@ -7,7 +7,7 @@ from ..command import Command
 from .base import Query
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping
+    from collections.abc import Mapping, Sequence
 
 
 class BaseInfoQuery(Query):
@@ -66,7 +66,7 @@ class SetConfQuery(Query):
         return cmd
 
     @property
-    def items(self) -> list[KeywordArgument]:
+    def items(self) -> Sequence[KeywordArgument]:
         """List of arguments requested in this command."""
         return self._args
 

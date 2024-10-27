@@ -1,9 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from ..message import Message, MessageLineParser
 from ..reply.base import Event
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class BaseStatusEvent(Event):
@@ -32,7 +35,7 @@ class BaseStatusEvent(Event):
         return self._action
 
     @property
-    def arguments(self) -> dict[str, str]:
+    def arguments(self) -> Mapping[str, str]:
         """Get the list of generic keyword arguments."""
         return self._arguments
 

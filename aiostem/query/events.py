@@ -6,7 +6,7 @@ from ..command import Command
 from .base import Query
 
 if TYPE_CHECKING:
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Sequence
 
 
 class SetEventsQuery(Query):
@@ -19,7 +19,7 @@ class SetEventsQuery(Query):
         self._events = list(events)
 
     @property
-    def events(self) -> list[str]:
+    def events(self) -> Sequence[str]:
         """Get the list of events this query contains."""
         return self._events
 
