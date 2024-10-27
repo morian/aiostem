@@ -8,7 +8,7 @@ What is this all about?
 -----------------------
 
 `Aiostem` is a python library that aims to provide an asynchronous control library
-for Tor. This goal is already fulfilled by `stem_`, maintained by the Tor community.
+for Tor. This goal is already fulfilled by `stem`_, maintained by the Tor community.
 `Stem` is not meant to be used in asynchronous python, and the un-released patches
 does not seem to really implement the protocol in an asynchronous fashion.
 
@@ -22,7 +22,7 @@ that can be generated while fetching hidden service descriptors for example.
 miserably at this game.
 
 `Aiostem` currently offers the following features:
-   * A controller similar to the one used by `stem_`, with support for all authentication methods
+   * A controller similar to the one used by `stem`_, with support for all authentication methods
    * Subscribe or un-subscribe to events (using async callbacks)
    * Gathering protocol information
    * Sending signals to the daemon
@@ -37,7 +37,7 @@ On the event side, the following ones are parsed in dedicated structures:
 Additionally, a helper is provided to allow for fast hidden service descriptor fetching in
 package `aiostem.extra`. An example application is provided in `aiostem-hsscan`.
 
-Do note that for convenience, this package uses `stem_` to parse descriptors.
+Do note that for convenience, this package uses `stem`_ to parse descriptors.
 This is already something that cannot block, which means there is little interest to reinvent
 what already exists (and this is not the funny part, trust me).
 
