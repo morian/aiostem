@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from contextlib import AsyncExitStack, suppress
 from typing import TYPE_CHECKING, Any, TypeAlias, cast, overload
 
@@ -39,7 +39,13 @@ class Controller:
     """Client controller for Tor's control socket."""
 
     def __init__(self, connector: ControlConnector) -> None:
-        """Initialize a new controller from a provided connector."""
+        """
+        Initialize a new controller from a provided connector.
+
+        Args:
+            connector: the connector to the control socket
+
+        """
         self._evt_callbacks = {}  # type: dict[str, list[EventCallbackType]]
         self._events_lock = asyncio.Lock()
         self._request_lock = asyncio.Lock()
@@ -57,12 +63,31 @@ class Controller:
         host: str = DEFAULT_CONTROL_HOST,
         port: int = DEFAULT_CONTROL_PORT,
     ) -> Controller:
-        """Create a new Controller from a TCP port."""
+        """
+        Create a new controller for a remote TCP host/port.
+
+        Args:
+            host: ip address or hostname to the control host
+            port: TCP port to connect to
+
+        Returns:
+            A controller for the target TCP host and port.
+
+        """
         return cls(ControlConnectorPort(host, port))
 
     @classmethod
     def from_path(cls, path: str = DEFAULT_CONTROL_PATH) -> Controller:
-        """Create a new Controller from a UNIX socket path."""
+        """
+        Create a new controller for a local unix socket.
+
+        Args:
+            path: path to the unix socket on the local filesystem
+
+        Returns:
+            A controller for the target unix socket.
+
+        """
         return cls(ControlConnectorPath(path))
 
     @property
@@ -81,7 +106,16 @@ class Controller:
         return bool(self._context is not None)
 
     async def __aenter__(self) -> Self:
-        """Enter Controller's context, connect to the target."""
+        """
+        Enter Controller's context, connect to the target.
+
+        Raises:
+            RuntimeError: when the context has already been entered
+
+        Returns:
+            A connected controller (the same exact instance).
+
+        """
         if self.entered:
             msg = 'Controller is already entered!'
             raise RuntimeError(msg)
@@ -145,7 +179,15 @@ class Controller:
         return False
 
     async def _handle_event(self, message: Message) -> None:
-        """Handle the new received event (find and call the callbacks)."""
+        """
+        Handle a newly received event.
+
+        This method finds and call the appropriate callbacks, if any.
+
+        Args:
+            message: the raw event message
+
+        """
         name = message.event_type
         if name is not None:  # pragma: no branch
             event = e.event_parser(message)
@@ -160,7 +202,13 @@ class Controller:
                     logger.exception("Error handling callback for '%s'", name)
 
     async def _notify_disconnect(self) -> None:
-        """Generate a DISCONNECT event to tell everyone that we are now disconnected."""
+        """
+        Generate a `DISCONNECT` event.
+
+        The goal here is to tell everyone that we are now disconnected from the remote socket.
+        This is a fake event simply used to call all the registered callbacks and provide a
+        way to gently tell the end user that we are no longer capable of handling anything.
+        """
         message = Message('650 DISCONNECT')
         await self._handle_event(message)
 
@@ -169,7 +217,14 @@ class Controller:
         reader: asyncio.StreamReader,
         replies: asyncio.Queue[Message | None],
     ) -> None:
-        """Read from the socket and dispatch all contents."""
+        """
+        Read messages from the control socket and dispatch them.
+
+        Args:
+            reader: raw StreamReader from :mod:`asyncio`
+            replies: the queue of command replies
+
+        """
         try:
             message = Message()
 
@@ -193,7 +248,18 @@ class Controller:
         """
         Send any kind of command to the controller.
 
-        A reply is dequeued and expected.
+        Note:
+            A single command can run at once due to an internal lock.
+
+        Args:
+            command: the command we want to send to Tor
+
+        Raises:
+            ControllerError: when the controller is not connected
+
+        Returns:
+            The corresponding reply from the remote daemon.
+
         """
         async with self._request_lock:
             # if self._replies is None or self._writer is None:
@@ -219,10 +285,18 @@ class Controller:
 
     async def auth_challenge(self, nonce: bytes | None = None) -> r.AuthChallengeReply:
         """
-        Query Tor's controller so we perform a SAFECOOKIE authentication method.
+        Start the authentication routine for the `SAFECOOKIE` method.
 
-        This method is not meant to be called directly but is used by `authenticate`
-        when 'SAFECOOKIE' is the chosen authentication method.
+        Note:
+            This method is not meant to be called by the end-user but is rather
+            used internally by :meth:`authenticate`.
+
+        Args:
+            nonce: an optional 32 bytes hexadecimal random value
+
+        Returns:
+            A :class:`AuthChallengeReply` object.
+
         """
         query = q.AuthChallengeQuery(nonce)
         return await self.request(query)
@@ -231,22 +305,32 @@ class Controller:
         """
         Authenticate to Tor's controller.
 
-        When no password is provided, cookie authentications are attempted.
+        Note:
+            Authentication methods are tries in the following order (when available):
+            - `NULL`: no authentication
+            - `HASHEDPASSWORD`: password authentication (when a password is provided)
+            - `SAFECOOKIE`: proof that we can read the cookie file
+            - `COOKIE`: provide the content of the cookie file
+
+        Args:
+            password: an optional password for the `HASHEDPASSWORD` method
+
+        Raises:
+            ControllerError: when no authentication method is found
+
+        Returns:
+            The authentication result.
+
         """
         protoinfo = await self.protocol_info()
         methods = set(protoinfo.methods)
 
+        # No password was provided, we can't authenticate with this method.
         if password is None:
             methods.discard('HASHEDPASSWORD')
 
-        # These methods are expose here by preference order.
-        #   NULL            (no authentication, take it when available)
-        #   HASHEDPASSWORD  (password authentication)
-        #   SAFECOOKIE      (proof that we can read to cookie)
-        #   COOKIE          (found a cookie, please take it)
-        #
         # Here we suppose that the user prefers a password authentication when
-        # a password is provided (the cookie file may not be readable!).
+        # a password is provided (the cookie file may not be readable).
         if 'NULL' in methods:
             token_bytes = None  # type: bytes | None
         elif 'HASHEDPASSWORD' in methods:
@@ -270,19 +354,58 @@ class Controller:
         return reply
 
     async def close(self) -> None:
-        """Close this connection and reset the controller."""
+        """
+        Close this connection and reset the controller.
+
+        Note:
+            You should rather use the context manager instead.
+
+        """
         await self.__aexit__(None, None, None)
 
     async def connect(self) -> None:
-        """Connect Tor's control socket."""
+        """
+        Connect Tor's control socket.
+
+        Note:
+            You should rather use the context manager instead.
+
+        """
         await self.__aenter__()
 
     async def drop_guards(self) -> r.DropGuardsReply:
-        """Send a 'DROPGUARDS' command to the controller."""
+        """
+        Tell the server to drop all guard nodes.
+
+        Important:
+            Do not invoke this command lightly; it can increase vulnerability
+            to tracking attacks over time.
+
+        Returns:
+            The simple response.
+
+        """
         return await self.request(q.DropGuardsQuery())
 
     async def event_subscribe(self, event: str, callback: EventCallbackType) -> None:
-        """Register a callback to be called when `event` triggers."""
+        """
+        Register a callback function to be called when an event message is received.
+
+        A special event `DISCONNECT` is produced by this library and can be registered
+        here to be notified of any disconnection from the control socket.
+
+        Note:
+            Multiple callbacks can be set for a single event.
+            If so, they are called in the registering order.
+
+        See Also:
+            https://spec.torproject.org/control-spec/replies.html#asynchronous-events
+
+        Args:
+            event: name of the event linked to the callback
+            callback: a function or coroutine to be called when the event occurs
+
+        """
         async with self._events_lock:
             listeners = self._evt_callbacks.setdefault(event, [])
             try:
@@ -295,7 +418,14 @@ class Controller:
                 raise
 
     async def event_unsubscribe(self, event: str, callback: EventCallbackType) -> None:
-        """Unsubscribe `callable` from the event handler for `event`."""
+        """
+        Unregister a previously registered callback function.
+
+        Args:
+            event: name of the event linked to the callback
+            callback: a function or coroutine to be removed from the event list
+
+        """
         async with self._events_lock:
             listeners = self._evt_callbacks.get(event, [])
             if callback in listeners:
@@ -312,12 +442,36 @@ class Controller:
                     raise
 
     async def get_conf(self, *args: str) -> r.GetConfReply:
-        """Get configuration items from the remote server."""
+        """
+        Request the value of zero or move configuration variable(s).
+
+        See Also:
+            https://spec.torproject.org/control-spec/commands.html#getconf
+
+        Args:
+            args: a list of configuration variables to request
+
+        Returns:
+            A reply containing the corresponding values.
+
+        """
         query = q.GetConfQuery(*args)
         return await self.request(query)
 
     async def get_info(self, *args: str) -> r.GetInfoReply:
-        """Get information from the remote server."""
+        """
+        Request for Tor daemon information.
+
+        See Also:
+            https://spec.torproject.org/control-spec/commands.html#getinfo
+
+        Args:
+            args: a list of information data to request
+
+        Returns:
+            A reply containing the corresponding values.
+
+        """
         query = q.GetInfoQuery(*args)
         return await self.request(query)
 
@@ -330,7 +484,15 @@ class Controller:
         Request a hidden service descriptor fetch.
 
         The result does not contain the descriptor, which is provided asynchronously
-        through events (HS_DESC and HS_DESC_CONTENT).
+        through events such as `HS_DESC` and `HS_DESC_CONTENT`.
+
+        Args:
+            address: the hidden service address to request
+            servers: an optional list of servers to query
+
+        Returns:
+            Whether the request was sent successfully.
+
         """
         if servers is None:
             servers = []
@@ -345,7 +507,22 @@ class Controller:
         """
         Get control protocol information from the remote Tor process.
 
-        Default version is 1, this is currently the only version supported by Tor.
+        This command is performed as part of the authentication process in order to get
+        all supported authentication methods.
+
+        Note:
+            The command result is cached when not authenticated since we can only send
+            this command once in this situation.
+
+        See Also:
+            https://spec.torproject.org/control-spec/commands.html#protocolinfo
+
+        Args:
+            version: protocol version to ask for, should be 1
+
+        Returns:
+            A completed reply from Tor.
+
         """
         if self.authenticated or not self._protoinfo:
             query = q.ProtocolInfoQuery(version)
@@ -386,12 +563,40 @@ class Controller:
     async def request(self, query: q.SignalQuery) -> r.SignalReply: ...
 
     async def request(self, query: q.Query) -> r.Reply:
-        """Perform a provided `query` and returns the appropriate response."""
+        """
+        Send a provided query to the controller.
+
+        We first ask the query for its underlying raw command, send it to the
+        daemon and get back a raw message that is then provided to the
+        corresponding expected reply.
+
+        For typing purposes, this method is overloaded with all the available
+        queries and returning the corresponding responses.
+
+        Args:
+            query: the query to send to Tor's daemon
+
+        Returns:
+            The correspoding reply.
+
+        """
         message = await self._request(query.command)
         return r.reply_parser(query, message)
 
-    async def set_conf(self, items: dict[str, Any]) -> r.SetConfReply:
-        """Set configuration items to the remote server."""
+    async def set_conf(self, items: Mapping[str, Any]) -> r.SetConfReply:
+        """
+        Change configuration entries on the remote server.
+
+        See Also:
+            https://spec.torproject.org/control-spec/commands.html#setconf
+
+        Args:
+            items: a map of new configuration entries to apply
+
+        Returns:
+            A simple response that tells if everything went well.
+
+        """
         query = q.SetConfQuery(items)
         return await self.request(query)
 
@@ -399,7 +604,16 @@ class Controller:
         """
         Set the list of events that we subscribe to.
 
-        This method should probably not be called directly, see event_subscribe.
+        Important:
+            This method should not probably be called by the end-user.
+            Please see :meth:`event_subscribe` instead.
+
+        Args:
+            events: a list of textual events to subscribe to.
+
+        Returns:
+            A simple response.
+
         """
         # Remove internal events from the list in our request to the controller.
         events = set(events).difference(e.EVENTS_INTERNAL)
@@ -407,9 +621,27 @@ class Controller:
         return await self.request(query)
 
     async def signal(self, signal: str) -> r.SignalReply:
-        """Send a SIGNAL command to the controller."""
+        """
+        Send a signal to the controller.
+
+        See Also:
+            https://spec.torproject.org/control-spec/commands.html#signal
+
+        Args:
+            signal: name of the signal to send.
+
+        Returns:
+            A simple response.
+
+        """
         return await self.request(q.SignalQuery(signal))
 
     async def quit(self) -> r.QuitReply:
-        """Send a QUIT command to the controller."""
+        """
+        Tells the server to hang up on this controller connection.
+
+        Returns:
+            A simple response.
+
+        """
         return await self.request(q.QuitQuery())

@@ -15,10 +15,13 @@ from .simple import (
 )
 
 if TYPE_CHECKING:
+    from collections.abc import Mapping
+
     from ..message import Message
     from ..query import Query
 
-REPLY_MAP: dict[str, type[Reply]] = {
+
+REPLY_MAP: Mapping[str, type[Reply]] = {
     'AUTHENTICATE': AuthenticateReply,
     'AUTHCHALLENGE': AuthChallengeReply,
     'DROPGUARDS': DropGuardsReply,
@@ -34,7 +37,17 @@ REPLY_MAP: dict[str, type[Reply]] = {
 
 
 def reply_parser(query: Query, message: Message) -> Reply:
-    """Find the appropriate reply class to parse message for the provided query."""
+    """
+    Parse the provided message as a reply to the provided query.
+
+    Args:
+        message: received reply message for the query
+        query: the original query that was sent
+
+    Returns:
+        A reply corresponding to the providing query.
+
+    """
     parser = REPLY_MAP.get(query.COMMAND_NAME, UnknownReply)
     return parser(query, message)
 

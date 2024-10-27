@@ -29,7 +29,7 @@ class TestMessage:
 class TestMessageLineParser:
     def test_pop_kwarg_checked_error(self):
         parser = MessageLineParser('KEY_A=VALUE')
-        with pytest.raises(MessageError, match='expected argument'):
+        with pytest.raises(MessageError, match="expected key 'KEY_B'"):
             parser.pop_kwarg_checked('KEY_B')
 
     def test_pop_kwarg_line_error(self):

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from stem.descriptor.hidden_service import (
     BaseHiddenServiceDescriptor,
@@ -13,7 +13,11 @@ from ..message import Message, MessageData, MessageLineParser
 from ..reply.base import Event
 from ..util import hs_address_version
 
-_DESCRIPTOR_CLASS_MAP: dict[int, type[BaseHiddenServiceDescriptor]] = {
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+
+_DESCRIPTOR_CLASS_MAP: Mapping[int, type[BaseHiddenServiceDescriptor]] = {
     2: HiddenServiceDescriptorV2,
     3: HiddenServiceDescriptorV3,
 }
@@ -24,7 +28,7 @@ class HsDescEvent(Event):
 
     EVENT_NAME: ClassVar[str] = 'HS_DESC'
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(self, message: Message) -> None:
         """Initialize a hidden service descriptor event."""
         self._action = ''  # type: str
         self._address = ''  # type: str
@@ -34,7 +38,7 @@ class HsDescEvent(Event):
         self._descriptor_id = None  # type: str | None
         self._index = None  # type: str | None
         self._replica = None  # type: int | None
-        super().__init__(*args, **kwargs)
+        super().__init__(message)
 
     def __repr__(self) -> str:
         """Get the representation of this event."""

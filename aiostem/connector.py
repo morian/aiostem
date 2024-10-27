@@ -9,53 +9,85 @@ DEFAULT_CONTROL_PORT: int = 9051
 
 
 class ControlConnector:
-    """Common class for all socket types used by the controller."""
+    """Base class for all connector types used by the controller."""
 
     @abstractmethod
     async def connect(self) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-        """Connect this socket asynchronously."""
-        raise NotImplementedError('connect() must be implemented by ControlConnector subclass')
+        """
+        Open an asynchronous connection to the target control port.
+
+        Returns:
+            A tuple of :class:`asyncio.StreamReader` and :class:`asyncio.StreamWriter`.
+
+        """
+        msg = 'connect() must be implemented by ControlConnector subclass'
+        raise NotImplementedError(msg)
 
 
 class ControlConnectorPort(ControlConnector):
-    """Control socket based on a local or remote TCP port."""
+    """Tor connector using a local or report TCP port."""
 
     def __init__(
         self,
         host: str = DEFAULT_CONTROL_HOST,
         port: int = DEFAULT_CONTROL_PORT,
     ) -> None:
-        """Create a controller configuration from a host and port."""
+        """
+        Create a controller connector using a TCP host and port.
+
+        Args:
+            host: ip address or hostname to the control host
+            port: TCP port to connect to
+
+        """
         self._host = host
         self._port = port
 
     @property
     def host(self) -> str:
-        """IP address to Tor's control port."""
+        """IP address or host name to Tor's control port."""
         return self._host
 
     @property
     def port(self) -> int:
-        """TCP port used to join this control port."""
+        """TCP port used to reach the control port."""
         return self._port
 
     async def connect(self) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-        """Connect this socket asynchronously."""
+        """
+        Open an asynchronous connection to the target's TCP port.
+
+        Returns:
+            A tuple of :class:`asyncio.StreamReader` and :class:`asyncio.StreamWriter`.
+
+        """
         return await asyncio.open_connection(self.host, self.port)
 
 
 class ControlConnectorPath(ControlConnector):
-    """Control socket based on a local UNIX path."""
+    """Tor connector using a local unix socket."""
 
     def __init__(self, path: str = DEFAULT_CONTROL_PATH) -> None:
-        """Create a controller configuration for a UNIX socket."""
+        """
+        Create a controller connector using a local unix socket.
+
+        Args:
+            path: path to the unix socket on the local filesystem
+
+        """
         self._path = path
 
     @property
     def path(self) -> str:
-        """Get the path provided to connect to Tor's control port."""
+        """Get the path to the local unix socket to Tor's control port."""
         return self._path
 
     async def connect(self) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
-        """Connect this socket asynchronously."""
+        """
+        Open an asynchronous connection to the target unix socket.
+
+        Returns:
+            A tuple of :class:`asyncio.StreamReader` and :class:`asyncio.StreamWriter`.
+
+        """
         return await asyncio.open_unix_connection(self.path)

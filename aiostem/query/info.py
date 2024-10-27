@@ -1,10 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from ..argument import KeywordArgument
 from ..command import Command
 from .base import Query
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
 
 
 class BaseInfoQuery(Query):
@@ -43,7 +46,7 @@ class SetConfQuery(Query):
 
     COMMAND_NAME: ClassVar[str] = 'SETCONF'
 
-    def __init__(self, items: dict[str, Any]) -> None:
+    def __init__(self, items: Mapping[str, Any]) -> None:
         """Build a SETCONF query."""
         args = []
         for key, value in items.items():
