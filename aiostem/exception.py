@@ -2,10 +2,10 @@
 :mod:`aiostem.exception` defines the following hierarchy of exceptions.
 
 * :exc:`AiostemError`
-  * :exc:`ControllerError`
-  * :exc:`MessageError`
-  * :exc:`ProtocolError`
-  * :exc:`ResponseError`
+   * :exc:`ControllerError`
+   * :exc:`MessageError`
+   * :exc:`ProtocolError`
+   * :exc:`ResponseError`
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ class ProtocolError(AiostemError):
 
 
 class MessageError(AiostemError):
-    """Raised as a result of a bad manipulation of a received :class:`Message`."""
+    """Raised as a result of a bad manipulation of a received :class:`.Message`."""
 
 
 class ResponseError(AiostemError):

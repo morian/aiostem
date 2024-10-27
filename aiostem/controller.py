@@ -307,10 +307,10 @@ class Controller:
 
         Note:
             Authentication methods are tries in the following order (when available):
-            - `NULL`: no authentication
-            - `HASHEDPASSWORD`: password authentication (when a password is provided)
-            - `SAFECOOKIE`: proof that we can read the cookie file
-            - `COOKIE`: provide the content of the cookie file
+                - `NULL`: no authentication
+                - `HASHEDPASSWORD`: password authentication (when a password is provided)
+                - `SAFECOOKIE`: proof that we can read the cookie file
+                - `COOKIE`: provide the content of the cookie file
 
         Args:
             password: an optional password for the `HASHEDPASSWORD` method
@@ -358,7 +358,7 @@ class Controller:
         Close this connection and reset the controller.
 
         Note:
-            You should rather use the context manager instead.
+            You should rather use the context manager instead (see :meth:`__aexit__`).
 
         """
         await self.__aexit__(None, None, None)
@@ -368,7 +368,7 @@ class Controller:
         Connect Tor's control socket.
 
         Note:
-            You should rather use the context manager instead.
+            You should rather use the context manager instead (see :meth:`__aenter__`).
 
         """
         await self.__aenter__()

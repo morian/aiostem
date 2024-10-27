@@ -6,26 +6,34 @@ DEBUILD ?= /usr/bin/debuild
 install-devel:
 	pip install -r tests/requirements-devel.txt
 
+.PHONY:
+install-docs: install-package
+	pip install -r docs/requirements.txt
+
 .PHONY: install-linting
 install-linting:
 	pip install -r tests/requirements-linting.txt
 
-.PHONY: install-aiostem
-install-aiostem:
+.PHONY: install-package
+install-package:
 	pip install -U build pip wheel
 	pip install -e .
 
 .PHONY: install-testing
-install-testing: install-aiostem
+install-testing: install-package
 	pip install -r tests/requirements-testing.txt
 
 .PHONY: install
-install: install-devel install-testing install-linting
+install: install-devel install-docs install-testing install-linting
 	@echo 'Installed development requirements'
 
 .PHONY: build
 build:
 	python -m build --wheel --sdist
+
+.PHONY: htmldoc
+htmldoc:
+	$(MAKE) -C docs/ html
 
 .PHONY: deb
 deb: debian/changelog

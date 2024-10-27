@@ -3,5 +3,6 @@
 /.coverage
 /build/
 /coverage.xml
+/docs/_build/
 /dist/
 /venv/

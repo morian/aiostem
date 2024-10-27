@@ -42,6 +42,25 @@ build-package:
     paths:
       - dist/
 
+build-docs:
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.13-alpine
+  stage: build
+  needs: []
+  cache:
+    <<: *pip_cache
+  variables:
+    PYTHONPATH: /usr/lib/python3.12/site-packages
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - make install-docs
+  script:
+    - make -C docs html
+  artifacts:
+    expire_in: 7 days
+    paths:
+      - docs/_build/html
+
 build-debian12:
   image: ${CI_REGISTRY}/dockers/ci/debian-build:12
   extends: .deb-common
@@ -79,7 +98,7 @@ typing:
   before_script:
     - python -m venv venv
     - source venv/bin/activate
-    - make install-aiostem
+    - make install-package
     - make install-linting
   script:
     - mypy --junit-xml mypy.xml
@@ -121,6 +140,21 @@ tests:
         coverage_format: cobertura
         path: coverage.xml
       junit: pytest.xml
+
+pages:
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.13-alpine
+  stage: publish
+  needs:
+    - build-docs
+  only:
+    - master
+    - tags
+  script:
+    - mv docs/_build/html public
+  artifacts:
+    expire_in: 7 days
+    paths:
+      - public
 
 publish-package:
   image: ${CI_REGISTRY}/dockers/ci/python-build:3.13-alpine

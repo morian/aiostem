@@ -9,7 +9,7 @@ authors = [
 	{name = 'Romain Bezut', email = 'morian@xdec.net'},
 ]
 description = 'Asynchronous Tor controller library for asyncio and Python'
-readme = 'README.md'
+readme = 'README.rst'
 classifiers = [
 	'Intended Audience :: Developers',
 	'Intended Audience :: Information Technology',
