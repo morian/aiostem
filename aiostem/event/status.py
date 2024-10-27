@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, ClassVar
 
 from ..message import Message, MessageLineParser
 from ..reply.base import Event
@@ -10,16 +10,31 @@ if TYPE_CHECKING:
 
 
 class BaseStatusEvent(Event):
-    """Parent class for all status events."""
+    """Parent class for all status-like events."""
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Build any kind of status event."""
+    def __init__(self, message: Message) -> None:
+        """
+        Create a new status-like event out of the received message.
+
+        See Also:
+            https://spec.torproject.org/control-spec/replies.html#STATUS
+
+        Args:
+            message: the message event we just received.
+
+        """
         self._action = ''  # type: str
         self._severity = ''  # type: str
-        super().__init__(*args, **kwargs)
+        super().__init__(message)
 
     def _message_parse(self, message: Message) -> None:
-        """Parse this kind of event messages."""
+        """
+        Parse this event message.
+
+        Args:
+            message: the event message we just received.
+
+        """
         super()._message_parse(message)
 
         parser = MessageLineParser(message.status_line)
@@ -36,7 +51,7 @@ class BaseStatusEvent(Event):
 
     @property
     def arguments(self) -> Mapping[str, str]:
-        """Get the list of generic keyword arguments."""
+        """Get a map of generic keyword arguments."""
         return self._arguments
 
     @property
@@ -44,7 +59,9 @@ class BaseStatusEvent(Event):
         """
         Get the message severity.
 
-        This can be NOTICE, WARN, ERR.
+        Note:
+            This can be `NOTICE`, `WARN`, `ERR`.
+
         """
         return self._severity
 

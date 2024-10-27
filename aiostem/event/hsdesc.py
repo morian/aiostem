@@ -24,12 +24,26 @@ _DESCRIPTOR_CLASS_MAP: Mapping[int, type[BaseHiddenServiceDescriptor]] = {
 
 
 class HsDescEvent(Event):
-    """Parser for a `HS_DESC` event."""
+    """
+    Parser for a hidden service descriptor event.
+
+    This is used within Tor to track the different steps of everything related
+    to a hidden service descriptor (request, creation, etc...).
+    """
 
     EVENT_NAME: ClassVar[str] = 'HS_DESC'
 
     def __init__(self, message: Message) -> None:
-        """Create an event parser from a received event message."""
+        """
+        Create an event parser from a received hidden service descriptor event message.
+
+        See Also:
+            https://spec.torproject.org/control-spec/replies.html#HS_DESC
+
+        Args:
+            message: the event message we just received.
+
+        """
         self._action = ''  # type: str
         self._address = ''  # type: str
         self._auth_type = ''  # type: str
@@ -50,7 +64,13 @@ class HsDescEvent(Event):
         )
 
     def _message_parse(self, message: Message) -> None:
-        """Parse the provided message to build our event."""
+        """
+        Parse this event message.
+
+        Args:
+            message: the event message we just received.
+
+        """
         super()._message_parse(message)
 
         parser = MessageLineParser(message.status_line)
@@ -100,13 +120,14 @@ class HsDescEvent(Event):
         """
         Get the type of event we received.
 
-        REQUESTED, FAILED, UPLOAD, RECEIVED, UPLOADED, IGNORE, CREATED
+        This value can be one of the following:
+        `REQUESTED`, `FAILED`, `UPLOAD`, `RECEIVED`, `UPLOADED`, `IGNORE`, `CREATED`
         """
         return self._action
 
     @property
     def address(self) -> str:
-        """Get the onion domain address or UNKNOWN."""
+        """Get the onion domain address or `UNKNOWN`."""
         return self._address
 
     @property
@@ -116,12 +137,12 @@ class HsDescEvent(Event):
 
     @property
     def descriptor_id(self) -> str | None:
-        """Get the descriptor ID."""
+        """Get the descriptor ID, if any."""
         return self._descriptor_id
 
     @property
     def directory(self) -> str:
-        """Get the Hidden service directory or 'UNKNOWN'."""
+        """Get the Hidden service directory or `UNKNOWN`."""
         return self._directory
 
     @property
@@ -131,22 +152,36 @@ class HsDescEvent(Event):
 
     @property
     def reason(self) -> str | None:
-        """Get the reason why this descriptor failed."""
+        """Get the reason why this descriptor failed if applicable."""
         return self._reason
 
     @property
     def replica(self) -> int | None:
-        """Get the replica number of the generated descriptor."""
+        """Get the replica number of the generated descriptor if available."""
         return self._replica
 
 
 class HsDescContentEvent(Event):
-    """Parser for a `HS_DESC_CONTENT` event."""
+    """
+    Parser for a hidden service descriptor content event.
+
+    These events are triggered when a hidden service descriptor request succeeded.
+
+    """
 
     EVENT_NAME: ClassVar[str] = 'HS_DESC_CONTENT'
 
     def __init__(self, message: Message) -> None:
-        """Initialize a hidden service descriptor content event."""
+        """
+        Create an event parser from a received hidden service descriptor content event message.
+
+        See Also:
+            https://spec.torproject.org/control-spec/replies.html#HS_DESC_CONTENT
+
+        Args:
+            message: the event message we just received.
+
+        """
         self._address = ''  # type: str
         self._descriptor = None  # type: BaseHiddenServiceDescriptor | None
         self._descriptor_id = ''  # type: str
@@ -164,7 +199,13 @@ class HsDescContentEvent(Event):
         )
 
     def _message_parse(self, message: Message) -> None:
-        """Parse the provided message to build our event."""
+        """
+        Parse this event message.
+
+        Args:
+            message: the event message we just received.
+
+        """
         super()._message_parse(message)
 
         if len(message.items) == 0:
@@ -191,7 +232,13 @@ class HsDescContentEvent(Event):
 
     @property
     def descriptor(self) -> BaseHiddenServiceDescriptor:
-        """Get either a V2 or V3 hidden service descriptor."""
+        """
+        Get either a V2 or V3 hidden service descriptor.
+
+        Returns:
+            One of the stem HiddenService descriptor class.
+
+        """
         if self._descriptor is None:
             version = hs_address_version(self.address)
             self._descriptor = _DESCRIPTOR_CLASS_MAP[version](self.descriptor_raw)
@@ -199,12 +246,17 @@ class HsDescContentEvent(Event):
 
     @property
     def descriptor_id(self) -> str:
-        """Get the descriptor ID."""
+        """Get the descriptor identifier."""
         return self._descriptor_id
 
     @property
     def descriptor_raw(self) -> str:
-        """Get the raw content of the received descriptor."""
+        """
+        Get the text content of the received descriptor.
+
+        This can be handy if you plan on parsing it by yourself.
+
+        """
         return self._descriptor_raw
 
     @property

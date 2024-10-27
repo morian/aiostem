@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, ClassVar
+from typing import ClassVar
 
 from ..message import Message, MessageLineParser
 from ..reply.base import Event
@@ -18,17 +18,32 @@ class DisconnectEvent(Event):
 
 
 class NetworkLivenessEvent(Event):
-    """Notification of network liveness change."""
+    """Parser for a notification of change in tor's network liveness."""
 
     EVENT_NAME: ClassVar[str] = 'NETWORK_LIVENESS'
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        """Initialize a network status event."""
+    def __init__(self, message: Message) -> None:
+        """
+        Create a network status event parser.
+
+        See Also:
+            https://spec.torproject.org/control-spec/replies.html#NETWORK_LIVENESS
+
+        Args:
+            message: the event message we just received.
+
+        """
         self._network_status = ''  # type: str
-        super().__init__(*args, **kwargs)
+        super().__init__(message)
 
     def _message_parse(self, message: Message) -> None:
-        """Parse this event message."""
+        """
+        Parse this event message.
+
+        Args:
+            message: the event message we just received.
+
+        """
         super()._message_parse(message)
 
         parser = MessageLineParser(message.status_line)
@@ -37,10 +52,22 @@ class NetworkLivenessEvent(Event):
 
     @property
     def network_status(self) -> str:
-        """Return the network status received with this event."""
+        """
+        Get the network status received with this event.
+
+        Returns:
+            A textual representation of the current network status.
+
+        """
         return self._network_status
 
     @property
     def is_connected(self) -> bool:
-        """Tell whether this event tells that the network is UP."""
+        """
+        Tell whether this event tells that the network is `UP`.
+
+        Returns:
+            A boolean representation of the current network status.
+
+        """
         return bool(self.network_status == 'UP')

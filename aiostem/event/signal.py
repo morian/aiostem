@@ -7,7 +7,13 @@ from ..reply.base import Event
 
 
 class SignalEvent(Event):
-    """Parse signal events."""
+    """
+    Parse a signal events.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#SIGNAL
+
+    """
 
     EVENT_NAME: ClassVar[str] = 'SIGNAL'
 
@@ -16,7 +22,13 @@ class SignalEvent(Event):
         return f"<{type(self).__name__} '{self.signal}'>"
 
     def _message_parse(self, message: Message) -> None:
-        """Handle parsing on the signal event."""
+        """
+        Parse this event message.
+
+        Args:
+            message: the event message we just received.
+
+        """
         super()._message_parse(message)
 
         parser = MessageLineParser(message.status_line)
@@ -25,5 +37,5 @@ class SignalEvent(Event):
 
     @property
     def signal(self) -> str:
-        """Name of the signal received in this event."""
+        """Get the name of the signal received."""
         return self._signal
