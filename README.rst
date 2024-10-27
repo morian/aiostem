@@ -22,17 +22,17 @@ that can be generated while fetching hidden service descriptors for example.
 miserably at this game.
 
 `Aiostem` currently offers the following features:
-* A controller similar to the one used by `stem_`, with support for all authentication methods
-* Subscribe or un-subscribe to events (using async callbacks)
-* Gathering protocol information
-* Sending signals to the daemon
-* Exiting the controller
+   * A controller similar to the one used by `stem_`, with support for all authentication methods
+   * Subscribe or un-subscribe to events (using async callbacks)
+   * Gathering protocol information
+   * Sending signals to the daemon
+   * Exiting the controller
 
 On the event side, the following ones are parsed in dedicated structures:
-* `HS_DESC`, `HS_DESC_CONTENT` used to gather hidden service descriptors
-* `NETWORK_LIVENESS` to be notified when the network goes down
-* `SIGNAL` to be notified when a signal has been processed
-* `STATUS_GENERAL`, `STATUS_CLIENT`, `STATUS_SERVER` for miscellaneous status information
+   * `HS_DESC`, `HS_DESC_CONTENT` used to gather hidden service descriptors
+   * `NETWORK_LIVENESS` to be notified when the network goes down
+   * `SIGNAL` to be notified when a signal has been processed
+   * `STATUS_GENERAL`, `STATUS_CLIENT`, `STATUS_SERVER` for miscellaneous status information
 
 Additionally, a helper is provided to allow for fast hidden service descriptor fetching in
 package `aiostem.extra`. An example application is provided in `aiostem-hsscan`.

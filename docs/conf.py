@@ -39,6 +39,11 @@ exclude_patterns = ['_build']
 # -- Extensions configuration ------------------------------------------------
 # Nitpick configuration
 nitpicky = True
+nitpick_ignore = [
+    # Python does not provide those under asyncio.stream, unfortunately.
+    ('py:class', 'asyncio.streams.StreamReader'),
+    ('py:class', 'asyncio.streams.StreamWriter'),
+]
 
 # Napoleon settings
 napoleon_use_admonition_for_notes = True
