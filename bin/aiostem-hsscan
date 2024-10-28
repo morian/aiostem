@@ -226,7 +226,7 @@ class HiddenServiceScanner:
                 self._hs_check_task(controller, options, onions),
                 name='aiostem.bin.hsscan.checker',
             )
-            await controller.event_subscribe('DISCONNECT', _hs_check_task_cancel)
+            await controller.add_event_handler('DISCONNECT', _hs_check_task_cancel)
             await asyncio.gather(task, return_exceptions=True)
 
 

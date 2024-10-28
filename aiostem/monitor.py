@@ -106,15 +106,25 @@ class Monitor:
         context = await AsyncExitStack().__aenter__()
         try:
             # Get notified when a 'STATUS_CLIENT' event occurs.
-            await controller.event_subscribe('STATUS_CLIENT', self._on_ctrl_client_status)
+            await controller.add_event_handler(
+                'STATUS_CLIENT',
+                self._on_ctrl_client_status,
+            )
             context.push_async_callback(
-                controller.event_unsubscribe, 'STATUS_CLIENT', self._on_ctrl_client_status
+                controller.del_event_handler,
+                'STATUS_CLIENT',
+                self._on_ctrl_client_status,
             )
 
             # Get notified when a 'NETWORK_LIVENESS' event occurs.
-            await controller.event_subscribe('NETWORK_LIVENESS', self._on_ctrl_liveness_status)
+            await controller.add_event_handler(
+                'NETWORK_LIVENESS',
+                self._on_ctrl_liveness_status,
+            )
             context.push_async_callback(
-                controller.event_unsubscribe, 'NETWORK_LIVENESS', self._on_ctrl_liveness_status
+                controller.del_event_handler,
+                'NETWORK_LIVENESS',
+                self._on_ctrl_liveness_status,
             )
 
             if self._do_keepalive:  # pragma: no branch

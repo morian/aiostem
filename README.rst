@@ -82,7 +82,7 @@ No extra thread is involved here, everything runs in the event loop.
    import asyncio
    from aiostem import Controller
 
-   async def aio_hs_callback(event):
+   async def on_hs_desc_content(event):
        print(event.address)
        print(event.descriptor)
 
@@ -93,13 +93,13 @@ No extra thread is involved here, everything runs in the event loop.
            await controller.authenticate()
 
            # Be notified when hidden service descriptor content is available.
-           await controller.event_subscribe('HS_DESC_CONTENT', aio_hs_callback)
+           await controller.add_event_handler('HS_DESC_CONTENT', on_hs_desc_content)
 
            # Request a new identity (flush lots of caches).
            await controller.signal('NEWNYM')
 
            # Perform a descriptor request for this onion domain.
-           await controller.hs_fetch('reconponydonugup.onion')
+           await controller.fetch_hidden_service_descriptor('reconponydonugup.onion')
 
            # Wait a little bit until the descriptor is fetched.
            await asyncio.sleep(10)

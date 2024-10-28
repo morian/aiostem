@@ -69,14 +69,18 @@ class CustomController(Controller):
     async def fake_hs_events(self, address: str) -> None:
         result = CONTROLLER_HS_RESULTS[address]
         for descriptor in result.descriptors:
-            await self._handle_event(descriptor.message)
+            await self._on_event_received(descriptor.message)
         for content in result.contents:
-            await self._handle_event(content.message)
+            await self._on_event_received(content.message)
 
-    async def hs_fetch(self, address: str, servers: list[str] | None = None) -> HsFetchReply:
+    async def fetch_hidden_service_descriptor(
+        self,
+        address: str,
+        servers: list[str] | None = None,
+    ) -> HsFetchReply:
         result = CONTROLLER_HS_RESULTS.get(address)
         if result is None:
-            return await super().hs_fetch(address, servers)
+            return await super().fetch_hidden_service_descriptor(address, servers)
 
         if self.raise_enabled is True:
             self.raise_enabled = False
@@ -88,7 +92,7 @@ class CustomController(Controller):
             if not self.ignore_requests:
                 for descriptor in result.descriptors:
                     if descriptor.action == 'REQUESTED':
-                        await self._handle_event(descriptor.message)
+                        await self._on_event_received(descriptor.message)
 
             async with self.ignore_condition:
                 self.ignore_enabled = False
@@ -99,7 +103,7 @@ class CustomController(Controller):
         return HsFetchReply(HsFetchQuery(address, servers), Message('250 OK'))
 
     async def push_spurious_event(self, message: Message) -> None:
-        await self._handle_event(message)
+        await self._on_event_received(message)
 
     async def signal(self, signal: str) -> SignalReply:
         result = await super().signal(signal)

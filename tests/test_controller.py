@@ -27,8 +27,8 @@ class TestController:
         assert raw_controller.entered is True
 
     async def test_unauth_protoinfo(self, raw_controller):
-        res1 = await raw_controller.protocol_info()
-        res2 = await raw_controller.protocol_info()
+        res1 = await raw_controller.get_protocol_info()
+        res2 = await raw_controller.get_protocol_info()
         assert res1 == res2
 
     async def test_already_entered(self, raw_controller):
@@ -66,7 +66,7 @@ class TestController:
         assert controller.connected is False
 
         with pytest.raises(ControllerError, match='Controller is not connected'):
-            await controller.protocol_info()
+            await controller.get_protocol_info()
 
         await controller.close()
 
@@ -98,7 +98,7 @@ class TestController:
         assert info.values == conf
 
     async def test_cmd_protocol_info(self, controller):
-        res1 = await controller.protocol_info()
+        res1 = await controller.get_protocol_info()
         assert res1.cookie_file is not None
         assert res1.proto_version == 1
         assert isinstance(res1.tor_version, str)
@@ -108,7 +108,7 @@ class TestController:
 
     async def test_cmd_hsfetch_v2_error(self, controller):
         with pytest.raises(ResponseError, match='Invalid argument'):
-            await controller.hs_fetch('tor66sezptuu2nta')
+            await controller.fetch_hidden_service_descriptor('tor66sezptuu2nta')
 
     async def test_cmd_drop_guard(self, controller):
         res = await controller.drop_guards()
@@ -123,7 +123,7 @@ class TestController:
 
         callback = partial(test_callback, test_event)
 
-        await controller.event_subscribe('DISCONNECT', callback)
+        await controller.add_event_handler('DISCONNECT', callback)
         reply = await controller.quit()
         assert reply.status == 250
 
@@ -134,11 +134,11 @@ class TestController:
         await test_event.wait()
         assert test_event.is_set()
 
-        await controller.event_unsubscribe('DISCONNECT', callback)
+        await controller.del_event_handler('DISCONNECT', callback)
 
     async def test_cmd_subscribe_bad_event(self, controller):
         with pytest.raises(ResponseError, match='Unrecognized event'):
-            await controller.event_subscribe('INVALID_EVENT', lambda x: None)
+            await controller.add_event_handler('INVALID_EVENT', lambda x: None)
 
     @pytest.mark.timeout(2)
     async def test_event_network(self, controller):
@@ -149,7 +149,7 @@ class TestController:
             fut.set_result(event)
 
         callback = partial(on_network_event, future)
-        await controller.event_subscribe('NETWORK_LIVENESS', callback)
+        await controller.add_event_handler('NETWORK_LIVENESS', callback)
 
         message = Message('650 NETWORK_LIVENESS UP')
         await controller.push_spurious_event(message)
@@ -172,7 +172,7 @@ class TestController:
             fut.set_result(event)
 
         callback = partial(on_status_event, future)
-        await controller.event_subscribe('STATUS_CLIENT', callback)
+        await controller.add_event_handler('STATUS_CLIENT', callback)
 
         message = Message('650 STATUS_CLIENT NOTICE BOOTSTRAP PROGRESS=100')
         await controller.push_spurious_event(message)
@@ -192,7 +192,7 @@ class TestController:
             fut.set_result(event)
 
         callback = partial(on_signal_event, future)
-        await controller.event_subscribe('SIGNAL', callback)
+        await controller.add_event_handler('SIGNAL', callback)
 
         res = await controller.signal('RELOAD')
         assert res.status_text == 'OK'

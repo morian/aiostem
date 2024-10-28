@@ -57,54 +57,6 @@ class Controller:
         self._replies = None  # type: asyncio.Queue[Message | None] | None
         self._writer = None  # type: asyncio.StreamWriter | None
 
-    @classmethod
-    def from_port(
-        cls,
-        host: str = DEFAULT_CONTROL_HOST,
-        port: int = DEFAULT_CONTROL_PORT,
-    ) -> Controller:
-        """
-        Create a new controller for a remote TCP host/port.
-
-        Args:
-            host: ip address or hostname to the control host
-            port: TCP port to connect to
-
-        Returns:
-            A controller for the target TCP host and port.
-
-        """
-        return cls(ControlConnectorPort(host, port))
-
-    @classmethod
-    def from_path(cls, path: str = DEFAULT_CONTROL_PATH) -> Controller:
-        """
-        Create a new controller for a local unix socket.
-
-        Args:
-            path: path to the unix socket on the local filesystem
-
-        Returns:
-            A controller for the target unix socket.
-
-        """
-        return cls(ControlConnectorPath(path))
-
-    @property
-    def authenticated(self) -> bool:
-        """Tell whether we are correctly authenticated."""
-        return bool(self.connected and self._authenticated)
-
-    @property
-    def connected(self) -> bool:
-        """Tell whether we are connected to the remote socket."""
-        return bool(self._connected and self._writer is not None and self._replies is not None)
-
-    @property
-    def entered(self) -> bool:
-        """Tell whether the context manager is entered."""
-        return bool(self._context is not None)
-
     async def __aenter__(self) -> Self:
         """
         Enter Controller's context, connect to the target.
@@ -178,7 +130,66 @@ class Controller:
         # Do not prevent the original exception from going further.
         return False
 
-    async def _handle_event(self, message: Message) -> None:
+    @classmethod
+    def from_port(
+        cls,
+        host: str = DEFAULT_CONTROL_HOST,
+        port: int = DEFAULT_CONTROL_PORT,
+    ) -> Controller:
+        """
+        Create a new controller for a remote TCP host/port.
+
+        Args:
+            host: ip address or hostname to the control host
+            port: TCP port to connect to
+
+        Returns:
+            A controller for the target TCP host and port.
+
+        """
+        return cls(ControlConnectorPort(host, port))
+
+    @classmethod
+    def from_path(cls, path: str = DEFAULT_CONTROL_PATH) -> Controller:
+        """
+        Create a new controller for a local unix socket.
+
+        Args:
+            path: path to the unix socket on the local filesystem
+
+        Returns:
+            A controller for the target unix socket.
+
+        """
+        return cls(ControlConnectorPath(path))
+
+    @property
+    def authenticated(self) -> bool:
+        """Tell whether we are correctly authenticated."""
+        return bool(self.connected and self._authenticated)
+
+    @property
+    def connected(self) -> bool:
+        """Tell whether we are connected to the remote socket."""
+        return bool(self._connected and self._writer is not None and self._replies is not None)
+
+    @property
+    def entered(self) -> bool:
+        """Tell whether the context manager is entered."""
+        return bool(self._context is not None)
+
+    async def _notify_disconnect(self) -> None:
+        """
+        Generate a `DISCONNECT` event.
+
+        The goal here is to tell everyone that we are now disconnected from the remote socket.
+        This is a fake event simply used to call all the registered callbacks and provide a
+        way to gently tell the end user that we are no longer capable of handling anything.
+        """
+        message = Message('650 DISCONNECT')
+        await self._on_event_received(message)
+
+    async def _on_event_received(self, message: Message) -> None:
         """
         Handle a newly received event.
 
@@ -201,17 +212,6 @@ class Controller:
                 except Exception:  # pragma: no cover
                     logger.exception("Error handling callback for '%s'", name)
 
-    async def _notify_disconnect(self) -> None:
-        """
-        Generate a `DISCONNECT` event.
-
-        The goal here is to tell everyone that we are now disconnected from the remote socket.
-        This is a fake event simply used to call all the registered callbacks and provide a
-        way to gently tell the end user that we are no longer capable of handling anything.
-        """
-        message = Message('650 DISCONNECT')
-        await self._handle_event(message)
-
     async def _reader_task(
         self,
         reader: asyncio.StreamReader,
@@ -232,7 +232,7 @@ class Controller:
                 message.add_line(line.decode('ascii'))
                 if message.parsed:
                     if message.is_event:
-                        await self._handle_event(message)
+                        await self._on_event_received(message)
                     else:
                         await replies.put(message)
 
@@ -322,7 +322,7 @@ class Controller:
             The authentication result.
 
         """
-        protoinfo = await self.protocol_info()
+        protoinfo = await self.get_protocol_info()
         methods = set(protoinfo.methods)
 
         # No password was provided, we can't authenticate with this method.
@@ -357,8 +357,9 @@ class Controller:
         """
         Close this connection and reset the controller.
 
-        Note:
-            You should rather use the context manager instead (see :meth:`__aexit__`).
+        .. deprecated:: 0.4.0
+
+            Use the context manager instead (see :meth:`__aexit__`).
 
         """
         await self.__aexit__(None, None, None)
@@ -367,8 +368,9 @@ class Controller:
         """
         Connect Tor's control socket.
 
-        Note:
-            You should rather use the context manager instead (see :meth:`__aenter__`).
+        .. deprecated:: 0.4.0
+
+            Use the context manager instead (see :meth:`__aenter__`).
 
         """
         await self.__aenter__()
@@ -387,7 +389,7 @@ class Controller:
         """
         return await self.request(q.DropGuardsQuery())
 
-    async def event_subscribe(self, event: str, callback: EventCallbackType) -> None:
+    async def add_event_handler(self, event: str, callback: EventCallbackType) -> None:
         """
         Register a callback function to be called when an event message is received.
 
@@ -417,7 +419,7 @@ class Controller:
                     self._evt_callbacks.pop(event)
                 raise
 
-    async def event_unsubscribe(self, event: str, callback: EventCallbackType) -> None:
+    async def del_event_handler(self, event: str, callback: EventCallbackType) -> None:
         """
         Unregister a previously registered callback function.
 
@@ -475,32 +477,7 @@ class Controller:
         query = q.GetInfoQuery(*args)
         return await self.request(query)
 
-    async def hs_fetch(
-        self,
-        address: str,
-        servers: Iterable[str] | None = None,
-    ) -> r.HsFetchReply:
-        """
-        Request a hidden service descriptor fetch.
-
-        The result does not contain the descriptor, which is provided asynchronously
-        through events such as `HS_DESC` and `HS_DESC_CONTENT`.
-
-        Args:
-            address: the hidden service address to request
-            servers: an optional list of servers to query
-
-        Returns:
-            Whether the request was sent successfully.
-
-        """
-        if servers is None:
-            servers = []
-        address = hs_address_strip_tld(address.lower())
-        query = q.HsFetchQuery(address, servers)
-        return await self.request(query)
-
-    async def protocol_info(
+    async def get_protocol_info(
         self,
         version: int = DEFAULT_PROTOCOL_VERSION,
     ) -> r.ProtocolInfoReply:
@@ -528,6 +505,31 @@ class Controller:
             query = q.ProtocolInfoQuery(version)
             self._protoinfo = await self.request(query)
         return self._protoinfo
+
+    async def fetch_hidden_service_descriptor(
+        self,
+        address: str,
+        servers: Iterable[str] | None = None,
+    ) -> r.HsFetchReply:
+        """
+        Request a hidden service descriptor fetch.
+
+        The result does not contain the descriptor, which is provided asynchronously
+        through events such as `HS_DESC` and `HS_DESC_CONTENT`.
+
+        Args:
+            address: the hidden service address to request
+            servers: an optional list of servers to query
+
+        Returns:
+            Whether the request was sent successfully.
+
+        """
+        if servers is None:
+            servers = []
+        address = hs_address_strip_tld(address.lower())
+        query = q.HsFetchQuery(address, servers)
+        return await self.request(query)
 
     @overload
     async def request(self, query: q.AuthenticateQuery) -> r.AuthenticateReply: ...
@@ -606,7 +608,7 @@ class Controller:
 
         Important:
             This method should not probably be called by the end-user.
-            Please see :meth:`event_subscribe` instead.
+            Please see :meth:`add_event_handler` instead.
 
         Args:
             events: a list of textual events to subscribe to.

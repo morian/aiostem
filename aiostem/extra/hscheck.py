@@ -184,7 +184,7 @@ class HiddenServiceChecker:
         entries.append(entry)
 
         try:
-            await self._controller.hs_fetch(address)
+            await self._controller.fetch_hidden_service_descriptor(address)
         except BaseException:
             entries.remove(entry)
             if not entries:
@@ -244,14 +244,14 @@ class HiddenServiceChecker:
             )
             self._workers.append(worker)
 
-        await self.controller.event_subscribe('HS_DESC', self._event_info_cb)
-        await self.controller.event_subscribe('HS_DESC_CONTENT', self._event_data_cb)
+        await self.controller.add_event_handler('HS_DESC', self._event_info_cb)
+        await self.controller.add_event_handler('HS_DESC_CONTENT', self._event_data_cb)
 
     async def close(self) -> None:
         """Cancel the worker tasks."""
         with contextlib.suppress(AiostemError):
-            await self.controller.event_unsubscribe('HS_DESC', self._event_info_cb)
-            await self.controller.event_unsubscribe('HS_DESC_CONTENT', self._event_data_cb)
+            await self.controller.del_event_handler('HS_DESC', self._event_info_cb)
+            await self.controller.del_event_handler('HS_DESC_CONTENT', self._event_data_cb)
         self._requests.clear()
 
         try:

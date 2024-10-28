@@ -8,6 +8,7 @@ Code reference
 
    connector
    controller
+   events
    exceptions
    monitor
    internal/index

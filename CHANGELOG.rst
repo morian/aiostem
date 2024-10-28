@@ -8,7 +8,7 @@ The format is based on `Keep a Changelog`_ and this project adheres to `Semantic
 .. _Semantic Versioning: https://semver.org/spec/v2.0.0.html
 
 
-0.4.0 (UNRELEASED)
+1.0.0 (UNRELEASED)
 ==================
 
 Added
@@ -16,6 +16,14 @@ Added
 - Added a premilinary sphinx documentation
 - Added support for Python 3.13
 - Many docstrings for all common APIs
+
+Changed
+-------
+- `Controller.hs_fetch` was renamed to `Controller.fetch_hidden_service_descriptor`
+- `Controller.protocol_info` was renamed to `Controller.get_protocol_info`
+- `Controller.event_unsubscribe` was renamed to `Controller.del_event_handler`
+- `Controller.event_subscribe` was renamed to `Controller.add_event_handler`
+
 
 Removed
 -------
