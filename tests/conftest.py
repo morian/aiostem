@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import os
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import pytest_asyncio
 
@@ -12,6 +12,9 @@ from aiostem.event import HsDescContentEvent, HsDescEvent
 from aiostem.message import Message
 from aiostem.query import HsFetchQuery
 from aiostem.reply import HsFetchReply, SignalReply
+
+if TYPE_CHECKING:
+    from collections.abc import Iterable
 
 
 @dataclass
@@ -73,14 +76,14 @@ class CustomController(Controller):
         for content in result.contents:
             await self._on_event_received(content.message)
 
-    async def fetch_hidden_service_descriptor(
+    async def hs_fetch(
         self,
         address: str,
-        servers: list[str] | None = None,
+        servers: Iterable[str] | None = None,
     ) -> HsFetchReply:
         result = CONTROLLER_HS_RESULTS.get(address)
         if result is None:
-            return await super().fetch_hidden_service_descriptor(address, servers)
+            return await super().hs_fetch(address, servers)
 
         if self.raise_enabled is True:
             self.raise_enabled = False

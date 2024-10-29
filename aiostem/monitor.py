@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar
 
 from .event import Event, NetworkLivenessEvent, StatusClientEvent
-from .exception import ControllerError, ResponseError
+from .exceptions import ControllerError, ResponseError
 from .message import Message
 
 if TYPE_CHECKING:

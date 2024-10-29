@@ -4,7 +4,7 @@ import re
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .exception import MessageError, ProtocolError
+from .exceptions import MessageError, ProtocolError
 
 if TYPE_CHECKING:
     from collections.abc import Iterable, Sequence

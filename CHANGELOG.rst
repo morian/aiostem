@@ -19,15 +19,14 @@ Added
 
 Changed
 -------
-- `Controller.hs_fetch` was renamed to `Controller.fetch_hidden_service_descriptor`
-- `Controller.protocol_info` was renamed to `Controller.get_protocol_info`
 - `Controller.event_unsubscribe` was renamed to `Controller.del_event_handler`
 - `Controller.event_subscribe` was renamed to `Controller.add_event_handler`
 
-
 Removed
 -------
-- Drop support for python 3.10 and lower
+- The whole extra part of this library, including the `aiostem-hsscan` part
+- Debian and ubuntu packages are no longer available
+- Dropped support for python 3.10 and lower
 
 
 0.3.1 (2024-02-04)

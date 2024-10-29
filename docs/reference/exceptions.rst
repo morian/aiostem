@@ -1,12 +1,12 @@
 Exceptions
 ==========
 
-.. currentmodule:: aiostem.exception
+.. currentmodule:: aiostem.exceptions
 
 Exception hierarchy
 -------------------
 
-.. automodule:: aiostem.exception
+.. automodule:: aiostem.exceptions
 
 Base exception
 --------------

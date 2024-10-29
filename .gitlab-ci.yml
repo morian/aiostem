@@ -14,20 +14,6 @@ variables:
     - .pip_cache/
   policy: pull-push
 
-.deb-common:
-  stage: build
-  variables:
-    DEBIAN_FRONTEND: noninteractive
-  script:
-    - make deb
-  after_script:
-    - mkdir --parents dist/
-    - mv --verbose ../*.deb dist/
-  artifacts:
-    expire_in: 7 days
-    paths:
-      - dist/python3-aiostem_*.deb
-
 
 build-package:
   image: ${CI_REGISTRY}/dockers/ci/python-build:3.13-alpine
@@ -45,11 +31,9 @@ build-package:
 build-docs:
   image: ${CI_REGISTRY}/dockers/ci/python-build:3.13-alpine
   stage: build
-  needs: []
   cache:
     <<: *pip_cache
-  variables:
-    PYTHONPATH: /usr/lib/python3.12/site-packages
+  needs: []
   before_script:
     - python -m venv venv
     - source venv/bin/activate
@@ -60,14 +44,6 @@ build-docs:
     expire_in: 7 days
     paths:
       - docs/_build/html
-
-build-debian12:
-  image: ${CI_REGISTRY}/dockers/ci/debian-build:12
-  extends: .deb-common
-
-build-ubuntu2404:
-  image: ${CI_REGISTRY}/dockers/ci/ubuntu-build:24.04
-  extends: .deb-common
 
 linting:
   image: ${CI_REGISTRY}/dockers/ci/python-build:3.13-alpine

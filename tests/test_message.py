@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from aiostem.exception import ProtocolError
+from aiostem.exceptions import ProtocolError
 from aiostem.message import Message, MessageError, MessageLineParser
 
 

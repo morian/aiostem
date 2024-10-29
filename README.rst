@@ -99,40 +99,10 @@ No extra thread is involved here, everything runs in the event loop.
            await controller.signal('NEWNYM')
 
            # Perform a descriptor request for this onion domain.
-           await controller.fetch_hidden_service_descriptor('reconponydonugup.onion')
+           await controller.hs_fetch('reconponydonugup.onion')
 
            # Wait a little bit until the descriptor is fetched.
            await asyncio.sleep(10)
 
    if __name__ == '__main__':
        asyncio.run(main())
-
-
-Using `aiostem-hsscan`
-----------------------
-
-The goal of this tool is to provide a way to rescan a huge list of onion domains provided
-in `--input` through Tor's controller located at `--control` (authenticated with `--password`).
-All the descriptors related to these onion domains are scanned concurrently with a maximum
-of `--workers`, each with a timeout of `--timeout`. Successful domains (the ones alive) are
-reported to `--output`.
-
-We advise not to increase `--workers` too much as Tor seems to use a lot of CPU when this
-value is too high (we recommend 10 workers).
-
-.. code-block:: console
-
-   (venv) $ aiostem-hsscan --help
-   aiostem-hsscan [-h] -i FILE [-o FILE] [-c SOCK] [-p PASS] [-t SECS] [-w NUM] [-f]
-
-   Check onion domains liveness by requesting directories.
-
-   optional arguments:
-     -h, --help                show this help message and exit
-     -i FILE, --input FILE     input onion domains to scan (one per line)
-     -o FILE, --output FILE    output list of successfully scanned domains
-     -c SOCK, --control SOCK   location of Tor's controller (ip:port or path)
-     -p PASS, --password PASS  optional password to connect to Tor's controller
-     -t SECS, --timeout SECS   how long to wait for each descriptor to be fetched
-     -w NUM, --workers NUM     maximum number of concurrent descriptor fetches
-     -f, --flush               flush to output file after each write

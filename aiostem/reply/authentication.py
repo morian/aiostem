@@ -4,7 +4,7 @@ import hashlib
 import hmac
 from typing import cast
 
-from ..exception import ProtocolError
+from ..exceptions import ProtocolError
 from ..message import Message, MessageLineParser
 from ..query import AuthChallengeQuery
 from .base import Reply

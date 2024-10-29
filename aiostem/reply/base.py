@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-from ..exception import MessageError, ResponseError
+from ..exceptions import MessageError, ResponseError
 
 if TYPE_CHECKING:
     from ..message import Message, MessageLineParser

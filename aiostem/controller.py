@@ -19,7 +19,7 @@ from .connector import (
     ControlConnectorPath,
     ControlConnectorPort,
 )
-from .exception import AiostemError, ControllerError
+from .exceptions import AiostemError, ControllerError
 from .message import Message
 from .util import hs_address_strip_tld
 
@@ -322,7 +322,7 @@ class Controller:
             The authentication result.
 
         """
-        protoinfo = await self.get_protocol_info()
+        protoinfo = await self.protocol_info()
         methods = set(protoinfo.methods)
 
         # No password was provided, we can't authenticate with this method.
@@ -477,7 +477,7 @@ class Controller:
         query = q.GetInfoQuery(*args)
         return await self.request(query)
 
-    async def get_protocol_info(
+    async def protocol_info(
         self,
         version: int = DEFAULT_PROTOCOL_VERSION,
     ) -> r.ProtocolInfoReply:
@@ -506,7 +506,7 @@ class Controller:
             self._protoinfo = await self.request(query)
         return self._protoinfo
 
-    async def fetch_hidden_service_descriptor(
+    async def hs_fetch(
         self,
         address: str,
         servers: Iterable[str] | None = None,

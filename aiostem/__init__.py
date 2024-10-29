@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .controller import Controller
-from .exception import ResponseError
+from .exceptions import ResponseError
 from .monitor import ControllerStatus, Monitor
 from .version import version
 
