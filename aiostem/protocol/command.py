@@ -918,3 +918,32 @@ class CommandDelOnion(BaseCommand):
         args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
         ser.arguments.extend(args)
         return ser
+
+
+@dataclass(kw_only=True)
+class CommandHsPost(BaseCommand):
+    """
+    Command implementation for `HSPOST`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#hspost
+
+    """
+
+    command: ClassVar[Command] = Command.HSPOST
+    servers: MutableSequence[str] = field(default_factory=list)
+    address: str | None = None
+    descriptor: str
+
+    def _serialize(self) -> CommandSerializer:
+        """Append `HSPOST` specific arguments."""
+        ser = super()._serialize()
+        args = []  # type: MutableSequence[Argument]
+        for server in self.servers:
+            args.append(ArgumentKeyword('SERVER', server, quotes=QuoteStyle.NEVER_ENSURE))
+        if self.address is not None:
+            kwarg = ArgumentKeyword('HSADDRESS', self.address, quotes=QuoteStyle.NEVER_ENSURE)
+            args.append(kwarg)
+        ser.arguments.extend(args)
+        ser.body = self.descriptor
+        return ser

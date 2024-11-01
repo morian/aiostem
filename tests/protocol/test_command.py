@@ -20,6 +20,7 @@ from aiostem.protocol import (
     CommandGetConf,
     CommandGetInfo,
     CommandHsFetch,
+    CommandHsPost,
     CommandLoadConf,
     CommandMapAddress,
     CommandPostDescriptor,
@@ -312,3 +313,19 @@ class TestCommands:
     def test_del_onion(self):
         cmd = CommandDelOnion(address='facebookcorewwwi')
         assert cmd.serialize() == 'DEL_ONION facebookcorewwwi\r\n'
+
+    def test_hs_post(self):
+        cmd = CommandHsPost(descriptor='desc')
+        assert cmd.serialize() == '+HSPOST\r\ndesc\r\n.\r\n'
+
+    def test_hs_post_with_server(self):
+        cmd = CommandHsPost(
+            servers=['9695DFC35FFEB861329B9F1AB04C46397020CE31'],
+            address='facebookcorewwwi',
+            descriptor='desc',
+        )
+        assert cmd.serialize() == (
+            '+HSPOST SERVER=9695DFC35FFEB861329B9F1AB04C46397020CE31 '
+            'HSADDRESS=facebookcorewwwi\r\n'
+            'desc\r\n.\r\n'
+        )
