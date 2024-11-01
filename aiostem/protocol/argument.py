@@ -3,20 +3,45 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from enum import Enum
-from typing import TypeAlias
+from typing import TYPE_CHECKING, TypeAlias
+
+if TYPE_CHECKING:
+    from collections.abc import Set as AbstractSet
+
+from ..exceptions import CommandError
+
+#: List of characters in a string that need an escape.
+_AUTO_CHARS: AbstractSet[str] = frozenset({' ', '"', '\\'})
 
 
 class QuoteStyle(Enum):
     """Set the type of quote to use."""
 
-    #: No quote are added around the value.
+    #: No quote are added around the value, no checks are being performed.
     NEVER = 0
 
+    #: No quote are added around the value, check input to ensure that.
+    NEVER_ENSURE = 1
+
     #: Value is always encloded with quotes.
-    ALWAYS = 1
+    ALWAYS = 2
 
     #: Automatically determine the quoting style.
-    AUTO = 2
+    AUTO = 3
+
+    @staticmethod
+    def should_have_quotes(text: str) -> bool:
+        """
+        Tell whether the provided `text` should have quotes.
+
+        Args:
+            text: input text to check for quotes.
+
+        Returns:
+            Whether the input text should be enclosed with quotes.
+
+        """
+        return any(c in text for c in _AUTO_CHARS)
 
     def escape(self, text: str) -> str:
         """
@@ -35,7 +60,11 @@ class QuoteStyle(Enum):
             case QuoteStyle.ALWAYS.value:
                 do_quote = True
             case QuoteStyle.AUTO.value:
-                do_quote = bool(('\\' in text) or ('"' in text))
+                do_quote = self.should_have_quotes(text)
+            case QuoteStyle.NEVER_ENSURE.value:
+                if self.should_have_quotes(text):
+                    msg = 'Argument is only safe with quotes'
+                    raise CommandError(msg)
 
         if do_quote:
             text = '"' + re.sub(r'([\\"])', r'\\\1', text) + '"'
@@ -56,7 +85,7 @@ class ArgumentKeyword(BaseArgument):
     def __init__(
         self,
         key: str,
-        value: str | None,
+        value: Enum | str | int | None,
         *,
         quotes: QuoteStyle = QuoteStyle.AUTO,
     ) -> None:
@@ -71,6 +100,12 @@ class ArgumentKeyword(BaseArgument):
             quotes: tell how to quote the value part when serialized
 
         """
+        match value:
+            case Enum():
+                value = str(value.value)
+            case int():
+                value = str(value)
+
         self._key = key
         self._value = value
         self._quotes = quotes
@@ -90,7 +125,7 @@ class ArgumentKeyword(BaseArgument):
 
     @property
     def value(self) -> str | None:
-        """Get the value of the keyword argument."""
+        """Get the value of the keyword argument as a string."""
         return self._value
 
     @property
@@ -102,7 +137,12 @@ class ArgumentKeyword(BaseArgument):
 class ArgumentString(BaseArgument):
     """Describe a string argument."""
 
-    def __init__(self, value: str, *, quotes: QuoteStyle = QuoteStyle.AUTO) -> None:
+    def __init__(
+        self,
+        value: Enum | str | int,
+        *,
+        quotes: QuoteStyle = QuoteStyle.AUTO,
+    ) -> None:
         """
         Create a new string argument.
 
@@ -113,6 +153,12 @@ class ArgumentString(BaseArgument):
             quotes: tell how to quote the argument when serialized
 
         """
+        match value:
+            case Enum():
+                value = str(value.value)
+            case int():
+                value = str(value)
+
         self._value = value
         self._quotes = quotes
 
