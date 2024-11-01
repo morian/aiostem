@@ -752,3 +752,45 @@ class CommandAuthChallenge(BaseCommand):
                 args.append(ArgumentString(self.nonce, quotes=QuoteStyle.ALWAYS))
         ser.arguments.extend(args)
         return ser
+
+
+@dataclass(kw_only=True)
+class CommandDropGuards(BaseCommand):
+    """
+    Command implementation for `DROPGUARDS`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#dropguards
+
+    """
+
+    command: ClassVar[Command] = Command.DROPGUARDS
+
+    def _serialize(self) -> CommandSerializer:
+        """Serialize a `DROPGUARDS` command."""
+        return super()._serialize()
+
+
+@dataclass(kw_only=True)
+class CommandHsFetch(BaseCommand):
+    """
+    Command implementation for `HSFETCH`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#hsfetch
+
+    """
+
+    command: ClassVar[Command] = Command.HSFETCH
+    servers: MutableSequence[str] = field(default_factory=list)
+    address: str
+
+    def _serialize(self) -> CommandSerializer:
+        """Append `HSFETCH` specific arguments."""
+        ser = super()._serialize()
+        args = []  # type: MutableSequence[Argument]
+        args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
+        for server in self.servers:
+            args.append(ArgumentKeyword('SERVER', server, quotes=QuoteStyle.NEVER_ENSURE))
+        ser.arguments.extend(args)
+        return ser

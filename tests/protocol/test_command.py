@@ -13,9 +13,11 @@ from aiostem.protocol import (
     CommandAuthenticate,
     CommandCloseCircuit,
     CommandCloseStream,
+    CommandDropGuards,
     CommandExtendCircuit,
     CommandGetConf,
     CommandGetInfo,
+    CommandHsFetch,
     CommandLoadConf,
     CommandMapAddress,
     CommandPostDescriptor,
@@ -222,3 +224,24 @@ class TestCommands:
     def test_auth_challenge_string(self):
         cmd = CommandAuthChallenge(nonce='A_REAL_NONCE')
         assert cmd.serialize() == 'AUTHCHALLENGE SAFECOOKIE "A_REAL_NONCE"\r\n'
+
+    def test_drop_guards(self):
+        cmd = CommandDropGuards()
+        assert cmd.serialize() == 'DROPGUARDS\r\n'
+
+    def test_hs_fetch(self):
+        cmd = CommandHsFetch(address='facebookcorewwwi')
+        assert cmd.serialize() == 'HSFETCH facebookcorewwwi\r\n'
+
+    def test_hs_fetch_with_servers(self):
+        address = 'facebookcorewwwi'
+        server1 = '$b34a4ac3892e41c58709d9c51b3648620a7d5bfe~Test1'
+        server2 = '$7b70bf914770f022e71a26cbf3d9519dc89f2a9a~Test2'
+        cmd = CommandHsFetch(
+            address=address,
+            servers=[
+                server1,
+                server2,
+            ],
+        )
+        assert cmd.serialize() == f'HSFETCH {address} SERVER={server1} SERVER={server2}\r\n'
