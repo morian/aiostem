@@ -217,6 +217,8 @@ class CommandSetConf(BaseCommand):
     """
     Command implementation for `SETCONF`.
 
+    Change the value of one or more configuration variables.
+
     See Also:
         https://spec.torproject.org/control-spec/commands.html#setconf
 
@@ -243,6 +245,9 @@ class CommandSetConf(BaseCommand):
 class CommandResetConf(BaseCommand):
     """
     Command implementation for `RESETCONF`.
+
+    Remove all settings for a given configuration option entirely,
+    assign its default value (if any), and then assign the value provided.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#resetconf
@@ -271,6 +276,8 @@ class CommandGetConf(BaseCommand):
     """
     Command implementation for `GETCONF`.
 
+    Request the value of zero or more configuration variable(s).
+
     See Also:
         https://spec.torproject.org/control-spec/commands.html#getconf
 
@@ -293,6 +300,8 @@ class CommandGetConf(BaseCommand):
 class CommandSetEvents(BaseCommand):
     """
     Command implementation for `SETEVENTS`.
+
+    Request the server to inform the client about interesting events.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#setevents
@@ -320,6 +329,8 @@ class CommandAuthenticate(BaseCommand):
     """
     Command implementation for `AUTHENTICATE`.
 
+    This command is used to authenticate to the server.
+
     See Also:
         https://spec.torproject.org/control-spec/commands.html#authenticate
 
@@ -346,6 +357,8 @@ class CommandSaveConf(BaseCommand):
     """
     Command implementation for `SAVECONF`.
 
+    Instructs the server to write out its config options into its torrc.
+
     See Also:
         https://spec.torproject.org/control-spec/commands.html#saveconf
 
@@ -369,6 +382,8 @@ class CommandSignal(BaseCommand):
     """
     Command implementation for `SIGNAL`.
 
+    Send a signal to Tor.
+
     See Also:
         https://spec.torproject.org/control-spec/commands.html#signal
 
@@ -390,6 +405,10 @@ class CommandSignal(BaseCommand):
 class CommandMapAddress(BaseCommand):
     """
     Command implementation for `MAPADDRESS`.
+
+    The client sends this message to the server in order to tell it that future
+    SOCKS requests for connections to the original address should be replaced
+    with connections to the specified replacement address.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#mapaddress
@@ -420,6 +439,9 @@ class CommandGetInfo(BaseCommand):
     """
     Command implementation for `GETINFO`.
 
+    Unlike `GETCONF`, this message is used for data that are not stored in the Tor
+    configuration file, and that may be longer than a single line.
+
     See Also:
         https://spec.torproject.org/control-spec/commands.html#getinfo
 
@@ -448,6 +470,11 @@ class CommandGetInfo(BaseCommand):
 class CommandExtendCircuit(BaseCommand):
     """
     Command implementation for `EXTENDCIRCUIT`.
+
+    This request takes one of two forms: either `cicuit` is zero, in which case it is
+    a request for the server to build a new circuit, or `circuit` is nonzero, in which
+    case it is a request for the server to extend an existing circuit with that ID
+    according to the specified path.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#extendcircuit
@@ -480,6 +507,11 @@ class CommandSetCircuitPurpose(BaseCommand):
     """
     Command implementation for `SETCIRCUITPURPOSE`.
 
+    This changes the descriptor's purpose.
+
+    Hints:
+        See :class:`CommandPostDescriptor` for more details on `purpose`.
+
     See Also:
         https://spec.torproject.org/control-spec/commands.html#setcircuitpurpose
 
@@ -505,6 +537,9 @@ class CommandSetCircuitPurpose(BaseCommand):
 class CommandAttachStream(BaseCommand):
     """
     Command implementation for `ATTACHSTREAM`.
+
+    This message informs the server that the specified stream should be associated
+    with the specified circuit.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#attachstream
@@ -534,6 +569,11 @@ class CommandAttachStream(BaseCommand):
 class CommandPostDescriptor(BaseCommand):
     """
     Command implementation for `POSTDESCRIPTOR`.
+
+    This message informs the server about a new descriptor.
+    If `purpose` is specified, it must be either `GENERAL`, `CONTROLLER`, or `BRIDGE`,
+    else we return a 552 error.
+    The default is `GENERAL`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#postdescriptor
@@ -566,6 +606,10 @@ class CommandRedirectStream(BaseCommand):
     """
     Command implementation for `REDIRECTSTREAM`.
 
+    Tells the server to change the exit address on the specified stream.
+    If Port is specified, changes the destination port as well.
+    No remapping is performed on the new provided address.
+
     See Also:
         https://spec.torproject.org/control-spec/commands.html#redirectstream
 
@@ -595,6 +639,8 @@ class CommandCloseStream(BaseCommand):
     """
     Command implementation for `CLOSESTREAM`.
 
+    Tells the server to close the specified stream.
+
     See Also:
         https://spec.torproject.org/control-spec/commands.html#closestream
 
@@ -618,6 +664,9 @@ class CommandCloseStream(BaseCommand):
 class CommandCloseCircuit(BaseCommand):
     """
     Command implementation for `CLOSECIRCUIT`.
+
+    Tells the server to close the specified circuit.
+    If `if_unused` is provided, do not close the circuit unless it is unused.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#closecircuit
@@ -648,6 +697,11 @@ class CommandQuit(BaseCommand):
     """
     Command implementation for `QUIT`.
 
+    Tells the server to hang up on this controller connection.
+
+    Note:
+        This command can be used before authenticating.
+
     See Also:
         https://spec.torproject.org/control-spec/commands.html#quit
 
@@ -669,7 +723,12 @@ class CommandUseFeature(BaseCommand):
     """
     Command implementation for `USEFEATURE`.
 
-    To get a list of available features please use `GETINFO features/names`.
+    Adding additional features to the control protocol sometimes will break backwards
+    compatibility. Initially such features are added into Tor and disabled by default.
+    `USEFEATURE` can enable these additional features.
+
+    Note:
+        To get a list of available features please use `GETINFO features/names`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#usefeature
@@ -693,6 +752,11 @@ class CommandUseFeature(BaseCommand):
 class CommandResolve(BaseCommand):
     """
     Command implementation for `RESOLVE`.
+
+    This command launches a remote hostname lookup request for every specified
+    request (or reverse lookup if `reverse` is specified). Note that the request
+    is done in the background: to see the answers, your controller will need to
+    listen for `ADDRMAP` events.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#resolve
@@ -722,6 +786,8 @@ class CommandProtocolInfo(BaseCommand):
     """
     Command implementation for `PROTOCOLINFO`.
 
+    This command tells the controller what kinds of authentication are supported.
+
     See Also:
         https://spec.torproject.org/control-spec/commands.html#protocolinfo
 
@@ -747,6 +813,9 @@ class CommandLoadConf(BaseCommand):
     """
     Command implementation for `LOADCONF`.
 
+    This command allows a controller to upload the text of a config file to Tor over
+    the control port. This config file is then loaded as if it had been read from disk.
+
     See Also:
         https://spec.torproject.org/control-spec/commands.html#loadconf
 
@@ -767,6 +836,11 @@ class CommandTakeOwnership(BaseCommand):
     """
     Command implementation for `TAKEOWNERSHIP`.
 
+    This command instructs Tor to shut down when this control connection is closed.
+    This command affects each control connection that sends it independently;
+    if multiple control connections send the `TAKEOWNERSHIP` command to a Tor instance,
+    Tor will shut down when any of those connections closes.
+
     See Also:
         https://spec.torproject.org/control-spec/commands.html#takeownership
 
@@ -783,6 +857,9 @@ class CommandTakeOwnership(BaseCommand):
 class CommandAuthChallenge(BaseCommand):
     """
     Command implementation for `AUTHCHALLENGE`.
+
+    This command is used to begin the authentication routine for the `SAFECOOKIE`
+    method of authentication.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#authchallenge
@@ -811,6 +888,9 @@ class CommandDropGuards(BaseCommand):
     """
     Command implementation for `DROPGUARDS`.
 
+    Tells the server to drop all guard nodes. Do not invoke this command lightly;
+    it can increase vulnerability to tracking attacks over time.
+
     See Also:
         https://spec.torproject.org/control-spec/commands.html#dropguards
 
@@ -827,6 +907,8 @@ class CommandDropGuards(BaseCommand):
 class CommandHsFetch(BaseCommand):
     """
     Command implementation for `HSFETCH`.
+
+    This command launches hidden service descriptor fetch(es) for the given `address`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#hsfetch
@@ -852,6 +934,9 @@ class CommandHsFetch(BaseCommand):
 class CommandAddOnion(BaseCommand):
     """
     Command implementation for `ADD_ONION`.
+
+    Tells the server to create a new Onion ("Hidden") Service, with the specified
+    private key and algorithm.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#add_onion
@@ -909,6 +994,11 @@ class CommandDelOnion(BaseCommand):
     """
     Command implementation for `DEL_ONION`.
 
+    Tells the server to remove an Onion ("Hidden") Service, that was previously created
+    via an `ADD_ONION` command. It is only possible to remove Onion Services that were
+    created on the same control connection as the `DEL_ONION` command, and those that belong
+    to no control connection in particular (The `DETACH` flag was specified at creation).
+
     See Also:
         https://spec.torproject.org/control-spec/commands.html#del_onion
 
@@ -931,6 +1021,11 @@ class CommandDelOnion(BaseCommand):
 class CommandHsPost(BaseCommand):
     """
     Command implementation for `HSPOST`.
+
+    This command launches a hidden service descriptor upload to the specified HSDirs.
+    If one or more Server arguments are provided, an upload is triggered on each of
+    them in parallel. If no Server options are provided, it behaves like a normal HS
+    descriptor upload and will upload to the set of responsible HS directories.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#hspost
@@ -960,6 +1055,10 @@ class CommandHsPost(BaseCommand):
 class CommandOnionClientAuthAdd(BaseCommand):
     """
     Command implementation for `ONION_CLIENT_AUTH_ADD`.
+
+    Tells the connected Tor to add client-side v3 client auth credentials for the onion
+    service with `address`. The `key` is the x25519 private key that should be used for
+    this client, and `nickname` is an optional nickname for the client.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#onion_client_auth_add
@@ -1034,7 +1133,7 @@ class CommandOnionClientAuthView(BaseCommand):
     auth credentials.
 
     See Also:
-        https://spec.torproject.org/control-spec/commands.html#onion_client_auth_remove
+        https://spec.torproject.org/control-spec/commands.html#onion_client_auth_view
 
     """
 
@@ -1050,3 +1149,43 @@ class CommandOnionClientAuthView(BaseCommand):
             args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
         ser.arguments.extend(args)
         return ser
+
+
+@dataclass(kw_only=True)
+class CommandDropOwnership(BaseCommand):
+    """
+    Command implementation for `DROPOWNERSHIP`.
+
+    This command instructs Tor to relinquish ownership of its control connection.
+    As such tor will not shut down when this control connection is closed.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#dropownership
+
+    """
+
+    command: ClassVar[Command] = Command.DROPOWNERSHIP
+
+    def _serialize(self) -> CommandSerializer:
+        """Serialize a `DROPOWNERSHIP` command."""
+        return super()._serialize()
+
+
+@dataclass(kw_only=True)
+class CommandDropTimeouts(BaseCommand):
+    """
+    Command implementation for `DROPTIMEOUTS`.
+
+    Tells the server to drop all circuit build times. Do not invoke this command lightly;
+    it can increase vulnerability to tracking attacks over time.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#droptimeouts
+
+    """
+
+    command: ClassVar[Command] = Command.DROPTIMEOUTS
+
+    def _serialize(self) -> CommandSerializer:
+        """Serialize a `DROPTIMEOUTS` command."""
+        return super()._serialize()

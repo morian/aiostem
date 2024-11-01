@@ -16,6 +16,8 @@ from aiostem.protocol import (
     CommandCloseStream,
     CommandDelOnion,
     CommandDropGuards,
+    CommandDropOwnership,
+    CommandDropTimeouts,
     CommandExtendCircuit,
     CommandGetConf,
     CommandGetInfo,
@@ -363,3 +365,11 @@ class TestCommands:
     def test_onion_client_auth_view_with_address(self):
         cmd = CommandOnionClientAuthView(address='facebookcorewwwi')
         assert cmd.serialize() == 'ONION_CLIENT_AUTH_VIEW facebookcorewwwi\r\n'
+
+    def test_drop_ownership(self):
+        cmd = CommandDropOwnership()
+        assert cmd.serialize() == 'DROPOWNERSHIP\r\n'
+
+    def test_drop_timeouts(self):
+        cmd = CommandDropTimeouts()
+        assert cmd.serialize() == 'DROPTIMEOUTS\r\n'
