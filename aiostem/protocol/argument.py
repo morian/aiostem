@@ -39,6 +39,7 @@ def _serialize_value(value: Any, *, allow_none: bool = False) -> str | None:
         case _:
             msg = f'Type {type(value).__name__} cannot be serialized to a string.'
             raise CommandError(msg)
+
     return result
 
 

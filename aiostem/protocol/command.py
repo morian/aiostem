@@ -895,3 +895,26 @@ class CommandAddOnion(BaseCommand):
 
         ser.arguments.extend(args)
         return ser
+
+
+@dataclass(kw_only=True)
+class CommandDelOnion(BaseCommand):
+    """
+    Command implementation for `DEL_ONION`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#del_onion
+
+    """
+
+    command: ClassVar[Command] = Command.DEL_ONION
+    #: This is the v2 or v3 address without the `.onion` suffix.
+    address: str
+
+    def _serialize(self) -> CommandSerializer:
+        """Append `DEL_ONION` specific arguments."""
+        ser = super()._serialize()
+        args = []  # type: MutableSequence[Argument]
+        args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
+        ser.arguments.extend(args)
+        return ser

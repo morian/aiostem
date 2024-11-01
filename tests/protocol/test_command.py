@@ -14,6 +14,7 @@ from aiostem.protocol import (
     CommandAuthenticate,
     CommandCloseCircuit,
     CommandCloseStream,
+    CommandDelOnion,
     CommandDropGuards,
     CommandExtendCircuit,
     CommandGetConf,
@@ -307,3 +308,7 @@ class TestCommands:
         cmd = CommandAddOnion(key_type=OnionAddKeyType.NEW, key_blob=OnionNewKeyType.BEST)
         with pytest.raises(CommandError, match='You must specify one or more virtual ports'):
             cmd.serialize()
+
+    def test_del_onion(self):
+        cmd = CommandDelOnion(address='facebookcorewwwi')
+        assert cmd.serialize() == 'DEL_ONION facebookcorewwwi\r\n'
