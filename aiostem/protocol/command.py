@@ -688,3 +688,23 @@ class CommandProtocolInfo(BaseCommand):
 
         ser.arguments.extend(args)
         return ser
+
+
+@dataclass(kw_only=True)
+class CommandLoadConf(BaseCommand):
+    """
+    Command implementation for `LOADCONF`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#loadconf
+
+    """
+
+    command: ClassVar[Command] = Command.LOADCONF
+    text: str
+
+    def _serialize(self) -> CommandSerializer:
+        """Append `LOADCONF` specific arguments."""
+        ser = super()._serialize()
+        ser.body = self.text
+        return ser

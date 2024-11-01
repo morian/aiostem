@@ -13,6 +13,7 @@ from aiostem.protocol import (
     CommandExtendCircuit,
     CommandGetConf,
     CommandGetInfo,
+    CommandLoadConf,
     CommandMapAddress,
     CommandPostDescriptor,
     CommandProtocolInfo,
@@ -200,3 +201,7 @@ class TestCommands:
     def test_protocol_info_with_version(self):
         cmd = CommandProtocolInfo(version=1)
         assert cmd.serialize() == 'PROTOCOLINFO 1\r\n'
+
+    def test_load_conf(self):
+        cmd = CommandLoadConf(text='SocksPort 127.0.0.1:9050\n')
+        assert cmd.serialize() == '+LOADCONF\r\nSocksPort 127.0.0.1:9050\r\n\r\n.\r\n'
