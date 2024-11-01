@@ -3,13 +3,52 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import MutableMapping, MutableSequence, MutableSet
 from dataclasses import dataclass, field
-from enum import StrEnum
+from enum import IntEnum, StrEnum
 from typing import ClassVar
 
 from ..exceptions import CommandError
 from .argument import Argument, ArgumentKeyword, ArgumentString, QuoteStyle  # noqa: F401
 from .event import Event
 from .utils import CommandSerializer
+
+
+class CloseStreamReason(IntEnum):
+    """
+    All reasons provided to close a stream.
+
+    See Also:
+        https://spec.torproject.org/tor-spec/closing-streams.html#closing-streams
+
+    """
+
+    #: Catch-all for unlisted reasons.
+    MISC = 1
+    #: Couldn't look up hostname.
+    RESOLVEFAILED = 2
+    #: Remote host refused connection.
+    CONNECTREFUSED = 3
+    #: Relay refuses to connect to host or port.
+    EXITPOLICY = 4
+    #: Circuit is being destroyed.
+    DESTROY = 5
+    #: Anonymized TCP connection was closed.
+    DONE = 6
+    #: Anonymized TCP connection was closed while connecting.
+    TIMEOUT = 7
+    #: Routing error while attempting to contact destination.
+    NOROUTE = 8
+    #: Relay is temporarily hibernating.
+    HIBERNATING = 9
+    #: Internal error at the relay.
+    INTERNAL = 10
+    #: Relay has no resources to fulfill request.
+    RESOURCELIMIT = 11
+    #: Connection was unexpectedly reset.
+    CONNRESET = 12
+    #: Sent when closing connection because of Tor protocol violations.
+    TORPROTOCOL = 13
+    #: Client sent `RELAY_BEGIN_DIR` to a non-directory relay.
+    NOTDIRECTORY = 14
 
 
 class Command(StrEnum):
@@ -30,6 +69,8 @@ class Command(StrEnum):
     ATTACHSTREAM = 'ATTACHSTREAM'
     POSTDESCRIPTOR = 'POSTDESCRIPTOR'
     REDIRECTSTREAM = 'REDIRECTSTREAM'
+    CLOSESTREAM = 'CLOSESTREAM'
+    CLOSECIRCUIT = 'CLOSECIRCUIT'
     HSFETCH = 'HSFETCH'
 
 
@@ -97,7 +138,7 @@ class BaseCommand(ABC):
 @dataclass(kw_only=True)
 class CommandSetConf(BaseCommand):
     """
-    Command implementation for 'SETCONF'.
+    Command implementation for `SETCONF`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#setconf
@@ -124,7 +165,7 @@ class CommandSetConf(BaseCommand):
 @dataclass(kw_only=True)
 class CommandResetConf(BaseCommand):
     """
-    Command implementation for 'RESETCONF'.
+    Command implementation for `RESETCONF`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#resetconf
@@ -135,7 +176,7 @@ class CommandResetConf(BaseCommand):
     values: MutableMapping[str, int | str | None] = field(default_factory=dict)
 
     def _serialize(self) -> CommandSerializer:
-        """Append 'RESETCONF' specific arguments."""
+        """Append `RESETCONF` specific arguments."""
         if len(self.values) == 0:
             msg = "No value provided for command 'RESETCONF'"
             raise CommandError(msg)
@@ -151,7 +192,7 @@ class CommandResetConf(BaseCommand):
 @dataclass(kw_only=True)
 class CommandGetConf(BaseCommand):
     """
-    Command implementation for 'GETCONF'.
+    Command implementation for `GETCONF`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#getconf
@@ -162,7 +203,7 @@ class CommandGetConf(BaseCommand):
     keywords: MutableSequence[str] = field(default_factory=list)
 
     def _serialize(self) -> CommandSerializer:
-        """Append 'GETCONF' specific arguments."""
+        """Append `GETCONF` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
         for keyword in self.keywords:
@@ -174,7 +215,7 @@ class CommandGetConf(BaseCommand):
 @dataclass(kw_only=True)
 class CommandSetEvents(BaseCommand):
     """
-    Command implementation for 'SETEVENTS'.
+    Command implementation for `SETEVENTS`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#setevents
@@ -186,7 +227,7 @@ class CommandSetEvents(BaseCommand):
     extended: bool = False
 
     def _serialize(self) -> CommandSerializer:
-        """Append 'SETEVENTS' specific arguments."""
+        """Append `SETEVENTS` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
         if self.extended:
@@ -200,7 +241,7 @@ class CommandSetEvents(BaseCommand):
 @dataclass(kw_only=True)
 class CommandAuthenticate(BaseCommand):
     """
-    Command implementation for 'AUTHENTICATE'.
+    Command implementation for `AUTHENTICATE`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#authenticate
@@ -211,7 +252,7 @@ class CommandAuthenticate(BaseCommand):
     token: bytes | str | None
 
     def _serialize(self) -> CommandSerializer:
-        """Append 'AUTHENTICATE' specific arguments."""
+        """Append `AUTHENTICATE` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
         match self.token:
@@ -226,7 +267,7 @@ class CommandAuthenticate(BaseCommand):
 @dataclass(kw_only=True)
 class CommandSaveConf(BaseCommand):
     """
-    Command implementation for 'SAVECONF'.
+    Command implementation for `SAVECONF`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#saveconf
@@ -237,7 +278,7 @@ class CommandSaveConf(BaseCommand):
     force: bool = False
 
     def _serialize(self) -> CommandSerializer:
-        """Append 'SAVECONF' specific arguments."""
+        """Append `SAVECONF` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
         if self.force:
@@ -249,7 +290,7 @@ class CommandSaveConf(BaseCommand):
 @dataclass(kw_only=True)
 class CommandSignal(BaseCommand):
     """
-    Command implementation for 'SIGNAL'.
+    Command implementation for `SIGNAL`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#signal
@@ -260,7 +301,7 @@ class CommandSignal(BaseCommand):
     signal: Signal
 
     def _serialize(self) -> CommandSerializer:
-        """Append 'SIGNAL' specific arguments."""
+        """Append `SIGNAL` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
         args.append(ArgumentString(self.signal, quotes=QuoteStyle.NEVER))
@@ -271,7 +312,7 @@ class CommandSignal(BaseCommand):
 @dataclass(kw_only=True)
 class CommandMapAddress(BaseCommand):
     """
-    Command implementation for 'MAPADDRESS'.
+    Command implementation for `MAPADDRESS`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#mapaddress
@@ -282,7 +323,7 @@ class CommandMapAddress(BaseCommand):
     addresses: MutableMapping[str, str] = field(default_factory=dict)
 
     def _serialize(self) -> CommandSerializer:
-        """Append 'MAPADDRESS' specific arguments."""
+        """Append `MAPADDRESS` specific arguments."""
         if len(self.addresses) == 0:
             msg = "No address provided for command 'MAPADDRESS'"
             raise CommandError(msg)
@@ -300,7 +341,7 @@ class CommandMapAddress(BaseCommand):
 @dataclass(kw_only=True)
 class CommandGetInfo(BaseCommand):
     """
-    Command implementation for 'GETINFO'.
+    Command implementation for `GETINFO`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#getinfo
@@ -311,7 +352,7 @@ class CommandGetInfo(BaseCommand):
     keywords: MutableSequence[str] = field(default_factory=list)
 
     def _serialize(self) -> CommandSerializer:
-        """Append 'GETINFO' specific arguments."""
+        """Append `GETINFO` specific arguments."""
         if len(self.keywords) == 0:
             msg = "No keyword provided for command 'GETINFO'"
             raise CommandError(msg)
@@ -329,7 +370,7 @@ class CommandGetInfo(BaseCommand):
 @dataclass(kw_only=True)
 class CommandExtendCircuit(BaseCommand):
     """
-    Command implementation for 'EXTENDCIRCUIT'.
+    Command implementation for `EXTENDCIRCUIT`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#extendcircuit
@@ -342,7 +383,7 @@ class CommandExtendCircuit(BaseCommand):
     purpose: CircuitPurpose | None = None
 
     def _serialize(self) -> CommandSerializer:
-        """Append 'EXTENDCIRCUIT' specific arguments."""
+        """Append `EXTENDCIRCUIT` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
 
@@ -360,7 +401,7 @@ class CommandExtendCircuit(BaseCommand):
 @dataclass(kw_only=True)
 class CommandSetCircuitPurpose(BaseCommand):
     """
-    Command implementation for 'SETCIRCUITPURPOSE'.
+    Command implementation for `SETCIRCUITPURPOSE`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#setcircuitpurpose
@@ -372,7 +413,7 @@ class CommandSetCircuitPurpose(BaseCommand):
     purpose: CircuitPurpose
 
     def _serialize(self) -> CommandSerializer:
-        """Append 'SETCIRCUITPURPOSE' specific arguments."""
+        """Append `SETCIRCUITPURPOSE` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
 
@@ -386,7 +427,7 @@ class CommandSetCircuitPurpose(BaseCommand):
 @dataclass(kw_only=True)
 class CommandAttachStream(BaseCommand):
     """
-    Command implementation for 'ATTACHSTREAM'.
+    Command implementation for `ATTACHSTREAM`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#attachstream
@@ -399,7 +440,7 @@ class CommandAttachStream(BaseCommand):
     hop: int | None = None
 
     def _serialize(self) -> CommandSerializer:
-        """Append 'ATTACHSTREAM' specific arguments."""
+        """Append `ATTACHSTREAM` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
 
@@ -415,7 +456,7 @@ class CommandAttachStream(BaseCommand):
 @dataclass(kw_only=True)
 class CommandPostDescriptor(BaseCommand):
     """
-    Command implementation for 'POSTDESCRIPTOR'.
+    Command implementation for `POSTDESCRIPTOR`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#postdescriptor
@@ -446,7 +487,7 @@ class CommandPostDescriptor(BaseCommand):
 @dataclass(kw_only=True)
 class CommandRedirectStream(BaseCommand):
     """
-    Command implementation for 'REDIRECTSTREAM'.
+    Command implementation for `REDIRECTSTREAM`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#redirectstream
@@ -459,14 +500,38 @@ class CommandRedirectStream(BaseCommand):
     port: int | None = None
 
     def _serialize(self) -> CommandSerializer:
-        """Append 'REDIRECTSTREAM' specific arguments."""
+        """Append `REDIRECTSTREAM` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
 
-        args.append(ArgumentString(self.stream))
+        args.append(ArgumentString(self.stream, quotes=QuoteStyle.NEVER))
         args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
         if self.port is not None:
             args.append(ArgumentString(self.port))
 
+        ser.arguments.extend(args)
+        return ser
+
+
+@dataclass(kw_only=True)
+class CommandCloseStream(BaseCommand):
+    """
+    Command implementation for `CLOSESTREAM`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#closestream
+
+    """
+
+    command: ClassVar[Command] = Command.CLOSESTREAM
+    stream: int
+    reason: CloseStreamReason
+
+    def _serialize(self) -> CommandSerializer:
+        """Append `CLOSESTREAM` specific arguments."""
+        ser = super()._serialize()
+        args = []  # type: MutableSequence[Argument]
+        args.append(ArgumentString(self.stream, quotes=QuoteStyle.NEVER))
+        args.append(ArgumentString(self.reason, quotes=QuoteStyle.NEVER))
         ser.arguments.extend(args)
         return ser

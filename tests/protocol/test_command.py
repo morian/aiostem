@@ -5,8 +5,10 @@ import pytest
 from aiostem.exceptions import CommandError
 from aiostem.protocol import (
     CircuitPurpose,
+    CloseStreamReason,
     CommandAttachStream,
     CommandAuthenticate,
+    CommandCloseStream,
     CommandExtendCircuit,
     CommandGetConf,
     CommandGetInfo,
@@ -157,3 +159,7 @@ class TestCommands:
     def test_redirect_stream_with_port(self):
         cmd = CommandRedirectStream(stream=1234, address='127.0.0.1', port=8443)
         assert cmd.serialize() == 'REDIRECTSTREAM 1234 127.0.0.1 8443\r\n'
+
+    def test_close_stream(self):
+        cmd = CommandCloseStream(stream=1234, reason=CloseStreamReason.TIMEOUT)
+        assert cmd.serialize() == 'CLOSESTREAM 1234 7\r\n'

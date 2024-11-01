@@ -3,9 +3,11 @@ from __future__ import annotations
 from .argument import Argument, ArgumentKeyword, ArgumentString, QuoteStyle
 from .command import (
     CircuitPurpose,
+    CloseStreamReason,
     Command,
     CommandAttachStream,
     CommandAuthenticate,
+    CommandCloseStream,
     CommandExtendCircuit,
     CommandGetConf,
     CommandGetInfo,
@@ -27,9 +29,11 @@ __all__ = [
     'ArgumentKeyword',
     'ArgumentString',
     'CircuitPurpose',
+    'CloseStreamReason',
     'Command',
     'CommandAttachStream',
     'CommandAuthenticate',
+    'CommandCloseStream',
     'CommandExtendCircuit',
     'CommandGetConf',
     'CommandGetInfo',
