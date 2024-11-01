@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import secrets
+
 import pytest
 
 from aiostem.exceptions import CommandError
@@ -7,6 +9,7 @@ from aiostem.protocol import (
     CircuitPurpose,
     CloseStreamReason,
     CommandAttachStream,
+    CommandAuthChallenge,
     CommandAuthenticate,
     CommandCloseCircuit,
     CommandCloseStream,
@@ -26,6 +29,7 @@ from aiostem.protocol import (
     CommandSetConf,
     CommandSetEvents,
     CommandSignal,
+    CommandTakeOwnership,
     CommandUseFeature,
     Event,
     Signal,
@@ -205,3 +209,16 @@ class TestCommands:
     def test_load_conf(self):
         cmd = CommandLoadConf(text='SocksPort 127.0.0.1:9050\n')
         assert cmd.serialize() == '+LOADCONF\r\nSocksPort 127.0.0.1:9050\r\n\r\n.\r\n'
+
+    def test_take_ownership(self):
+        cmd = CommandTakeOwnership()
+        assert cmd.serialize() == 'TAKEOWNERSHIP\r\n'
+
+    def test_auth_challenge_bytes(self):
+        nonce = secrets.token_bytes(32)
+        cmd = CommandAuthChallenge(nonce=nonce)
+        assert cmd.serialize() == f'AUTHCHALLENGE SAFECOOKIE {nonce.hex()}\r\n'
+
+    def test_auth_challenge_string(self):
+        cmd = CommandAuthChallenge(nonce='A_REAL_NONCE')
+        assert cmd.serialize() == 'AUTHCHALLENGE SAFECOOKIE "A_REAL_NONCE"\r\n'

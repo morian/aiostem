@@ -708,3 +708,47 @@ class CommandLoadConf(BaseCommand):
         ser = super()._serialize()
         ser.body = self.text
         return ser
+
+
+@dataclass(kw_only=True)
+class CommandTakeOwnership(BaseCommand):
+    """
+    Command implementation for `TAKEOWNERSHIP`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#takeownership
+
+    """
+
+    command: ClassVar[Command] = Command.TAKEOWNERSHIP
+
+    def _serialize(self) -> CommandSerializer:
+        """Serialize a `TAKEOWNERSHIP` command."""
+        return super()._serialize()
+
+
+@dataclass(kw_only=True)
+class CommandAuthChallenge(BaseCommand):
+    """
+    Command implementation for `AUTHCHALLENGE`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#authchallenge
+
+    """
+
+    command: ClassVar[Command] = Command.AUTHCHALLENGE
+    nonce: bytes | str
+
+    def _serialize(self) -> CommandSerializer:
+        """Append `AUTHCHALLENGE` specific arguments."""
+        ser = super()._serialize()
+        args = []  # type: MutableSequence[Argument]
+        args.append(ArgumentString('SAFECOOKIE', quotes=QuoteStyle.NEVER))
+        match self.nonce:
+            case bytes():
+                args.append(ArgumentString(self.nonce.hex(), quotes=QuoteStyle.NEVER))
+            case str():
+                args.append(ArgumentString(self.nonce, quotes=QuoteStyle.ALWAYS))
+        ser.arguments.extend(args)
+        return ser
