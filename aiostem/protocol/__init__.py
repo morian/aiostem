@@ -22,6 +22,7 @@ from .command import (
     CommandSetConf,
     CommandSetEvents,
     CommandSignal,
+    CommandUseFeature,
     Signal,
 )
 from .event import Event
@@ -50,6 +51,7 @@ __all__ = [
     'CommandSetConf',
     'CommandSetEvents',
     'CommandSignal',
+    'CommandUseFeature',
     'Event',
     'QuoteStyle',
     'Signal',

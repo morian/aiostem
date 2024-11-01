@@ -72,6 +72,7 @@ class Command(StrEnum):
     CLOSESTREAM = 'CLOSESTREAM'
     CLOSECIRCUIT = 'CLOSECIRCUIT'
     QUIT = 'QUIT'
+    USEFEATURE = 'USEFEATURE'
     HSFETCH = 'HSFETCH'
 
 
@@ -586,3 +587,28 @@ class CommandQuit(BaseCommand):
         This command has no additional arguments.
         """
         return super()._serialize()
+
+
+@dataclass(kw_only=True)
+class CommandUseFeature(BaseCommand):
+    """
+    Command implementation for `USEFEATURE`.
+
+    To get a list of available features please use `GETINFO features/names`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#usefeature
+
+    """
+
+    command: ClassVar[Command] = Command.USEFEATURE
+    features: MutableSet[str] = field(default_factory=set)
+
+    def _serialize(self) -> CommandSerializer:
+        """Append `USEFEATURE` specific arguments."""
+        ser = super()._serialize()
+        args = []  # type: MutableSequence[Argument]
+        for feature in self.features:
+            args.append(ArgumentString(feature, quotes=QuoteStyle.NEVER_ENSURE))
+        ser.arguments.extend(args)
+        return ser

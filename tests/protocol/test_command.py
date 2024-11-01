@@ -23,6 +23,7 @@ from aiostem.protocol import (
     CommandSetConf,
     CommandSetEvents,
     CommandSignal,
+    CommandUseFeature,
     Event,
     Signal,
 )
@@ -177,3 +178,7 @@ class TestCommands:
     def test_quit(self):
         cmd = CommandQuit()
         assert cmd.serialize() == 'QUIT\r\n'
+
+    def test_use_feature(self):
+        cmd = CommandUseFeature(features={'VERBOSE_NAMES'})
+        assert cmd.serialize() == 'USEFEATURE VERBOSE_NAMES\r\n'
