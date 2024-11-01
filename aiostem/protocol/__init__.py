@@ -5,6 +5,7 @@ from .command import (
     CircuitPurpose,
     CloseStreamReason,
     Command,
+    CommandAddOnion,
     CommandAttachStream,
     CommandAuthChallenge,
     CommandAuthenticate,
@@ -31,6 +32,9 @@ from .command import (
     CommandTakeOwnership,
     CommandUseFeature,
     Feature,
+    OnionAddFlags,
+    OnionAddKeyType,
+    OnionNewKeyType,
     Signal,
 )
 from .event import Event
@@ -42,6 +46,7 @@ __all__ = [
     'CircuitPurpose',
     'CloseStreamReason',
     'Command',
+    'CommandAddOnion',
     'CommandAttachStream',
     'CommandAuthChallenge',
     'CommandAuthenticate',
@@ -69,6 +74,9 @@ __all__ = [
     'CommandUseFeature',
     'Event',
     'Feature',
+    'OnionAddFlags',
+    'OnionAddKeyType',
+    'OnionNewKeyType',
     'QuoteStyle',
     'Signal',
 ]

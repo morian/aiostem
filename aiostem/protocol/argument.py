@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from enum import Enum
-from typing import TYPE_CHECKING, TypeAlias
+from enum import IntEnum, StrEnum
+from typing import TYPE_CHECKING, Any, TypeAlias, overload
 
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
@@ -14,7 +14,35 @@ from ..exceptions import CommandError
 _AUTO_CHARS: AbstractSet[str] = frozenset({' ', '"', '\\'})
 
 
-class QuoteStyle(Enum):
+@overload
+def _serialize_value(value: None, *, allow_none: bool) -> None: ...
+
+
+@overload
+def _serialize_value(value: IntEnum | StrEnum | int | str, *, allow_none: bool) -> str: ...
+
+
+def _serialize_value(value: Any, *, allow_none: bool = False) -> str | None:
+    """Serialize a single value to a string."""
+    result: str | None
+
+    match value:
+        case IntEnum() | StrEnum():
+            result = str(value.value)
+        case int() | str():
+            result = str(value)
+        case None:
+            if allow_none is False:
+                msg = 'Value cannot be None.'
+                raise CommandError(msg)
+            result = None
+        case _:
+            msg = f'Type {type(value).__name__} cannot be serialized to a string.'
+            raise CommandError(msg)
+    return result
+
+
+class QuoteStyle(IntEnum):
     """Set the type of quote to use."""
 
     #: No quote are added around the value, no checks are being performed.
@@ -85,7 +113,7 @@ class ArgumentKeyword(BaseArgument):
     def __init__(
         self,
         key: str,
-        value: Enum | str | int | None,
+        value: IntEnum | StrEnum | str | int | None,
         *,
         quotes: QuoteStyle = QuoteStyle.AUTO,
     ) -> None:
@@ -100,14 +128,8 @@ class ArgumentKeyword(BaseArgument):
             quotes: tell how to quote the value part when serialized
 
         """
-        match value:
-            case Enum():
-                value = str(value.value)
-            case int():
-                value = str(value)
-
         self._key = key
-        self._value = value
+        self._value = _serialize_value(value, allow_none=True)
         self._quotes = quotes
 
     def __str__(self) -> str:
@@ -139,7 +161,7 @@ class ArgumentString(BaseArgument):
 
     def __init__(
         self,
-        value: Enum | str | int,
+        value: IntEnum | StrEnum | str | int,
         *,
         quotes: QuoteStyle = QuoteStyle.AUTO,
     ) -> None:
@@ -153,13 +175,7 @@ class ArgumentString(BaseArgument):
             quotes: tell how to quote the argument when serialized
 
         """
-        match value:
-            case Enum():
-                value = str(value.value)
-            case int():
-                value = str(value)
-
-        self._value = value
+        self._value = _serialize_value(value, allow_none=False)
         self._quotes = quotes
 
     def __str__(self) -> str:

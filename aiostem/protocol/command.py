@@ -99,6 +99,51 @@ class Feature(StrEnum):
     VERBOSE_NAMES = 'VERBOSE_NAMES'
 
 
+class OnionAddFlags(StrEnum):
+    """Available flag options for command `ADD_ONION`."""
+
+    #: The server should not include the newly generated private key as part of the response.
+    DISCARD_PK = 'DiscardPK'
+    #: Do not associate the newly created Onion Service to the current control connection.
+    DETACH = 'Detach'
+    #: Client authorization is required using the "basic" method (v2 only).
+    BASIC_AUTH = 'BasicAuth'
+    #: Version 3 client authorization is required (v3 only).
+    V3AUTH = 'V3Auth'
+    #: Add a non-anonymous Single Onion Service.
+    NON_ANONYMOUS = 'NonAnonymous'
+    #: Close the circuit is the maximum streams allowed is reached.
+    MAX_STREAMS_CLOSE_CIRCUIT = 'MaxStreamsCloseCircuit'
+
+
+class OnionAddKeyType(StrEnum):
+    """All types of keys when creating an onion services."""
+
+    #: The server should generate a key of algorithm KeyBlob.
+    NEW = 'NEW'
+    #: The server should use the 1024 bit RSA key provided in as KeyBlob (v2).
+    RSA1024 = 'RSA1024'
+    #: The server should use the ed25519 v3 key provided in as KeyBlob (v3).
+    ED25519_V3 = 'ED25519-V3'
+
+
+class OnionNewKeyType(StrEnum):
+    """
+    All kind of keys we can generate when creating an onion services.
+
+    Note:
+        These values are only applicable with `OnionAddKeyType.NEW`.
+
+    """
+
+    #: The server should generate a key using the "best" supported algorithm.
+    BEST = 'BEST'
+    #: The server should generate a 1024 bit RSA key.
+    RSA1024 = 'RSA1024'
+    #: The server should generate an ed25519 private key.
+    ED25519_V3 = 'ED25519-V3'
+
+
 class Signal(StrEnum):
     """All possible signals."""
 
@@ -748,7 +793,7 @@ class CommandAuthChallenge(BaseCommand):
         match self.nonce:
             case bytes():
                 args.append(ArgumentString(self.nonce.hex(), quotes=QuoteStyle.NEVER))
-            case str():
+            case str():  # pragma: no branch
                 args.append(ArgumentString(self.nonce, quotes=QuoteStyle.ALWAYS))
         ser.arguments.extend(args)
         return ser
@@ -792,5 +837,61 @@ class CommandHsFetch(BaseCommand):
         args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
         for server in self.servers:
             args.append(ArgumentKeyword('SERVER', server, quotes=QuoteStyle.NEVER_ENSURE))
+        ser.arguments.extend(args)
+        return ser
+
+
+@dataclass(kw_only=True)
+class CommandAddOnion(BaseCommand):
+    """
+    Command implementation for `ADD_ONION`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#add_onion
+
+    """
+
+    command: ClassVar[Command] = Command.ADD_ONION
+    key_type: OnionAddKeyType
+    key_blob: OnionNewKeyType | str
+    flags: MutableSet[OnionAddFlags] = field(default_factory=set)
+    max_streams: int | None = None
+    #: As in arguments to HiddenServicePort ("port,target")
+    ports: MutableSequence[str] = field(default_factory=list)
+    #: Syntax: `ClientName:ClientBlob`
+    client_auth: MutableSequence[str] = field(default_factory=list)
+    #: Syntax: base32-encoded x25519 public key with only the key part.
+    client_auth_v3: MutableSequence[str] = field(default_factory=list)
+
+    def _serialize(self) -> CommandSerializer:
+        """Append `ADD_ONION` specific arguments."""
+        ser = super()._serialize()
+        args = []  # type: MutableSequence[Argument]
+
+        do_generate = bool(self.key_type == OnionAddKeyType.NEW)
+        has_keyblob = bool(not isinstance(self.key_blob, OnionNewKeyType))
+        if do_generate == has_keyblob:
+            msg = "Incompatible options for 'key_type' and 'key_blob'."
+            raise CommandError(msg)
+
+        if not len(self.ports):
+            msg = 'You must specify one or more virtual ports.'
+            raise CommandError(msg)
+
+        key = f'{self.key_type.value}:{self.key_blob}'
+        args.append(ArgumentString(key, quotes=QuoteStyle.NEVER_ENSURE))
+        if len(self.flags):
+            flags = ','.join(self.flags)
+            args.append(ArgumentKeyword('Flags', flags, quotes=QuoteStyle.NEVER))
+        if self.max_streams is not None:
+            kwarg = ArgumentKeyword('MaxStreams', self.max_streams, quotes=QuoteStyle.NEVER)
+            args.append(kwarg)
+        for port in self.ports:
+            args.append(ArgumentKeyword('Port', port, quotes=QuoteStyle.NEVER_ENSURE))
+        for auth in self.client_auth:
+            args.append(ArgumentKeyword('ClientAuth', auth, quotes=QuoteStyle.NEVER_ENSURE))
+        for auth in self.client_auth_v3:
+            args.append(ArgumentKeyword('ClientAuthV3', auth, quotes=QuoteStyle.NEVER_ENSURE))
+
         ser.arguments.extend(args)
         return ser

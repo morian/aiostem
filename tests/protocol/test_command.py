@@ -8,6 +8,7 @@ from aiostem.exceptions import CommandError
 from aiostem.protocol import (
     CircuitPurpose,
     CloseStreamReason,
+    CommandAddOnion,
     CommandAttachStream,
     CommandAuthChallenge,
     CommandAuthenticate,
@@ -34,6 +35,9 @@ from aiostem.protocol import (
     CommandTakeOwnership,
     CommandUseFeature,
     Event,
+    OnionAddFlags,
+    OnionAddKeyType,
+    OnionNewKeyType,
     Signal,
 )
 
@@ -245,3 +249,61 @@ class TestCommands:
             ],
         )
         assert cmd.serialize() == f'HSFETCH {address} SERVER={server1} SERVER={server2}\r\n'
+
+    def test_add_onion(self):
+        cmd = CommandAddOnion(
+            key_type=OnionAddKeyType.NEW,
+            key_blob=OnionNewKeyType.ED25519_V3,
+            ports=['80,127.0.0.1:80'],
+        )
+        assert cmd.serialize() == 'ADD_ONION NEW:ED25519-V3 Port=80,127.0.0.1:80\r\n'
+
+    def test_add_onion_with_client_auth(self):
+        cmd = CommandAddOnion(
+            key_type=OnionAddKeyType.NEW,
+            key_blob=OnionNewKeyType.BEST,
+            ports=['80,127.0.0.1:80'],
+            flags={OnionAddFlags.DISCARD_PK},
+            max_streams=2,
+            client_auth=['5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ'],
+        )
+        assert cmd.serialize() == (
+            'ADD_ONION NEW:BEST Flags=DiscardPK MaxStreams=2 Port=80,127.0.0.1:80 '
+            'ClientAuth=5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ\r\n'
+        )
+
+    def test_add_onion_with_client_auth_v3(self):
+        cmd = CommandAddOnion(
+            key_type=OnionAddKeyType.NEW,
+            key_blob=OnionNewKeyType.BEST,
+            ports=['80,127.0.0.1:80'],
+            client_auth_v3=['5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ'],
+        )
+        assert cmd.serialize() == (
+            'ADD_ONION NEW:BEST Port=80,127.0.0.1:80 '
+            'ClientAuthV3=5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ\r\n'
+        )
+
+    def test_add_onion_key_error_1(self):
+        key_blob = 'MC4CAQAwBQYDK2VwBCIEIKK7usustM7o4IjJCPp0zQZpjNKHi42e3phc4VgWt08V'
+        cmd = CommandAddOnion(
+            key_type=OnionAddKeyType.NEW,
+            key_blob=key_blob,
+            ports=['80,127.0.0.1:80'],
+        )
+        with pytest.raises(CommandError, match='Incompatible options for'):
+            cmd.serialize()
+
+    def test_add_onion_key_error_2(self):
+        cmd = CommandAddOnion(
+            key_type=OnionAddKeyType.RSA1024,
+            key_blob=OnionNewKeyType.BEST,
+            ports=['80,127.0.0.1:80'],
+        )
+        with pytest.raises(CommandError, match='Incompatible options for'):
+            cmd.serialize()
+
+    def test_add_onion_key_no_port(self):
+        cmd = CommandAddOnion(key_type=OnionAddKeyType.NEW, key_blob=OnionNewKeyType.BEST)
+        with pytest.raises(CommandError, match='You must specify one or more virtual ports'):
+            cmd.serialize()
