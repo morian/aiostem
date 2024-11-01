@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
+from ..exceptions import CommandError
+
 if TYPE_CHECKING:
     from collections.abc import MutableSequence
 
@@ -38,7 +40,13 @@ class CommandSerializer:
         args = [self._command.value]
         for argument in self._arguments:
             args.append(str(argument))
-        lines = [' '.join(args)]
+
+        header = ' '.join(args)
+        # Check for command injection in case some user-controlled values went through.
+        if any(c in header for c in ('\r', '\n')):
+            msg = 'Command injection was detected and prevented'
+            raise CommandError(msg)
+        lines = [header]
 
         # Include the potential body, if applicable.
         if self._body is None:

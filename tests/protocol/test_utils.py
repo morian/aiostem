@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import pytest
+
+from aiostem.exceptions import CommandError
 from aiostem.protocol import ArgumentString, Command, QuoteStyle
 from aiostem.protocol.utils import CommandSerializer
 
@@ -29,3 +32,9 @@ class TestCommandSerializer:
         ser = CommandSerializer(Command.SETCONF)
         ser.body = 'Hello world\n.dot'
         assert ser.serialize() == '+SETCONF\r\nHello world\r\n..dot\r\n.\r\n'
+
+    def test_line_injection(self):
+        ser = CommandSerializer(Command.SETCONF)
+        ser.arguments.append(ArgumentString('\r\nQUIT'))
+        with pytest.raises(CommandError, match='Command injection was detected'):
+            ser.serialize()
