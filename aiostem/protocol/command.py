@@ -663,3 +663,28 @@ class CommandResolve(BaseCommand):
 
         ser.arguments.extend(args)
         return ser
+
+
+@dataclass(kw_only=True)
+class CommandProtocolInfo(BaseCommand):
+    """
+    Command implementation for `PROTOCOLINFO`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#protocolinfo
+
+    """
+
+    command: ClassVar[Command] = Command.PROTOCOLINFO
+    version: int | None = None
+
+    def _serialize(self) -> CommandSerializer:
+        """Append `PROTOCOLINFO` specific arguments."""
+        ser = super()._serialize()
+        args = []  # type: MutableSequence[Argument]
+
+        if self.version is not None:
+            args.append(ArgumentString(self.version, quotes=QuoteStyle.NEVER))
+
+        ser.arguments.extend(args)
+        return ser

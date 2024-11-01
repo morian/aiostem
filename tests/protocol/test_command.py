@@ -15,6 +15,7 @@ from aiostem.protocol import (
     CommandGetInfo,
     CommandMapAddress,
     CommandPostDescriptor,
+    CommandProtocolInfo,
     CommandQuit,
     CommandRedirectStream,
     CommandResetConf,
@@ -191,3 +192,11 @@ class TestCommands:
     def test_resolve_reverse(self):
         cmd = CommandResolve(addresses=['1.1.1.1'], reverse=True)
         assert cmd.serialize() == 'RESOLVE mode=reverse 1.1.1.1\r\n'
+
+    def test_protocol_info(self):
+        cmd = CommandProtocolInfo()
+        assert cmd.serialize() == 'PROTOCOLINFO\r\n'
+
+    def test_protocol_info_with_version(self):
+        cmd = CommandProtocolInfo(version=1)
+        assert cmd.serialize() == 'PROTOCOLINFO 1\r\n'
