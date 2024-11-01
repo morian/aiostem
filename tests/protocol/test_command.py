@@ -23,6 +23,7 @@ from aiostem.protocol import (
     CommandHsPost,
     CommandLoadConf,
     CommandMapAddress,
+    CommandOnionClientAuthAdd,
     CommandPostDescriptor,
     CommandProtocolInfo,
     CommandQuit,
@@ -37,9 +38,10 @@ from aiostem.protocol import (
     CommandTakeOwnership,
     CommandUseFeature,
     Event,
-    OnionAddFlags,
     OnionAddKeyType,
+    OnionClientAuthFlags,
     OnionNewKeyType,
+    OnionServiceFlags,
     Signal,
 )
 
@@ -255,7 +257,7 @@ class TestCommands:
     def test_add_onion(self):
         cmd = CommandAddOnion(
             key_type=OnionAddKeyType.NEW,
-            key_blob=OnionNewKeyType.ED25519_V3,
+            key=OnionNewKeyType.ED25519_V3,
             ports=['80,127.0.0.1:80'],
         )
         assert cmd.serialize() == 'ADD_ONION NEW:ED25519-V3 Port=80,127.0.0.1:80\r\n'
@@ -263,9 +265,9 @@ class TestCommands:
     def test_add_onion_with_client_auth(self):
         cmd = CommandAddOnion(
             key_type=OnionAddKeyType.NEW,
-            key_blob=OnionNewKeyType.BEST,
+            key=OnionNewKeyType.BEST,
             ports=['80,127.0.0.1:80'],
-            flags={OnionAddFlags.DISCARD_PK},
+            flags={OnionServiceFlags.DISCARD_PK},
             max_streams=2,
             client_auth=['5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ'],
         )
@@ -277,7 +279,7 @@ class TestCommands:
     def test_add_onion_with_client_auth_v3(self):
         cmd = CommandAddOnion(
             key_type=OnionAddKeyType.NEW,
-            key_blob=OnionNewKeyType.BEST,
+            key=OnionNewKeyType.BEST,
             ports=['80,127.0.0.1:80'],
             client_auth_v3=['5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ'],
         )
@@ -287,10 +289,10 @@ class TestCommands:
         )
 
     def test_add_onion_key_error_1(self):
-        key_blob = 'MC4CAQAwBQYDK2VwBCIEIKK7usustM7o4IjJCPp0zQZpjNKHi42e3phc4VgWt08V'
+        key = 'MC4CAQAwBQYDK2VwBCIEIKK7usustM7o4IjJCPp0zQZpjNKHi42e3phc4VgWt08V'
         cmd = CommandAddOnion(
             key_type=OnionAddKeyType.NEW,
-            key_blob=key_blob,
+            key=key,
             ports=['80,127.0.0.1:80'],
         )
         with pytest.raises(CommandError, match='Incompatible options for'):
@@ -299,14 +301,14 @@ class TestCommands:
     def test_add_onion_key_error_2(self):
         cmd = CommandAddOnion(
             key_type=OnionAddKeyType.RSA1024,
-            key_blob=OnionNewKeyType.BEST,
+            key=OnionNewKeyType.BEST,
             ports=['80,127.0.0.1:80'],
         )
         with pytest.raises(CommandError, match='Incompatible options for'):
             cmd.serialize()
 
     def test_add_onion_key_no_port(self):
-        cmd = CommandAddOnion(key_type=OnionAddKeyType.NEW, key_blob=OnionNewKeyType.BEST)
+        cmd = CommandAddOnion(key_type=OnionAddKeyType.NEW, key=OnionNewKeyType.BEST)
         with pytest.raises(CommandError, match='You must specify one or more virtual ports'):
             cmd.serialize()
 
@@ -328,4 +330,22 @@ class TestCommands:
             '+HSPOST SERVER=9695DFC35FFEB861329B9F1AB04C46397020CE31 '
             'HSADDRESS=facebookcorewwwi\r\n'
             'desc\r\n.\r\n'
+        )
+
+    def test_onion_client_auth_add(self):
+        key = 'MC4CAQAwBQYDK2VuBCIEIKDySsdThgzcc+q+6a3c0GojnneBiCrcr3gakYMcl6ZV'
+        cmd = CommandOnionClientAuthAdd(address='facebookcorewwwi', key=key)
+        assert cmd.serialize() == f'ONION_CLIENT_AUTH_ADD facebookcorewwwi x25519:{key}\r\n'
+
+    def test_onion_client_auth_add_advanced(self):
+        key = 'MC4CAQAwBQYDK2VuBCIEIKDySsdThgzcc+q+6a3c0GojnneBiCrcr3gakYMcl6ZV'
+        cmd = CommandOnionClientAuthAdd(
+            address='facebookcorewwwi',
+            key=key,
+            nickname='Peter',
+            flags={OnionClientAuthFlags.PERMANENT},
+        )
+        assert cmd.serialize() == (
+            f'ONION_CLIENT_AUTH_ADD facebookcorewwwi x25519:{key} '
+            'ClientName=Peter Flags=Permanent\r\n'
         )

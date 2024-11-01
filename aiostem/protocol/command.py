@@ -99,7 +99,7 @@ class Feature(StrEnum):
     VERBOSE_NAMES = 'VERBOSE_NAMES'
 
 
-class OnionAddFlags(StrEnum):
+class OnionServiceFlags(StrEnum):
     """Available flag options for command `ADD_ONION`."""
 
     #: The server should not include the newly generated private key as part of the response.
@@ -125,6 +125,13 @@ class OnionAddKeyType(StrEnum):
     RSA1024 = 'RSA1024'
     #: The server should use the ed25519 v3 key provided in as KeyBlob (v3).
     ED25519_V3 = 'ED25519-V3'
+
+
+class OnionClientAuthFlags(StrEnum):
+    """List of flags attached to a running onion service."""
+
+    #: This client's credentials should be stored in the filesystem.
+    PERMANENT = 'Permanent'
 
 
 class OnionNewKeyType(StrEnum):
@@ -853,8 +860,8 @@ class CommandAddOnion(BaseCommand):
 
     command: ClassVar[Command] = Command.ADD_ONION
     key_type: OnionAddKeyType
-    key_blob: OnionNewKeyType | str
-    flags: MutableSet[OnionAddFlags] = field(default_factory=set)
+    key: OnionNewKeyType | str
+    flags: MutableSet[OnionServiceFlags] = field(default_factory=set)
     max_streams: int | None = None
     #: As in arguments to HiddenServicePort ("port,target")
     ports: MutableSequence[str] = field(default_factory=list)
@@ -869,16 +876,16 @@ class CommandAddOnion(BaseCommand):
         args = []  # type: MutableSequence[Argument]
 
         do_generate = bool(self.key_type == OnionAddKeyType.NEW)
-        has_keyblob = bool(not isinstance(self.key_blob, OnionNewKeyType))
+        has_keyblob = bool(not isinstance(self.key, OnionNewKeyType))
         if do_generate == has_keyblob:
-            msg = "Incompatible options for 'key_type' and 'key_blob'."
+            msg = "Incompatible options for 'key_type' and 'key'."
             raise CommandError(msg)
 
         if not len(self.ports):
             msg = 'You must specify one or more virtual ports.'
             raise CommandError(msg)
 
-        key = f'{self.key_type.value}:{self.key_blob}'
+        key = f'{self.key_type.value}:{self.key}'
         args.append(ArgumentString(key, quotes=QuoteStyle.NEVER_ENSURE))
         if len(self.flags):
             flags = ','.join(self.flags)
@@ -946,4 +953,46 @@ class CommandHsPost(BaseCommand):
             args.append(kwarg)
         ser.arguments.extend(args)
         ser.body = self.descriptor
+        return ser
+
+
+@dataclass(kw_only=True)
+class CommandOnionClientAuthAdd(BaseCommand):
+    """
+    Command implementation for `ONION_CLIENT_AUTH_ADD`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#onion_client_auth_add
+
+    """
+
+    command: ClassVar[Command] = Command.ONION_CLIENT_AUTH_ADD
+    #: V3 onion address without the `.onion` suffix.
+    address: str
+    #: Base64 encoding of x25519 key.
+    key: str
+    #: An optional nickname for the client.
+    nickname: str | None = None
+    #: This client's credentials should be stored in the filesystem.
+    flags: MutableSet[OnionClientAuthFlags] = field(default_factory=set)
+
+    def _serialize(self) -> CommandSerializer:
+        """Append `ONION_CLIENT_AUTH_ADD` specific arguments."""
+        ser = super()._serialize()
+        args = []  # type: MutableSequence[Argument]
+
+        args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
+        args.append(ArgumentString(f'x25519:{self.key}', quotes=QuoteStyle.NEVER_ENSURE))
+
+        if self.nickname is not None:
+            kwarg = ArgumentKeyword(
+                'ClientName', self.nickname, quotes=QuoteStyle.NEVER_ENSURE
+            )
+            args.append(kwarg)
+
+        if len(self.flags):
+            flags = ','.join(self.flags)
+            args.append(ArgumentKeyword('Flags', flags, quotes=QuoteStyle.NEVER))
+
+        ser.arguments.extend(args)
         return ser
