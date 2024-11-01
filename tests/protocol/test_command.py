@@ -12,6 +12,7 @@ from aiostem.protocol import (
     CommandGetInfo,
     CommandMapAddress,
     CommandPostDescriptor,
+    CommandRedirectStream,
     CommandResetConf,
     CommandSaveConf,
     CommandSetCircuitPurpose,
@@ -148,3 +149,11 @@ class TestCommands:
             purpose=CircuitPurpose.GENERAL,
         )
         assert cmd.serialize() == '+POSTDESCRIPTOR purpose=general cache=yes\r\ndesc\r\n.\r\n'
+
+    def test_redirect_stream(self):
+        cmd = CommandRedirectStream(stream=1234, address='127.0.0.1')
+        assert cmd.serialize() == 'REDIRECTSTREAM 1234 127.0.0.1\r\n'
+
+    def test_redirect_stream_with_port(self):
+        cmd = CommandRedirectStream(stream=1234, address='127.0.0.1', port=8443)
+        assert cmd.serialize() == 'REDIRECTSTREAM 1234 127.0.0.1 8443\r\n'

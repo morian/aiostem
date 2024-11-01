@@ -29,6 +29,7 @@ class Command(StrEnum):
     SETROUTERPURPOSE = 'SETROUTERPURPOSE'  # obsolete as of Tor v0.2.0.8
     ATTACHSTREAM = 'ATTACHSTREAM'
     POSTDESCRIPTOR = 'POSTDESCRIPTOR'
+    REDIRECTSTREAM = 'REDIRECTSTREAM'
     HSFETCH = 'HSFETCH'
 
 
@@ -290,7 +291,7 @@ class CommandMapAddress(BaseCommand):
         args = []  # type: MutableSequence[Argument]
 
         for key, value in self.addresses.items():
-            args.append(ArgumentKeyword(key, value))
+            args.append(ArgumentKeyword(key, value, quotes=QuoteStyle.NEVER_ENSURE))
 
         ser.arguments.extend(args)
         return ser
@@ -439,4 +440,33 @@ class CommandPostDescriptor(BaseCommand):
 
         ser.arguments.extend(args)
         ser.body = self.descriptor
+        return ser
+
+
+@dataclass(kw_only=True)
+class CommandRedirectStream(BaseCommand):
+    """
+    Command implementation for 'REDIRECTSTREAM'.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#redirectstream
+
+    """
+
+    command: ClassVar[Command] = Command.REDIRECTSTREAM
+    stream: int
+    address: str
+    port: int | None = None
+
+    def _serialize(self) -> CommandSerializer:
+        """Append 'REDIRECTSTREAM' specific arguments."""
+        ser = super()._serialize()
+        args = []  # type: MutableSequence[Argument]
+
+        args.append(ArgumentString(self.stream))
+        args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
+        if self.port is not None:
+            args.append(ArgumentString(self.port))
+
+        ser.arguments.extend(args)
         return ser
