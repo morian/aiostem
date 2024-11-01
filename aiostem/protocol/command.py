@@ -71,6 +71,7 @@ class Command(StrEnum):
     REDIRECTSTREAM = 'REDIRECTSTREAM'
     CLOSESTREAM = 'CLOSESTREAM'
     CLOSECIRCUIT = 'CLOSECIRCUIT'
+    QUIT = 'QUIT'
     HSFETCH = 'HSFETCH'
 
 
@@ -535,3 +536,53 @@ class CommandCloseStream(BaseCommand):
         args.append(ArgumentString(self.reason, quotes=QuoteStyle.NEVER))
         ser.arguments.extend(args)
         return ser
+
+
+@dataclass(kw_only=True)
+class CommandCloseCircuit(BaseCommand):
+    """
+    Command implementation for `CLOSECIRCUIT`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#closecircuit
+
+    """
+
+    command: ClassVar[Command] = Command.CLOSECIRCUIT
+    circuit: int
+
+    #: Do not close the circuit unless it is unused.
+    if_unused: bool = False
+
+    def _serialize(self) -> CommandSerializer:
+        """Append `CLOSECIRCUIT` specific arguments."""
+        ser = super()._serialize()
+        args = []  # type: MutableSequence[Argument]
+
+        args.append(ArgumentString(self.circuit, quotes=QuoteStyle.NEVER))
+        if self.if_unused:
+            args.append(ArgumentString('IfUnused', quotes=QuoteStyle.NEVER))
+
+        ser.arguments.extend(args)
+        return ser
+
+
+@dataclass(kw_only=True)
+class CommandQuit(BaseCommand):
+    """
+    Command implementation for `QUIT`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#quit
+
+    """
+
+    command: ClassVar[Command] = Command.QUIT
+
+    def _serialize(self) -> CommandSerializer:
+        """
+        Serialize a `QUIT` command.
+
+        This command has no additional arguments.
+        """
+        return super()._serialize()

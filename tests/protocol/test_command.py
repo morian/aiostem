@@ -8,12 +8,14 @@ from aiostem.protocol import (
     CloseStreamReason,
     CommandAttachStream,
     CommandAuthenticate,
+    CommandCloseCircuit,
     CommandCloseStream,
     CommandExtendCircuit,
     CommandGetConf,
     CommandGetInfo,
     CommandMapAddress,
     CommandPostDescriptor,
+    CommandQuit,
     CommandRedirectStream,
     CommandResetConf,
     CommandSaveConf,
@@ -163,3 +165,15 @@ class TestCommands:
     def test_close_stream(self):
         cmd = CommandCloseStream(stream=1234, reason=CloseStreamReason.TIMEOUT)
         assert cmd.serialize() == 'CLOSESTREAM 1234 7\r\n'
+
+    def test_close_circuit(self):
+        cmd = CommandCloseCircuit(circuit=1234)
+        assert cmd.serialize() == 'CLOSECIRCUIT 1234\r\n'
+
+    def test_close_circuit_with_flags(self):
+        cmd = CommandCloseCircuit(circuit=1234, if_unused=True)
+        assert cmd.serialize() == 'CLOSECIRCUIT 1234 IfUnused\r\n'
+
+    def test_quit(self):
+        cmd = CommandQuit()
+        assert cmd.serialize() == 'QUIT\r\n'
