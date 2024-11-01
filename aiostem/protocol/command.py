@@ -73,7 +73,30 @@ class Command(StrEnum):
     CLOSECIRCUIT = 'CLOSECIRCUIT'
     QUIT = 'QUIT'
     USEFEATURE = 'USEFEATURE'
+    RESOLVE = 'RESOLVE'
+    PROTOCOLINFO = 'PROTOCOLINFO'
+    LOADCONF = 'LOADCONF'
+    TAKEOWNERSHIP = 'TAKEOWNERSHIP'
+    AUTHCHALLENGE = 'AUTHCHALLENGE'
+    DROPGUARDS = 'DROPGUARDS'
     HSFETCH = 'HSFETCH'
+    ADD_ONION = 'ADD_ONION'
+    DEL_ONION = 'DEL_ONION'
+    HSPOST = 'HSPOST'
+    ONION_CLIENT_AUTH_ADD = 'ONION_CLIENT_AUTH_ADD'
+    ONION_CLIENT_AUTH_REMOVE = 'ONION_CLIENT_AUTH_REMOVE'
+    ONION_CLIENT_AUTH_VIEW = 'ONION_CLIENT_AUTH_VIEW'
+    DROPOWNERSHIP = 'DROPOWNERSHIP'
+    DROPTIMEOUTS = 'DROPTIMEOUTS'
+
+
+class Feature(StrEnum):
+    """All known features."""
+
+    #: Same as passing 'EXTENDED' to SETEVENTS.
+    EXTENDED_EVENTS = 'EXTENDED_EVENTS'
+    #: Replaces ServerID with LongName in events and GETINFO results.
+    VERBOSE_NAMES = 'VERBOSE_NAMES'
 
 
 class Signal(StrEnum):
@@ -602,7 +625,7 @@ class CommandUseFeature(BaseCommand):
     """
 
     command: ClassVar[Command] = Command.USEFEATURE
-    features: MutableSet[str] = field(default_factory=set)
+    features: MutableSet[Feature | str] = field(default_factory=set)
 
     def _serialize(self) -> CommandSerializer:
         """Append `USEFEATURE` specific arguments."""
@@ -610,5 +633,33 @@ class CommandUseFeature(BaseCommand):
         args = []  # type: MutableSequence[Argument]
         for feature in self.features:
             args.append(ArgumentString(feature, quotes=QuoteStyle.NEVER_ENSURE))
+        ser.arguments.extend(args)
+        return ser
+
+
+@dataclass(kw_only=True)
+class CommandResolve(BaseCommand):
+    """
+    Command implementation for `RESOLVE`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#resolve
+
+    """
+
+    command: ClassVar[Command] = Command.RESOLVE
+    addresses: MutableSequence[str] = field(default_factory=list)
+    reverse: bool = False
+
+    def _serialize(self) -> CommandSerializer:
+        """Append `RESOLVE` specific arguments."""
+        ser = super()._serialize()
+        args = []  # type: MutableSequence[Argument]
+
+        if self.reverse:
+            args.append(ArgumentKeyword('mode', 'reverse', quotes=QuoteStyle.NEVER))
+        for address in self.addresses:
+            args.append(ArgumentString(address, quotes=QuoteStyle.NEVER_ENSURE))
+
         ser.arguments.extend(args)
         return ser

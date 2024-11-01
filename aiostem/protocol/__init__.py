@@ -17,12 +17,14 @@ from .command import (
     CommandQuit,
     CommandRedirectStream,
     CommandResetConf,
+    CommandResolve,
     CommandSaveConf,
     CommandSetCircuitPurpose,
     CommandSetConf,
     CommandSetEvents,
     CommandSignal,
     CommandUseFeature,
+    Feature,
     Signal,
 )
 from .event import Event
@@ -46,6 +48,7 @@ __all__ = [
     'CommandQuit',
     'CommandRedirectStream',
     'CommandResetConf',
+    'CommandResolve',
     'CommandSaveConf',
     'CommandSetCircuitPurpose',
     'CommandSetConf',
@@ -53,6 +56,7 @@ __all__ = [
     'CommandSignal',
     'CommandUseFeature',
     'Event',
+    'Feature',
     'QuoteStyle',
     'Signal',
 ]

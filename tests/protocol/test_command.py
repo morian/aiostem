@@ -18,6 +18,7 @@ from aiostem.protocol import (
     CommandQuit,
     CommandRedirectStream,
     CommandResetConf,
+    CommandResolve,
     CommandSaveConf,
     CommandSetCircuitPurpose,
     CommandSetConf,
@@ -182,3 +183,11 @@ class TestCommands:
     def test_use_feature(self):
         cmd = CommandUseFeature(features={'VERBOSE_NAMES'})
         assert cmd.serialize() == 'USEFEATURE VERBOSE_NAMES\r\n'
+
+    def test_resolve(self):
+        cmd = CommandResolve(addresses=['torproject.org'])
+        assert cmd.serialize() == 'RESOLVE torproject.org\r\n'
+
+    def test_resolve_reverse(self):
+        cmd = CommandResolve(addresses=['1.1.1.1'], reverse=True)
+        assert cmd.serialize() == 'RESOLVE mode=reverse 1.1.1.1\r\n'
