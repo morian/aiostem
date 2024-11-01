@@ -24,6 +24,8 @@ from aiostem.protocol import (
     CommandLoadConf,
     CommandMapAddress,
     CommandOnionClientAuthAdd,
+    CommandOnionClientAuthRemove,
+    CommandOnionClientAuthView,
     CommandPostDescriptor,
     CommandProtocolInfo,
     CommandQuit,
@@ -349,3 +351,15 @@ class TestCommands:
             f'ONION_CLIENT_AUTH_ADD facebookcorewwwi x25519:{key} '
             'ClientName=Peter Flags=Permanent\r\n'
         )
+
+    def test_onion_client_auth_remove(self):
+        cmd = CommandOnionClientAuthRemove(address='facebookcorewwwi')
+        assert cmd.serialize() == 'ONION_CLIENT_AUTH_REMOVE facebookcorewwwi\r\n'
+
+    def test_onion_client_auth_view(self):
+        cmd = CommandOnionClientAuthView()
+        assert cmd.serialize() == 'ONION_CLIENT_AUTH_VIEW\r\n'
+
+    def test_onion_client_auth_view_with_address(self):
+        cmd = CommandOnionClientAuthView(address='facebookcorewwwi')
+        assert cmd.serialize() == 'ONION_CLIENT_AUTH_VIEW facebookcorewwwi\r\n'

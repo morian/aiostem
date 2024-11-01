@@ -996,3 +996,57 @@ class CommandOnionClientAuthAdd(BaseCommand):
 
         ser.arguments.extend(args)
         return ser
+
+
+@dataclass(kw_only=True)
+class CommandOnionClientAuthRemove(BaseCommand):
+    """
+    Command implementation for `ONION_CLIENT_AUTH_REMOVE`.
+
+    Tells the connected Tor to remove the client-side v3 client auth credentials
+    for the onion service with `address`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#onion_client_auth_remove
+
+    """
+
+    command: ClassVar[Command] = Command.ONION_CLIENT_AUTH_REMOVE
+    #: V3 onion address without the `.onion` suffix.
+    address: str
+
+    def _serialize(self) -> CommandSerializer:
+        """Append `ONION_CLIENT_AUTH_REMOVE` specific arguments."""
+        ser = super()._serialize()
+        args = []  # type: MutableSequence[Argument]
+        args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
+        ser.arguments.extend(args)
+        return ser
+
+
+@dataclass(kw_only=True)
+class CommandOnionClientAuthView(BaseCommand):
+    """
+    Command implementation for `ONION_CLIENT_AUTH_VIEW`.
+
+    Tells the connected Tor to list all the stored client-side v3 client auth credentials
+    for `address`. If no `address` is provided, list all the stored client-side v3 client
+    auth credentials.
+
+    See Also:
+        https://spec.torproject.org/control-spec/commands.html#onion_client_auth_remove
+
+    """
+
+    command: ClassVar[Command] = Command.ONION_CLIENT_AUTH_VIEW
+    #: V3 onion address without the `.onion` suffix.
+    address: str | None = None
+
+    def _serialize(self) -> CommandSerializer:
+        """Append `ONION_CLIENT_AUTH_VIEW` specific arguments."""
+        ser = super()._serialize()
+        args = []  # type: MutableSequence[Argument]
+        if self.address is not None:
+            args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
+        ser.arguments.extend(args)
+        return ser
