@@ -9,7 +9,14 @@ DEFAULT_CONTROL_PORT: int = 9051
 
 
 class ControlConnector:
-    """Base class for all connector types used by the controller."""
+    """
+    Base class for all connector types used by the controller.
+
+    These are simply helper classes providing a pair of :class:`asyncio.StreamReader`
+    and :class:`asyncio.StreamWriter` needed to perform actions on the target control
+    port.
+
+    """
 
     @abstractmethod
     async def connect(self) -> tuple[asyncio.StreamReader, asyncio.StreamWriter]:
@@ -20,8 +27,6 @@ class ControlConnector:
             A tuple of :class:`asyncio.StreamReader` and :class:`asyncio.StreamWriter`.
 
         """
-        msg = 'connect() must be implemented by ControlConnector subclass'
-        raise NotImplementedError(msg)
 
 
 class ControlConnectorPort(ControlConnector):

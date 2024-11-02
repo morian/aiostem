@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable
 from contextlib import AsyncExitStack, suppress
 from typing import TYPE_CHECKING, Any, TypeAlias, cast, overload
 
@@ -24,6 +24,7 @@ from .message import Message
 from .util import hs_address_strip_tld
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable, Mapping, MutableMapping  # noqa: F401
     from types import TracebackType
     from typing import Self
 
@@ -46,7 +47,7 @@ class Controller:
             connector: the connector to the control socket
 
         """
-        self._evt_callbacks = {}  # type: dict[str, list[EventCallbackType]]
+        self._evt_callbacks = {}  # type: MutableMapping[str, list[EventCallbackType]]
         self._events_lock = asyncio.Lock()
         self._request_lock = asyncio.Lock()
         self._authenticated = False
@@ -579,7 +580,7 @@ class Controller:
             query: the query to send to Tor's daemon
 
         Returns:
-            The correspoding reply.
+            The corresponding reply.
 
         """
         message = await self._request(query.command)

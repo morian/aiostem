@@ -17,6 +17,11 @@ Effective exception
 -------------------
 
 .. autoexception:: ControllerError
-.. autoexception:: MessageError
 .. autoexception:: ProtocolError
+
+Protocol exceptions
+-------------------
+
+.. autoexception:: CommandError
+.. autoexception:: MessageError
 .. autoexception:: ResponseError

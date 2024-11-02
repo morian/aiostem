@@ -1,11 +1,11 @@
 """
-:mod:`aiostem.exception` defines the following hierarchy of exceptions.
+:mod:`aiostem.exceptions` defines the following hierarchy of exceptions.
 
 * :exc:`AiostemError`
    * :exc:`ControllerError`
-   * :exc:`MessageError`
    * :exc:`ProtocolError`
       * :exc:`CommandError`
+      * :exc:`MessageError`
       * :exc:`ResponseError`
 """
 
@@ -21,11 +21,16 @@ class ControllerError(AiostemError):
 
 
 class ProtocolError(AiostemError):
-    """Raised when a protocol issue occur between the controller and Tor."""
+    """Raises when a bad command or a bad reply was encountered."""
 
 
 class CommandError(ProtocolError):
-    """An invalid command argument was provided."""
+    """
+    An error occurred while building a new command.
+
+    This is a typical outcome when invalid arguments or argument combination are provided.
+    It can also be the result of a detected command injection.
+    """
 
 
 class MessageError(ProtocolError):
