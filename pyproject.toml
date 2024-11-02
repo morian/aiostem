@@ -11,6 +11,7 @@ authors = [
 description = 'Asynchronous Tor controller library for asyncio and Python'
 readme = 'README.rst'
 classifiers = [
+	'Framework :: AsyncIO',
 	'Intended Audience :: Developers',
 	'Intended Audience :: Information Technology',
 	'License :: OSI Approved :: MIT License',
@@ -21,6 +22,8 @@ classifiers = [
 	'Programming Language :: Python :: 3.11',
 	'Programming Language :: Python :: 3.12',
 	'Programming Language :: Python :: 3.13',
+	'Topic :: Software Development :: Libraries :: Python Modules',
+	'Typing :: Typed',
 ]
 dependencies = [
 	'aiofiles >= 23.0, < 25.0',

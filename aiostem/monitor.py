@@ -239,7 +239,7 @@ class Monitor:
 
     async def _on_ctrl_client_status(self, event: Event) -> None:
         """
-        Handle a 'STATUS_CLIENT' event.
+        Handle a `STATUS_CLIENT` event.
 
         Note that this is an event handler executed in the receive loop from the controller.
         You cannot perform new controller requests from here, use a queue or something else.

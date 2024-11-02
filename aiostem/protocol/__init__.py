@@ -47,6 +47,7 @@ from .command import (
     Signal,
 )
 from .event import EventWord, EventWordInternal
+from .message import Message
 
 __all__ = [
     'Argument',
@@ -93,6 +94,7 @@ __all__ = [
     'EventWord',
     'EventWordInternal',
     'Feature',
+    'Message',
     'OnionAddKeyType',
     'OnionClientAuthFlags',
     'OnionNewKeyType',

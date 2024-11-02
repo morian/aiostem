@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from aiostem import util
+from aiostem import utils
 
 
 class TestUtils:
@@ -16,7 +16,7 @@ class TestUtils:
         ],
     )
     def test_onion_v2(self, address, success):
-        assert util.is_valid_hs_v2_address(address) == success, address
+        assert utils.is_valid_hs_v2_address(address) == success, address
 
     @pytest.mark.parametrize(
         ('address', 'success'),
@@ -29,7 +29,7 @@ class TestUtils:
         ],
     )
     def test_onion_v3(self, address, success):
-        assert util.is_valid_hs_v3_address(address) == success, address
+        assert utils.is_valid_hs_v3_address(address) == success, address
 
     @pytest.mark.parametrize(
         ('address', 'result'),
@@ -47,7 +47,7 @@ class TestUtils:
         ],
     )
     def test_onion_strip_tld(self, address, result):
-        assert util.hs_address_strip_tld(address) == result
+        assert utils.hs_address_strip_tld(address) == result
 
     @pytest.mark.parametrize(
         ('address', 'version'),
@@ -60,7 +60,7 @@ class TestUtils:
     )
     def test_onion_good_version(self, address, version):
         has_tld = address.endswith('.onion')
-        assert util.hs_address_version(address, allow_suffix=has_tld) == version
+        assert utils.hs_address_version(address, allow_suffix=has_tld) == version
 
     @pytest.mark.parametrize(
         'address',
@@ -72,7 +72,7 @@ class TestUtils:
     )
     def test_onion_bad_version(self, address):
         with pytest.raises(ValueError, match='Invalid hidden service address'):
-            util.hs_address_version(address)
+            utils.hs_address_version(address)
 
     @pytest.mark.parametrize(
         ('address', 'result'),
@@ -84,4 +84,4 @@ class TestUtils:
     )
     def test_is_valid_onion_address(self, address, result):
         has_tld = address.endswith('.onion')
-        assert util.is_valid_hs_address(address, allow_suffix=has_tld) == result
+        assert utils.is_valid_hs_address(address, allow_suffix=has_tld) == result

@@ -38,7 +38,7 @@ from .protocol import (
     EventWordInternal,
     Signal,
 )
-from .util import hs_address_strip_tld
+from .utils import hs_address_strip_tld
 
 if TYPE_CHECKING:
     from collections.abc import (  # noqa: F401
@@ -341,8 +341,8 @@ class Controller:
             writer.write(query.encode('ascii'))
             await writer.drain()
 
-            resp = await replies.get()
-            replies.task_done()
+        resp = await replies.get()
+        replies.task_done()
 
         if resp is None:  # pragma: no cover
             msg = 'Controller has disconnected!'

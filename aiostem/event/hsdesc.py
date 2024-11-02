@@ -11,7 +11,7 @@ from stem.descriptor.hidden_service import (
 from ..exceptions import MessageError, ProtocolError
 from ..message import Message, MessageData, MessageLineParser
 from ..reply.base import Event
-from ..util import hs_address_version
+from ..utils import hs_address_version
 
 if TYPE_CHECKING:
     from collections.abc import Mapping

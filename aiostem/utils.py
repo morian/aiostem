@@ -5,15 +5,14 @@ import hashlib
 import re
 import types
 
-HS_ADDRESS_SUFFIX = '.onion'
 HS_ADDRESS_LENGTH = types.SimpleNamespace()
 HS_ADDRESS_LENGTH.V2 = 16
 HS_ADDRESS_LENGTH.V3 = 56
 
-HS_V2_ADDRESS_PATTERN = re.compile('^[a-z2-7]{' + str(HS_ADDRESS_LENGTH.V2) + '}$')
-
 HS_V3_ADDRESS_CHECKSUM = b'.onion checksum'
+HS_V2_ADDRESS_PATTERN = re.compile('^[a-z2-7]{' + str(HS_ADDRESS_LENGTH.V2) + '}$')
 HS_V3_ADDRESS_PATTERN = re.compile('^[a-z2-7]{' + str(HS_ADDRESS_LENGTH.V3) + '}$')
+HS_ADDRESS_SUFFIX = '.onion'
 
 
 def is_valid_hs_v2_address(address: str) -> bool:
