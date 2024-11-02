@@ -10,7 +10,7 @@ import pytest_asyncio
 from aiostem import Controller
 from aiostem.event import HsDescContentEvent, HsDescEvent
 from aiostem.message import Message
-from aiostem.query import HsFetchQuery
+from aiostem.protocol import CommandHsFetch
 from aiostem.reply import HsFetchReply, SignalReply
 
 if TYPE_CHECKING:
@@ -103,7 +103,8 @@ class CustomController(Controller):
         else:
             await self.fake_hs_events(address)
 
-        return HsFetchReply(HsFetchQuery(address, servers), Message('250 OK'))
+        command = CommandHsFetch(address=address, servers=servers)
+        return HsFetchReply(command, Message('250 OK'))
 
     async def push_spurious_event(self, message: Message) -> None:
         await self._on_event_received(message)

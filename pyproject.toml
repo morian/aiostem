@@ -34,7 +34,6 @@ include = [
 	'aiostem',
 	'aiostem.event',
 	'aiostem.protocol',
-	'aiostem.query',
 	'aiostem.reply',
 ]
 

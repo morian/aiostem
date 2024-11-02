@@ -11,4 +11,3 @@ Code reference
    events
    exceptions
    monitor
-   internal/index
