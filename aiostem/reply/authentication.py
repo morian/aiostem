@@ -6,7 +6,7 @@ from typing import cast
 
 from ..exceptions import ProtocolError
 from ..message import Message, MessageLineParser
-from ..query import AuthChallengeQuery
+from ..protocol import CommandAuthChallenge
 from .base import Reply
 from .simple import SimpleReply
 
@@ -21,11 +21,11 @@ class AuthChallengeReply(Reply):
     CLIENT_HASH_CONSTANT: bytes = b'Tor safe cookie authentication controller-to-server hash'
     SERVER_HASH_CONSTANT: bytes = b'Tor safe cookie authentication server-to-controller hash'
 
-    def __init__(self, query: AuthChallengeQuery, message: Message) -> None:
+    def __init__(self, command: CommandAuthChallenge, message: Message) -> None:
         """Initialize a new authentication challenge response."""
         self._server_hash = b''
         self._server_nonce = b''
-        super().__init__(query, message)
+        super().__init__(command, message)
 
     def _message_parse(self, message: Message) -> None:
         """Parse the provided message."""
@@ -41,9 +41,9 @@ class AuthChallengeReply(Reply):
         self._server_nonce = bytes.fromhex(server_nonce)
 
     @property
-    def query(self) -> AuthChallengeQuery:
-        """Our query is a AuthChallengeQuery."""
-        return cast(AuthChallengeQuery, super().query)
+    def query(self) -> CommandAuthChallenge:
+        """Our query is a CommandAuthChallenge."""
+        return cast(CommandAuthChallenge, super().query)
 
     @property
     def server_hash(self) -> bytes:
@@ -65,11 +65,19 @@ class AuthChallengeReply(Reply):
     def server_token_build(self, cookie: bytes) -> bytes:
         """Build a token suitable for server hash check from the client."""
         key = self.SERVER_HASH_CONSTANT
-        msg = cookie + self.query.nonce + self.server_nonce
+        if isinstance(self.query.nonce, str):
+            nonce = self.query.nonce.encode('ascii')
+        else:
+            nonce = self.query.nonce
+        msg = cookie + nonce + self.server_nonce
         return hmac.new(key, msg, hashlib.sha256).digest()
 
     def client_token_build(self, cookie: bytes) -> bytes:
         """Build a token suitable for authentication from the client."""
         key = self.CLIENT_HASH_CONSTANT
-        msg = cookie + self.query.nonce + self.server_nonce
+        if isinstance(self.query.nonce, str):
+            nonce = self.query.nonce.encode('ascii')
+        else:
+            nonce = self.query.nonce
+        msg = cookie + nonce + self.server_nonce
         return hmac.new(key, msg, hashlib.sha256).digest()

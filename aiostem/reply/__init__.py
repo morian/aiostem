@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from collections.abc import Mapping
 
     from ..message import Message
-    from ..query import Query
+    from ..protocol import Command
 
 
 REPLY_MAP: Mapping[str, type[Reply]] = {
@@ -36,20 +36,20 @@ REPLY_MAP: Mapping[str, type[Reply]] = {
 }
 
 
-def reply_parser(query: Query, message: Message) -> Reply:
+def reply_parser(command: Command, message: Message) -> Reply:
     """
-    Parse the provided message as a reply to the provided query.
+    Parse the provided message as a reply to the provided command.
 
     Args:
-        message: received reply message for the query
-        query: the original query that was sent
+        message: received reply message for the command
+        command: the original command that was sent
 
     Returns:
-        A reply corresponding to the providing query.
+        A reply corresponding to the providing command.
 
     """
-    parser = REPLY_MAP.get(query.COMMAND_NAME, UnknownReply)
-    return parser(query, message)
+    parser = REPLY_MAP.get(command.command, UnknownReply)
+    return parser(command, message)
 
 
 __all__ = [

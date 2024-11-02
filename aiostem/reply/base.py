@@ -6,7 +6,7 @@ from ..exceptions import MessageError, ResponseError
 
 if TYPE_CHECKING:
     from ..message import Message, MessageLineParser
-    from ..query import Query
+    from ..protocol import Command
 
 
 class BaseResponse:
@@ -53,14 +53,14 @@ class BaseResponse:
 class Reply(BaseResponse):
     """Anything received in response to a request."""
 
-    def __init__(self, query: Query, message: Message) -> None:
-        """Build a response that is a reply to a query we sent."""
+    def __init__(self, command: Command, message: Message) -> None:
+        """Build a response that is a reply to a command we sent."""
         super().__init__(message)
-        self._query = query
+        self._query = command
 
     @property
-    def query(self) -> Query:
-        """Get the the original query related to this reply."""
+    def query(self) -> Command:
+        """Get the the original command related to this reply."""
         return self._query
 
     def _message_parse(self, message: Message) -> None:

@@ -13,7 +13,7 @@ from aiostem.event import (
     UnknownEvent,
     event_parser,
 )
-from aiostem.exceptions import ControllerError, ProtocolError, ResponseError
+from aiostem.exceptions import CommandError, ControllerError, ProtocolError, ResponseError
 from aiostem.message import Message
 
 # All test coroutines will be treated as marked.
@@ -33,12 +33,12 @@ class TestController:
 
     async def test_already_entered(self, raw_controller):
         with pytest.raises(RuntimeError, match='Controller is already entered'):
-            await raw_controller.connect()
+            await raw_controller.__aenter__()
 
     async def test_not_entered_from_path(self):
         controller = Controller.from_path('/run/tor/not_a_valid_socket.sock')
         with pytest.raises(FileNotFoundError, match='No such file'):
-            await controller.connect()
+            await controller.__aenter__()
         assert controller.connected is False
 
     async def test_authenticate_no_password(self, raw_controller):
@@ -67,8 +67,6 @@ class TestController:
 
         with pytest.raises(ControllerError, match='Controller is not connected'):
             await controller.protocol_info()
-
-        await controller.close()
 
     async def test_authenticated_controller(self, controller):
         assert controller.connected
@@ -137,7 +135,7 @@ class TestController:
         await controller.del_event_handler('DISCONNECT', callback)
 
     async def test_cmd_subscribe_bad_event(self, controller):
-        with pytest.raises(ResponseError, match='Unrecognized event'):
+        with pytest.raises(CommandError, match="Unknown event 'INVALID_EVENT'"):
             await controller.add_event_handler('INVALID_EVENT', lambda x: None)
 
     @pytest.mark.timeout(2)

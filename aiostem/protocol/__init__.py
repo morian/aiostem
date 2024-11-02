@@ -38,6 +38,7 @@ from .command import (
     CommandSignal,
     CommandTakeOwnership,
     CommandUseFeature,
+    CommandWord,
     Feature,
     OnionAddKeyType,
     OnionClientAuthFlags,
@@ -45,12 +46,13 @@ from .command import (
     OnionServiceFlags,
     Signal,
 )
-from .event import Event
+from .event import EventWord, EventWordInternal
 
 __all__ = [
     'Argument',
     'ArgumentKeyword',
     'ArgumentString',
+    'BaseCommand',
     'CircuitPurpose',
     'CloseStreamReason',
     'Command',
@@ -87,7 +89,9 @@ __all__ = [
     'CommandSignal',
     'CommandTakeOwnership',
     'CommandUseFeature',
-    'Event',
+    'CommandWord',
+    'EventWord',
+    'EventWordInternal',
     'Feature',
     'OnionAddKeyType',
     'OnionClientAuthFlags',

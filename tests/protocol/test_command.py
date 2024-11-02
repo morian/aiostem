@@ -41,7 +41,7 @@ from aiostem.protocol import (
     CommandSignal,
     CommandTakeOwnership,
     CommandUseFeature,
-    Event,
+    EventWord,
     OnionAddKeyType,
     OnionClientAuthFlags,
     OnionNewKeyType,
@@ -86,7 +86,7 @@ class TestCommands:
         assert cmd.serialize() == 'SETEVENTS EXTENDED\r\n'
 
     def test_set_events_circ(self):
-        cmd = CommandSetEvents(events={Event.CIRC})
+        cmd = CommandSetEvents(events={EventWord.CIRC})
         assert cmd.serialize() == 'SETEVENTS CIRC\r\n'
 
     def test_authenticate_with_password(self):
@@ -229,7 +229,7 @@ class TestCommands:
         assert cmd.serialize() == 'TAKEOWNERSHIP\r\n'
 
     def test_auth_challenge_bytes(self):
-        nonce = secrets.token_bytes(32)
+        nonce = secrets.token_bytes(CommandAuthChallenge.NONCE_LENGTH)
         cmd = CommandAuthChallenge(nonce=nonce)
         assert cmd.serialize() == f'AUTHCHALLENGE SAFECOOKIE {nonce.hex()}\r\n'
 

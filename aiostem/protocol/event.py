@@ -3,7 +3,13 @@ from __future__ import annotations
 from enum import StrEnum
 
 
-class Event(StrEnum):
+class EventWordInternal(StrEnum):
+    """All events handled internally in this library."""
+
+    DISCONNECT = 'DISCONNECT'
+
+
+class EventWord(StrEnum):
     """All possible events to subscribe to."""
 
     #: Circuit status changed

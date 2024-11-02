@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from collections.abc import MutableSequence
 
     from .argument import Argument
-    from .command import Command
+    from .command import CommandWord
 
 
 class CommandSerializer:
@@ -16,7 +16,7 @@ class CommandSerializer:
 
     END_OF_LINE: ClassVar[str] = '\r\n'
 
-    def __init__(self, name: Command) -> None:
+    def __init__(self, name: CommandWord) -> None:
         """
         Create a new command serializer.
 
@@ -62,7 +62,7 @@ class CommandSerializer:
         return prefix + self.END_OF_LINE.join(lines) + self.END_OF_LINE
 
     @property
-    def command(self) -> Command:
+    def command(self) -> CommandWord:
         """Get the command name for the underlying command."""
         return self._command
 

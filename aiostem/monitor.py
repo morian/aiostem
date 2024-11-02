@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, ClassVar
 from .event import Event, NetworkLivenessEvent, StatusClientEvent
 from .exceptions import ControllerError, ResponseError
 from .message import Message
+from .protocol import EventWord
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -107,23 +108,23 @@ class Monitor:
         try:
             # Get notified when a 'STATUS_CLIENT' event occurs.
             await controller.add_event_handler(
-                'STATUS_CLIENT',
+                EventWord.STATUS_CLIENT,
                 self._on_ctrl_client_status,
             )
             context.push_async_callback(
                 controller.del_event_handler,
-                'STATUS_CLIENT',
+                EventWord.STATUS_CLIENT,
                 self._on_ctrl_client_status,
             )
 
             # Get notified when a 'NETWORK_LIVENESS' event occurs.
             await controller.add_event_handler(
-                'NETWORK_LIVENESS',
+                EventWord.NETWORK_LIVENESS,
                 self._on_ctrl_liveness_status,
             )
             context.push_async_callback(
                 controller.del_event_handler,
-                'NETWORK_LIVENESS',
+                EventWord.NETWORK_LIVENESS,
                 self._on_ctrl_liveness_status,
             )
 

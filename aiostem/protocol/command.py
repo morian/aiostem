@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import MutableMapping, MutableSequence, MutableSet
+from collections.abc import MutableMapping, MutableSequence
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from typing import ClassVar
 
 from ..exceptions import CommandError
 from .argument import Argument, ArgumentKeyword, ArgumentString, QuoteStyle  # noqa: F401
-from .event import Event
+from .event import EventWord
 from .utils import CommandSerializer
 
 
@@ -51,7 +51,7 @@ class CloseStreamReason(IntEnum):
     NOTDIRECTORY = 14
 
 
-class Command(StrEnum):
+class CommandWord(StrEnum):
     """All handled command words."""
 
     SETCONF = 'SETCONF'
@@ -184,10 +184,10 @@ class CircuitPurpose(StrEnum):
     BRIDGE = 'bridge'
 
 
-class BaseCommand(ABC):
+class Command(ABC):
     """Base interface class for all commands."""
 
-    command: ClassVar[Command]
+    command: ClassVar[CommandWord]
 
     @abstractmethod
     def _serialize(self) -> CommandSerializer:
@@ -213,7 +213,7 @@ class BaseCommand(ABC):
 
 
 @dataclass(kw_only=True)
-class CommandSetConf(BaseCommand):
+class CommandSetConf(Command):
     """
     Command implementation for `SETCONF`.
 
@@ -224,7 +224,7 @@ class CommandSetConf(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.SETCONF
+    command: ClassVar[CommandWord] = CommandWord.SETCONF
     values: MutableMapping[str, int | str | None] = field(default_factory=dict)
 
     def _serialize(self) -> CommandSerializer:
@@ -242,7 +242,7 @@ class CommandSetConf(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandResetConf(BaseCommand):
+class CommandResetConf(Command):
     """
     Command implementation for `RESETCONF`.
 
@@ -254,7 +254,7 @@ class CommandResetConf(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.RESETCONF
+    command: ClassVar[CommandWord] = CommandWord.RESETCONF
     values: MutableMapping[str, int | str | None] = field(default_factory=dict)
 
     def _serialize(self) -> CommandSerializer:
@@ -272,7 +272,7 @@ class CommandResetConf(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandGetConf(BaseCommand):
+class CommandGetConf(Command):
     """
     Command implementation for `GETCONF`.
 
@@ -283,7 +283,7 @@ class CommandGetConf(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.GETCONF
+    command: ClassVar[CommandWord] = CommandWord.GETCONF
     keywords: MutableSequence[str] = field(default_factory=list)
 
     def _serialize(self) -> CommandSerializer:
@@ -297,7 +297,7 @@ class CommandGetConf(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandSetEvents(BaseCommand):
+class CommandSetEvents(Command):
     """
     Command implementation for `SETEVENTS`.
 
@@ -308,8 +308,8 @@ class CommandSetEvents(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.SETEVENTS
-    events: MutableSet[Event] = field(default_factory=set)
+    command: ClassVar[CommandWord] = CommandWord.SETEVENTS
+    events: set[EventWord] = field(default_factory=set)
     extended: bool = False
 
     def _serialize(self) -> CommandSerializer:
@@ -325,7 +325,7 @@ class CommandSetEvents(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandAuthenticate(BaseCommand):
+class CommandAuthenticate(Command):
     """
     Command implementation for `AUTHENTICATE`.
 
@@ -336,7 +336,7 @@ class CommandAuthenticate(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.AUTHENTICATE
+    command: ClassVar[CommandWord] = CommandWord.AUTHENTICATE
     token: bytes | str | None
 
     def _serialize(self) -> CommandSerializer:
@@ -353,7 +353,7 @@ class CommandAuthenticate(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandSaveConf(BaseCommand):
+class CommandSaveConf(Command):
     """
     Command implementation for `SAVECONF`.
 
@@ -364,7 +364,7 @@ class CommandSaveConf(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.SAVECONF
+    command: ClassVar[CommandWord] = CommandWord.SAVECONF
     force: bool = False
 
     def _serialize(self) -> CommandSerializer:
@@ -378,7 +378,7 @@ class CommandSaveConf(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandSignal(BaseCommand):
+class CommandSignal(Command):
     """
     Command implementation for `SIGNAL`.
 
@@ -389,7 +389,7 @@ class CommandSignal(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.SIGNAL
+    command: ClassVar[CommandWord] = CommandWord.SIGNAL
     signal: Signal
 
     def _serialize(self) -> CommandSerializer:
@@ -402,7 +402,7 @@ class CommandSignal(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandMapAddress(BaseCommand):
+class CommandMapAddress(Command):
     """
     Command implementation for `MAPADDRESS`.
 
@@ -415,7 +415,7 @@ class CommandMapAddress(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.MAPADDRESS
+    command: ClassVar[CommandWord] = CommandWord.MAPADDRESS
     addresses: MutableMapping[str, str] = field(default_factory=dict)
 
     def _serialize(self) -> CommandSerializer:
@@ -435,7 +435,7 @@ class CommandMapAddress(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandGetInfo(BaseCommand):
+class CommandGetInfo(Command):
     """
     Command implementation for `GETINFO`.
 
@@ -447,7 +447,7 @@ class CommandGetInfo(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.GETINFO
+    command: ClassVar[CommandWord] = CommandWord.GETINFO
     keywords: MutableSequence[str] = field(default_factory=list)
 
     def _serialize(self) -> CommandSerializer:
@@ -467,7 +467,7 @@ class CommandGetInfo(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandExtendCircuit(BaseCommand):
+class CommandExtendCircuit(Command):
     """
     Command implementation for `EXTENDCIRCUIT`.
 
@@ -481,7 +481,7 @@ class CommandExtendCircuit(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.EXTENDCIRCUIT
+    command: ClassVar[CommandWord] = CommandWord.EXTENDCIRCUIT
     circuit: int
     server_spec: MutableSequence[str] = field(default_factory=list)
     purpose: CircuitPurpose | None = None
@@ -503,7 +503,7 @@ class CommandExtendCircuit(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandSetCircuitPurpose(BaseCommand):
+class CommandSetCircuitPurpose(Command):
     """
     Command implementation for `SETCIRCUITPURPOSE`.
 
@@ -517,7 +517,7 @@ class CommandSetCircuitPurpose(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.SETCIRCUITPURPOSE
+    command: ClassVar[CommandWord] = CommandWord.SETCIRCUITPURPOSE
     circuit: int
     purpose: CircuitPurpose
 
@@ -534,7 +534,7 @@ class CommandSetCircuitPurpose(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandAttachStream(BaseCommand):
+class CommandAttachStream(Command):
     """
     Command implementation for `ATTACHSTREAM`.
 
@@ -546,7 +546,7 @@ class CommandAttachStream(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.ATTACHSTREAM
+    command: ClassVar[CommandWord] = CommandWord.ATTACHSTREAM
     stream: int
     circuit: int
     hop: int | None = None
@@ -566,7 +566,7 @@ class CommandAttachStream(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandPostDescriptor(BaseCommand):
+class CommandPostDescriptor(Command):
     """
     Command implementation for `POSTDESCRIPTOR`.
 
@@ -580,7 +580,7 @@ class CommandPostDescriptor(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.POSTDESCRIPTOR
+    command: ClassVar[CommandWord] = CommandWord.POSTDESCRIPTOR
     purpose: CircuitPurpose | None = None
     cache: bool | None = None
     descriptor: str
@@ -602,7 +602,7 @@ class CommandPostDescriptor(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandRedirectStream(BaseCommand):
+class CommandRedirectStream(Command):
     """
     Command implementation for `REDIRECTSTREAM`.
 
@@ -615,7 +615,7 @@ class CommandRedirectStream(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.REDIRECTSTREAM
+    command: ClassVar[CommandWord] = CommandWord.REDIRECTSTREAM
     stream: int
     address: str
     port: int | None = None
@@ -635,7 +635,7 @@ class CommandRedirectStream(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandCloseStream(BaseCommand):
+class CommandCloseStream(Command):
     """
     Command implementation for `CLOSESTREAM`.
 
@@ -646,7 +646,7 @@ class CommandCloseStream(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.CLOSESTREAM
+    command: ClassVar[CommandWord] = CommandWord.CLOSESTREAM
     stream: int
     reason: CloseStreamReason
 
@@ -661,7 +661,7 @@ class CommandCloseStream(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandCloseCircuit(BaseCommand):
+class CommandCloseCircuit(Command):
     """
     Command implementation for `CLOSECIRCUIT`.
 
@@ -673,7 +673,7 @@ class CommandCloseCircuit(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.CLOSECIRCUIT
+    command: ClassVar[CommandWord] = CommandWord.CLOSECIRCUIT
     circuit: int
 
     #: Do not close the circuit unless it is unused.
@@ -693,7 +693,7 @@ class CommandCloseCircuit(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandQuit(BaseCommand):
+class CommandQuit(Command):
     """
     Command implementation for `QUIT`.
 
@@ -707,7 +707,7 @@ class CommandQuit(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.QUIT
+    command: ClassVar[CommandWord] = CommandWord.QUIT
 
     def _serialize(self) -> CommandSerializer:
         """
@@ -719,7 +719,7 @@ class CommandQuit(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandUseFeature(BaseCommand):
+class CommandUseFeature(Command):
     """
     Command implementation for `USEFEATURE`.
 
@@ -735,8 +735,8 @@ class CommandUseFeature(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.USEFEATURE
-    features: MutableSet[Feature | str] = field(default_factory=set)
+    command: ClassVar[CommandWord] = CommandWord.USEFEATURE
+    features: set[Feature | str] = field(default_factory=set)
 
     def _serialize(self) -> CommandSerializer:
         """Append `USEFEATURE` specific arguments."""
@@ -749,7 +749,7 @@ class CommandUseFeature(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandResolve(BaseCommand):
+class CommandResolve(Command):
     """
     Command implementation for `RESOLVE`.
 
@@ -763,7 +763,7 @@ class CommandResolve(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.RESOLVE
+    command: ClassVar[CommandWord] = CommandWord.RESOLVE
     addresses: MutableSequence[str] = field(default_factory=list)
     reverse: bool = False
 
@@ -782,7 +782,7 @@ class CommandResolve(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandProtocolInfo(BaseCommand):
+class CommandProtocolInfo(Command):
     """
     Command implementation for `PROTOCOLINFO`.
 
@@ -793,7 +793,7 @@ class CommandProtocolInfo(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.PROTOCOLINFO
+    command: ClassVar[CommandWord] = CommandWord.PROTOCOLINFO
     version: int | None = None
 
     def _serialize(self) -> CommandSerializer:
@@ -809,7 +809,7 @@ class CommandProtocolInfo(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandLoadConf(BaseCommand):
+class CommandLoadConf(Command):
     """
     Command implementation for `LOADCONF`.
 
@@ -821,7 +821,7 @@ class CommandLoadConf(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.LOADCONF
+    command: ClassVar[CommandWord] = CommandWord.LOADCONF
     text: str
 
     def _serialize(self) -> CommandSerializer:
@@ -832,7 +832,7 @@ class CommandLoadConf(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandTakeOwnership(BaseCommand):
+class CommandTakeOwnership(Command):
     """
     Command implementation for `TAKEOWNERSHIP`.
 
@@ -846,7 +846,7 @@ class CommandTakeOwnership(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.TAKEOWNERSHIP
+    command: ClassVar[CommandWord] = CommandWord.TAKEOWNERSHIP
 
     def _serialize(self) -> CommandSerializer:
         """Serialize a `TAKEOWNERSHIP` command."""
@@ -854,7 +854,7 @@ class CommandTakeOwnership(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandAuthChallenge(BaseCommand):
+class CommandAuthChallenge(Command):
     """
     Command implementation for `AUTHCHALLENGE`.
 
@@ -866,7 +866,8 @@ class CommandAuthChallenge(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.AUTHCHALLENGE
+    NONCE_LENGTH: ClassVar[int] = 32
+    command: ClassVar[CommandWord] = CommandWord.AUTHCHALLENGE
     nonce: bytes | str
 
     def _serialize(self) -> CommandSerializer:
@@ -884,7 +885,7 @@ class CommandAuthChallenge(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandDropGuards(BaseCommand):
+class CommandDropGuards(Command):
     """
     Command implementation for `DROPGUARDS`.
 
@@ -896,7 +897,7 @@ class CommandDropGuards(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.DROPGUARDS
+    command: ClassVar[CommandWord] = CommandWord.DROPGUARDS
 
     def _serialize(self) -> CommandSerializer:
         """Serialize a `DROPGUARDS` command."""
@@ -904,7 +905,7 @@ class CommandDropGuards(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandHsFetch(BaseCommand):
+class CommandHsFetch(Command):
     """
     Command implementation for `HSFETCH`.
 
@@ -915,7 +916,7 @@ class CommandHsFetch(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.HSFETCH
+    command: ClassVar[CommandWord] = CommandWord.HSFETCH
     servers: MutableSequence[str] = field(default_factory=list)
     address: str
 
@@ -931,7 +932,7 @@ class CommandHsFetch(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandAddOnion(BaseCommand):
+class CommandAddOnion(Command):
     """
     Command implementation for `ADD_ONION`.
 
@@ -943,10 +944,10 @@ class CommandAddOnion(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.ADD_ONION
+    command: ClassVar[CommandWord] = CommandWord.ADD_ONION
     key_type: OnionAddKeyType
     key: OnionNewKeyType | str
-    flags: MutableSet[OnionServiceFlags] = field(default_factory=set)
+    flags: set[OnionServiceFlags] = field(default_factory=set)
     max_streams: int | None = None
     #: As in arguments to HiddenServicePort ("port,target")
     ports: MutableSequence[str] = field(default_factory=list)
@@ -990,7 +991,7 @@ class CommandAddOnion(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandDelOnion(BaseCommand):
+class CommandDelOnion(Command):
     """
     Command implementation for `DEL_ONION`.
 
@@ -1004,7 +1005,7 @@ class CommandDelOnion(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.DEL_ONION
+    command: ClassVar[CommandWord] = CommandWord.DEL_ONION
     #: This is the v2 or v3 address without the `.onion` suffix.
     address: str
 
@@ -1018,7 +1019,7 @@ class CommandDelOnion(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandHsPost(BaseCommand):
+class CommandHsPost(Command):
     """
     Command implementation for `HSPOST`.
 
@@ -1032,7 +1033,7 @@ class CommandHsPost(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.HSPOST
+    command: ClassVar[CommandWord] = CommandWord.HSPOST
     servers: MutableSequence[str] = field(default_factory=list)
     address: str | None = None
     descriptor: str
@@ -1052,7 +1053,7 @@ class CommandHsPost(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandOnionClientAuthAdd(BaseCommand):
+class CommandOnionClientAuthAdd(Command):
     """
     Command implementation for `ONION_CLIENT_AUTH_ADD`.
 
@@ -1065,7 +1066,7 @@ class CommandOnionClientAuthAdd(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.ONION_CLIENT_AUTH_ADD
+    command: ClassVar[CommandWord] = CommandWord.ONION_CLIENT_AUTH_ADD
     #: V3 onion address without the `.onion` suffix.
     address: str
     #: Base64 encoding of x25519 key.
@@ -1073,7 +1074,7 @@ class CommandOnionClientAuthAdd(BaseCommand):
     #: An optional nickname for the client.
     nickname: str | None = None
     #: This client's credentials should be stored in the filesystem.
-    flags: MutableSet[OnionClientAuthFlags] = field(default_factory=set)
+    flags: set[OnionClientAuthFlags] = field(default_factory=set)
 
     def _serialize(self) -> CommandSerializer:
         """Append `ONION_CLIENT_AUTH_ADD` specific arguments."""
@@ -1098,7 +1099,7 @@ class CommandOnionClientAuthAdd(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandOnionClientAuthRemove(BaseCommand):
+class CommandOnionClientAuthRemove(Command):
     """
     Command implementation for `ONION_CLIENT_AUTH_REMOVE`.
 
@@ -1110,7 +1111,7 @@ class CommandOnionClientAuthRemove(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.ONION_CLIENT_AUTH_REMOVE
+    command: ClassVar[CommandWord] = CommandWord.ONION_CLIENT_AUTH_REMOVE
     #: V3 onion address without the `.onion` suffix.
     address: str
 
@@ -1124,7 +1125,7 @@ class CommandOnionClientAuthRemove(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandOnionClientAuthView(BaseCommand):
+class CommandOnionClientAuthView(Command):
     """
     Command implementation for `ONION_CLIENT_AUTH_VIEW`.
 
@@ -1137,7 +1138,7 @@ class CommandOnionClientAuthView(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.ONION_CLIENT_AUTH_VIEW
+    command: ClassVar[CommandWord] = CommandWord.ONION_CLIENT_AUTH_VIEW
     #: V3 onion address without the `.onion` suffix.
     address: str | None = None
 
@@ -1152,7 +1153,7 @@ class CommandOnionClientAuthView(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandDropOwnership(BaseCommand):
+class CommandDropOwnership(Command):
     """
     Command implementation for `DROPOWNERSHIP`.
 
@@ -1164,7 +1165,7 @@ class CommandDropOwnership(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.DROPOWNERSHIP
+    command: ClassVar[CommandWord] = CommandWord.DROPOWNERSHIP
 
     def _serialize(self) -> CommandSerializer:
         """Serialize a `DROPOWNERSHIP` command."""
@@ -1172,7 +1173,7 @@ class CommandDropOwnership(BaseCommand):
 
 
 @dataclass(kw_only=True)
-class CommandDropTimeouts(BaseCommand):
+class CommandDropTimeouts(Command):
     """
     Command implementation for `DROPTIMEOUTS`.
 
@@ -1184,7 +1185,7 @@ class CommandDropTimeouts(BaseCommand):
 
     """
 
-    command: ClassVar[Command] = Command.DROPTIMEOUTS
+    command: ClassVar[CommandWord] = CommandWord.DROPTIMEOUTS
 
     def _serialize(self) -> CommandSerializer:
         """Serialize a `DROPTIMEOUTS` command."""
