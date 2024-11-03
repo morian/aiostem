@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from aiostem.exceptions import CommandError
-from aiostem.protocol import ArgumentString, CommandWord, QuoteStyle
+from aiostem.protocol import ArgumentKeyword, ArgumentString, CommandWord, QuoteStyle
 from aiostem.protocol.utils import CommandSerializer
 
 
@@ -18,7 +18,7 @@ class TestCommandSerializer:
 
     def test_serialize_argument(self):
         ser = CommandSerializer(CommandWord.SETCONF)
-        arg = ArgumentString('hello', quotes=QuoteStyle.ALWAYS)
+        arg = ArgumentKeyword(None, 'hello', quotes=QuoteStyle.ALWAYS)
         ser.arguments.append(arg)
         assert len(ser.arguments) == 1
         assert ser.serialize() == 'SETCONF "hello"\r\n'

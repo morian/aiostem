@@ -317,9 +317,9 @@ class CommandSetEvents(Command):
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
         if self.extended:
-            args.append(ArgumentString('EXTENDED', quotes=QuoteStyle.NEVER))
+            args.append(ArgumentString('EXTENDED', safe=True))
         for evt in self.events:
-            args.append(ArgumentString(evt, quotes=QuoteStyle.NEVER))
+            args.append(ArgumentString(evt, safe=True))
         ser.arguments.extend(args)
         return ser
 
@@ -345,9 +345,9 @@ class CommandAuthenticate(Command):
         args = []  # type: MutableSequence[Argument]
         match self.token:
             case bytes():
-                args.append(ArgumentString(self.token.hex(), quotes=QuoteStyle.NEVER))
+                args.append(ArgumentKeyword(None, self.token.hex(), quotes=QuoteStyle.NEVER))
             case str():
-                args.append(ArgumentString(self.token, quotes=QuoteStyle.ALWAYS))
+                args.append(ArgumentKeyword(None, self.token, quotes=QuoteStyle.ALWAYS))
         ser.arguments.extend(args)
         return ser
 
@@ -372,7 +372,8 @@ class CommandSaveConf(Command):
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
         if self.force:
-            args.append(ArgumentString('FORCE', quotes=QuoteStyle.NEVER))
+            # Flags are treated as keywords with no value.
+            args.append(ArgumentKeyword('FORCE', None))
         ser.arguments.extend(args)
         return ser
 
@@ -396,7 +397,7 @@ class CommandSignal(Command):
         """Append `SIGNAL` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
-        args.append(ArgumentString(self.signal, quotes=QuoteStyle.NEVER))
+        args.append(ArgumentString(self.signal, safe=True))
         ser.arguments.extend(args)
         return ser
 
@@ -491,10 +492,10 @@ class CommandExtendCircuit(Command):
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
 
-        args.append(ArgumentString(self.circuit))
+        args.append(ArgumentString(self.circuit, safe=True))
         if len(self.server_spec):
             text = ','.join(self.server_spec)
-            args.append(ArgumentString(text, quotes=QuoteStyle.NEVER_ENSURE))
+            args.append(ArgumentString(text))
         if self.purpose is not None:
             args.append(ArgumentKeyword('purpose', self.purpose, quotes=QuoteStyle.NEVER))
 
@@ -526,7 +527,7 @@ class CommandSetCircuitPurpose(Command):
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
 
-        args.append(ArgumentString(self.circuit, quotes=QuoteStyle.NEVER))
+        args.append(ArgumentString(self.circuit, safe=True))
         args.append(ArgumentKeyword('purpose', self.purpose, quotes=QuoteStyle.NEVER))
 
         ser.arguments.extend(args)
@@ -556,8 +557,8 @@ class CommandAttachStream(Command):
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
 
-        args.append(ArgumentString(self.stream, quotes=QuoteStyle.NEVER))
-        args.append(ArgumentString(self.circuit, quotes=QuoteStyle.NEVER))
+        args.append(ArgumentString(self.stream, safe=True))
+        args.append(ArgumentString(self.circuit, safe=True))
         if self.hop is not None:
             args.append(ArgumentKeyword('HOP', self.hop, quotes=QuoteStyle.NEVER))
 
@@ -625,10 +626,10 @@ class CommandRedirectStream(Command):
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
 
-        args.append(ArgumentString(self.stream, quotes=QuoteStyle.NEVER))
-        args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
+        args.append(ArgumentString(self.stream, safe=True))
+        args.append(ArgumentString(self.address))
         if self.port is not None:
-            args.append(ArgumentString(self.port))
+            args.append(ArgumentString(self.port, safe=True))
 
         ser.arguments.extend(args)
         return ser
@@ -654,8 +655,8 @@ class CommandCloseStream(Command):
         """Append `CLOSESTREAM` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
-        args.append(ArgumentString(self.stream, quotes=QuoteStyle.NEVER))
-        args.append(ArgumentString(self.reason, quotes=QuoteStyle.NEVER))
+        args.append(ArgumentString(self.stream, safe=True))
+        args.append(ArgumentString(self.reason, safe=True))
         ser.arguments.extend(args)
         return ser
 
@@ -684,9 +685,9 @@ class CommandCloseCircuit(Command):
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
 
-        args.append(ArgumentString(self.circuit, quotes=QuoteStyle.NEVER))
+        args.append(ArgumentString(self.circuit, safe=True))
         if self.if_unused:
-            args.append(ArgumentString('IfUnused', quotes=QuoteStyle.NEVER))
+            args.append(ArgumentKeyword('IfUnused', None))
 
         ser.arguments.extend(args)
         return ser
@@ -743,7 +744,7 @@ class CommandUseFeature(Command):
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
         for feature in self.features:
-            args.append(ArgumentString(feature, quotes=QuoteStyle.NEVER_ENSURE))
+            args.append(ArgumentString(feature))
         ser.arguments.extend(args)
         return ser
 
@@ -775,7 +776,8 @@ class CommandResolve(Command):
         if self.reverse:
             args.append(ArgumentKeyword('mode', 'reverse', quotes=QuoteStyle.NEVER))
         for address in self.addresses:
-            args.append(ArgumentString(address, quotes=QuoteStyle.NEVER_ENSURE))
+            # These are marked as keywords in `src/feature/control/control_cmd.c`.
+            args.append(ArgumentKeyword(address, None))
 
         ser.arguments.extend(args)
         return ser
@@ -802,7 +804,7 @@ class CommandProtocolInfo(Command):
         args = []  # type: MutableSequence[Argument]
 
         if self.version is not None:
-            args.append(ArgumentString(self.version, quotes=QuoteStyle.NEVER))
+            args.append(ArgumentString(self.version, safe=True))
 
         ser.arguments.extend(args)
         return ser
@@ -874,12 +876,12 @@ class CommandAuthChallenge(Command):
         """Append `AUTHCHALLENGE` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
-        args.append(ArgumentString('SAFECOOKIE', quotes=QuoteStyle.NEVER))
+        args.append(ArgumentString('SAFECOOKIE', safe=True))
         match self.nonce:
             case bytes():
-                args.append(ArgumentString(self.nonce.hex(), quotes=QuoteStyle.NEVER))
+                args.append(ArgumentKeyword(None, self.nonce.hex(), quotes=QuoteStyle.NEVER))
             case str():  # pragma: no branch
-                args.append(ArgumentString(self.nonce, quotes=QuoteStyle.ALWAYS))
+                args.append(ArgumentKeyword(None, self.nonce, quotes=QuoteStyle.ALWAYS))
         ser.arguments.extend(args)
         return ser
 
@@ -924,7 +926,7 @@ class CommandHsFetch(Command):
         """Append `HSFETCH` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
-        args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
+        args.append(ArgumentString(self.address, safe=True))
         for server in self.servers:
             args.append(ArgumentKeyword('SERVER', server, quotes=QuoteStyle.NEVER_ENSURE))
         ser.arguments.extend(args)
@@ -972,7 +974,7 @@ class CommandAddOnion(Command):
             raise CommandError(msg)
 
         key = f'{self.key_type.value}:{self.key}'
-        args.append(ArgumentString(key, quotes=QuoteStyle.NEVER_ENSURE))
+        args.append(ArgumentString(key))
         if len(self.flags):
             flags = ','.join(self.flags)
             args.append(ArgumentKeyword('Flags', flags, quotes=QuoteStyle.NEVER))
@@ -1013,7 +1015,7 @@ class CommandDelOnion(Command):
         """Append `DEL_ONION` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
-        args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
+        args.append(ArgumentString(self.address))
         ser.arguments.extend(args)
         return ser
 
@@ -1081,8 +1083,8 @@ class CommandOnionClientAuthAdd(Command):
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
 
-        args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
-        args.append(ArgumentString(f'x25519:{self.key}', quotes=QuoteStyle.NEVER_ENSURE))
+        args.append(ArgumentString(self.address))
+        args.append(ArgumentString(f'x25519:{self.key}'))
 
         if self.nickname is not None:
             kwarg = ArgumentKeyword(
@@ -1119,7 +1121,7 @@ class CommandOnionClientAuthRemove(Command):
         """Append `ONION_CLIENT_AUTH_REMOVE` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
-        args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
+        args.append(ArgumentString(self.address))
         ser.arguments.extend(args)
         return ser
 
@@ -1147,7 +1149,7 @@ class CommandOnionClientAuthView(Command):
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
         if self.address is not None:
-            args.append(ArgumentString(self.address, quotes=QuoteStyle.NEVER_ENSURE))
+            args.append(ArgumentString(self.address))
         ser.arguments.extend(args)
         return ser
 

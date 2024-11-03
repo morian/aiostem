@@ -113,7 +113,7 @@ class ArgumentKeyword(BaseArgument):
 
     def __init__(
         self,
-        key: str,
+        key: str | None,
         value: IntEnum | StrEnum | str | int | None,
         *,
         quotes: QuoteStyle = QuoteStyle.AUTO,
@@ -121,14 +121,27 @@ class ArgumentKeyword(BaseArgument):
         """
         Create a new keyword argument.
 
+        Important:
+            Both `key` and `value` cannot be None at the same time.
+
         Args:
-            key: key part of the keyword
-            value: value part of the keyword, if any
+            key: key part of the keyword, if any.
+            value: value part of the keyword, if any.
 
         Keyword Args:
-            quotes: tell how to quote the value part when serialized
+            quotes: tell how to quote the value part when serialized.
+
+        Note:
+            When value is :obj:`None`, quotes is enforced to :obj:`QuoteStyle.NEVER`.
 
         """
+        # When value is None, we are treated as a flag and never need to have quotes.
+        if value is None:
+            quotes = QuoteStyle.NEVER
+            if key is None:
+                msg = 'Both key and value cannot be None.'
+                raise CommandError(msg)
+
         self._key = key
         self._value = _serialize_value(value, allow_none=True)
         self._quotes = quotes
@@ -136,13 +149,17 @@ class ArgumentKeyword(BaseArgument):
     def __str__(self) -> str:
         """Serialize the argument to string."""
         if self._value is None:
-            return self._key
+            # This check was already performed during __init__.
+            return self._key  # type: ignore[return-value]
 
         value = self._quotes.escape(self._value)
+        if self._key is None:
+            return value
+
         return f'{self._key}={value}'
 
     @property
-    def key(self) -> str:
+    def key(self) -> str | None:
         """Get the key part of the keyword argument."""
         return self._key
 
@@ -164,7 +181,7 @@ class ArgumentString(BaseArgument):
         self,
         value: IntEnum | StrEnum | str | int,
         *,
-        quotes: QuoteStyle = QuoteStyle.AUTO,
+        safe: bool = False,
     ) -> None:
         """
         Create a new string argument.
@@ -173,25 +190,27 @@ class ArgumentString(BaseArgument):
             value: raw string value
 
         Keyword Args:
-            quotes: tell how to quote the argument when serialized
+            safe: whether the caller ensures that the value contains no space.
+
+        Note:
+            This value cannot contain spaces.
 
         """
-        self._value = _serialize_value(value, allow_none=False)
-        self._quotes = quotes
+        value_str = _serialize_value(value, allow_none=False)
+        if not safe and ' ' in value_str:
+            msg = f"Invalid space in argument '{value_str}'"
+            raise CommandError(msg)
+
+        self._value = value_str
 
     def __str__(self) -> str:
         """Serialize the argument to string."""
-        return self._quotes.escape(self._value)
+        return self._value
 
     @property
     def value(self) -> str:
         """Get the value of the string argument."""
         return self._value
-
-    @property
-    def quotes(self) -> QuoteStyle:
-        """Get the applied quote style."""
-        return self._quotes
 
 
 Argument: TypeAlias = ArgumentKeyword | ArgumentString
