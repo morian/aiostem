@@ -47,7 +47,7 @@ from .command import (
     Signal,
 )
 from .event import EventWord, EventWordInternal
-from .message import Message
+from .message import Message, MessageData, MessageLine, messages_from_stream
 
 __all__ = [
     'Argument',
@@ -95,10 +95,13 @@ __all__ = [
     'EventWordInternal',
     'Feature',
     'Message',
+    'MessageData',
+    'MessageLine',
     'OnionAddKeyType',
     'OnionClientAuthFlags',
     'OnionNewKeyType',
     'OnionServiceFlags',
     'QuoteStyle',
     'Signal',
+    'messages_from_stream',
 ]

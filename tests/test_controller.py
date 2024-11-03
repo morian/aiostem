@@ -16,7 +16,7 @@ from aiostem.event import (
 from aiostem.exceptions import CommandError, ControllerError, ProtocolError, ResponseError
 from aiostem.message import Message
 
-# All test coroutines will be treated as marked.
+# All test coroutines will be treated as marked for asyncio.
 pytestmark = pytest.mark.asyncio
 
 
