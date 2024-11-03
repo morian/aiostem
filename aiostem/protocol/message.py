@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import MutableSequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Final
 
@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from collections.abc import AsyncIterator
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class BaseMessage(ABC):
     """Base class for the whole message and message items."""
 
@@ -24,12 +24,23 @@ class BaseMessage(ABC):
     #: Text that comes along with the status.
     header: str
 
+    @property
+    def keyword(self) -> str:
+        """
+        Extract the first word from the header.
+
+        Note:
+            This is not relevant for all kind of messages.
+
+        """
+        return self.header.split(' ', maxsplit=1)[0]
+
     @abstractmethod
     def serialize(self) -> str:
         """Serialize this message to text that could have been sent."""
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class MessageData(BaseMessage):
     """A sub-message with only a single line."""
 
@@ -47,7 +58,7 @@ class MessageData(BaseMessage):
         return self.END_OF_LINE.join(lines) + self.END_OF_LINE
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class MessageLine(BaseMessage):
     """A sub-message with only a single line."""
 
@@ -56,12 +67,12 @@ class MessageLine(BaseMessage):
         return f'{self.status:03d}-{self.header}\r\n'
 
 
-@dataclass(kw_only=True)
+@dataclass(frozen=True, kw_only=True)
 class Message(BaseMessage):
     """Utility class used to parse any received message."""
 
     #: List of sub-messages received within this message.
-    items: MutableSequence[MessageLine | MessageData] = field(default_factory=list)
+    items: Sequence[MessageLine | MessageData] = field(default_factory=list)
 
     @property
     def is_event(self) -> bool:
@@ -72,6 +83,19 @@ class Message(BaseMessage):
 
         """
         return bool(self.status == 650)
+
+    @property
+    def keyword(self) -> str:
+        """
+        Extract the first word from the header.
+
+        Note:
+            An event always provide its keyword in the fist item.
+
+        """
+        if self.is_event and len(self.items) > 0:
+            return self.items[0].keyword
+        return super().keyword
 
     def serialize(self) -> str:
         """Serialize this message to a string."""
@@ -109,8 +133,13 @@ async def messages_from_stream(stream: StreamReader) -> AsyncIterator[Message]:
         # Continuation of a data sub-message parser.
         if isinstance(data, MessageData):
             if line == '.':
-                data.data = '\n'.join(lines)
-                items.append(data)
+                items.append(
+                    MessageData(
+                        status=data.status,
+                        header=data.header,
+                        data='\n'.join(lines),
+                    )
+                )
                 lines.clear()
                 data = None
             else:

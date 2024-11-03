@@ -111,3 +111,34 @@ class TestMessage:
         iterator = messages_from_stream(stream)
         with pytest.raises(ProtocolError, match=error):
             await iterator.__anext__()
+
+    async def test_basic_keyword(self):
+        stream = create_stream(
+            [
+                '250-PROTOCOLINFO 1',
+                '250-AUTH METHODS=HASHEDPASSWORD',
+                '250-VERSION Tor="0.4.8.12"',
+                '250 OK',
+            ]
+        )
+        messages = [msg async for msg in messages_from_stream(stream)]
+        assert len(messages) == 1
+        message = messages[0]
+        assert message.keyword == 'OK'
+        assert message.items[0].keyword == 'PROTOCOLINFO'
+        assert message.items[1].keyword == 'AUTH'
+        assert message.items[2].keyword == 'VERSION'
+
+    async def test_event_keyword_single(self):
+        """Check that a keyword on an event works well."""
+        stream = create_stream(['650 CIRC KEY=VALUE'])
+        messages = [msg async for msg in messages_from_stream(stream)]
+        assert len(messages) == 1
+        assert messages[0].keyword == 'CIRC'
+
+    async def test_event_keyword_multi(self):
+        """Check that a keyword on a multi-message event in on the first item."""
+        stream = create_stream(['650-CIRC KEY=VALUE', '650 OK'])
+        messages = [msg async for msg in messages_from_stream(stream)]
+        assert len(messages) == 1
+        assert messages[0].keyword == 'CIRC'
