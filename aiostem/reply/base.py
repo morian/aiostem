@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, ClassVar
 
-from ..exceptions import MessageError, ResponseError
+from ..exceptions import MessageError, ReplyStatusError
 
 if TYPE_CHECKING:
     from ..message import Message, MessageLineParser
@@ -69,9 +69,9 @@ class Reply(BaseResponse):
         self.raise_for_status()
 
     def raise_for_status(self) -> None:
-        """Raise a reponse error when the status instructs us to."""
+        """Raise a ReplyStatusError when the status instructs us to."""
         if self.status >= 400:
-            raise ResponseError(self.status, self.message.status_line)
+            raise ReplyStatusError(self.message.status_line, code=self.status)
 
 
 class UnknownReply(Reply):

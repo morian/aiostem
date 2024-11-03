@@ -6,7 +6,7 @@
    * :exc:`ProtocolError`
       * :exc:`CommandError`
       * :exc:`MessageError`
-      * :exc:`ResponseError`
+      * :exc:`ReplyStatusError`
 """
 
 from __future__ import annotations
@@ -37,22 +37,22 @@ class MessageError(ProtocolError):
     """Raised as a result of a bad manipulation of a received :class:`.Message`."""
 
 
-class ResponseError(ProtocolError):
-    """Raised when the response message received by the controller is an error."""
+class ReplyStatusError(ProtocolError):
+    """Raised when a reply status code is invalid."""
 
-    def __init__(self, status: int, message: str) -> None:
+    def __init__(self, message: str, *, code: int | None = None) -> None:
         """
-        Create a new response error message.
+        Create a new :class:`ReplyStatusError`.
 
         Args:
-            status: status code received as part of the message
-            message: textual representation of the error message
+            message: the original message received from Tor if possible
+            code: the status code associated with this message
 
         """
         super().__init__(message)
-        self._status = status
+        self._code = code
 
     @property
-    def status(self) -> int:
-        """Get the response status code responsible for this error."""
-        return self._status
+    def code(self) -> int | None:
+        """Get the status code that generated this exception."""
+        return self._code

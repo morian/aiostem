@@ -13,7 +13,7 @@ from aiostem.event import (
     UnknownEvent,
     event_parser,
 )
-from aiostem.exceptions import CommandError, ControllerError, ProtocolError, ResponseError
+from aiostem.exceptions import CommandError, ControllerError, ProtocolError, ReplyStatusError
 from aiostem.message import Message
 
 # All test coroutines will be treated as marked for asyncio.
@@ -77,10 +77,9 @@ class TestController:
         assert 'version' in info.values
 
     async def test_cmd_getinfo_exception(self, controller):
-        with pytest.raises(ResponseError, match='Unrecognized key') as exc:
+        with pytest.raises(ReplyStatusError, match='Unrecognized key') as exc:
             await controller.get_info('THIS_IS_AN_INVALID_VALUE')
-        assert isinstance(exc.value, ResponseError)
-        assert exc.value.status >= 400
+        assert exc.value.code >= 400
 
     async def test_cmd_getconf(self, controller):
         info = await controller.get_conf('DormantClientTimeout')
@@ -105,7 +104,7 @@ class TestController:
             await res1.cookie_file_read()
 
     async def test_cmd_hsfetch_v2_error(self, controller):
-        with pytest.raises(ResponseError, match='Invalid argument'):
+        with pytest.raises(ReplyStatusError, match='Invalid argument'):
             await controller.hs_fetch('tor66sezptuu2nta')
 
     async def test_cmd_drop_guard(self, controller):

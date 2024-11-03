@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar
 
 from .event import Event, NetworkLivenessEvent, StatusClientEvent
-from .exceptions import ControllerError, ResponseError
+from .exceptions import ControllerError, ReplyStatusError
 from .message import Message
 from .protocol import EventWord
 
@@ -134,7 +134,7 @@ class Monitor:
                 try:
                     reply = await self._controller.get_conf('DormantTimeoutEnabled')
                     dormant = bool(reply.values.get('DormantTimeoutEnabled', True))
-                except ResponseError:  # pragma: no cover
+                except ReplyStatusError:  # pragma: no cover
                     dormant = True
 
                 if dormant:  # pragma: no branch

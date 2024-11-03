@@ -24,4 +24,4 @@ Protocol exceptions
 
 .. autoexception:: CommandError
 .. autoexception:: MessageError
-.. autoexception:: ResponseError
+.. autoexception:: ReplyStatusError

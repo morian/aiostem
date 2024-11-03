@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from .argument import Argument, ArgumentKeyword, ArgumentString, QuoteStyle
 from .command import (
-    CircuitPurpose,
-    CloseStreamReason,
     Command,
     CommandAddOnion,
     CommandAttachStream,
@@ -39,6 +37,12 @@ from .command import (
     CommandTakeOwnership,
     CommandUseFeature,
     CommandWord,
+)
+from .event import EventWord, EventWordInternal
+from .message import Message, MessageData, MessageLine, messages_from_stream
+from .structures import (
+    CircuitPurpose,
+    CloseStreamReason,
     Feature,
     OnionAddKeyType,
     OnionClientAuthFlags,
@@ -46,8 +50,6 @@ from .command import (
     OnionServiceFlags,
     Signal,
 )
-from .event import EventWord, EventWordInternal
-from .message import Message, MessageData, MessageLine, messages_from_stream
 
 __all__ = [
     'Argument',
