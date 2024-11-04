@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+import typing
 from collections import OrderedDict
 from collections.abc import (
+    Collection,
     Iterable,
     Mapping,
     MutableSequence,
@@ -11,12 +13,18 @@ from collections.abc import (
 )
 from dataclasses import dataclass, field
 from enum import IntFlag
-from typing import TYPE_CHECKING, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar
+
+from pydantic_core import core_schema
 
 from ..exceptions import CommandError, ReplySyntaxError
 from .message import MessageData
 
 if TYPE_CHECKING:
+    from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
+    from pydantic.json_schema import JsonSchemaValue
+    from pydantic_core.core_schema import CoreSchema
+
     from .argument import Argument
     from .command import CommandWord
     from .message import BaseMessage
@@ -346,3 +354,45 @@ class ReplySyntax:
                     logger.info(f'Found an unhandled keyword: {original_key}={val}')
 
         return result
+
+
+@dataclass(frozen=True, slots=True)
+class StringSequence:
+    """Serialized and deserialize sequences from/to strings."""
+
+    separator: str = ','
+
+    def __get_pydantic_core_schema__(
+        self,
+        source: type[Collection[Any]],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Tell the core schema and how to validate the whole thing."""
+        # Check that we have a valid collection of something like a str, int, float, bool.
+        origin = typing.get_origin(source)
+        if not isinstance(origin, type) or not issubclass(origin, Collection):
+            msg = f"source type is not a collection, got '{source.__name__}'"
+            raise TypeError(msg)
+
+        return core_schema.no_info_before_validator_function(
+            function=self.parse_value,
+            schema=handler(source),
+        )
+
+    def __get_pydantic_json_schema__(
+        self,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        """Update JSON schema to tell about plain text and separator."""
+        field_schema = handler(core_schema)
+        field_schema.update(type='string', separator=self.separator)
+        return field_schema
+
+    def parse_value(self, value: Any) -> Any:
+        """Parse the input value, split it when it is a string."""
+        if isinstance(value, bytes | bytearray):
+            value = value.decode()
+        if isinstance(value, str):
+            return value.split(self.separator)
+        return value

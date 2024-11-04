@@ -1,19 +1,27 @@
 from __future__ import annotations
 
 import logging
+from typing import Annotated, Any
 
 import pytest
+from pydantic import TypeAdapter
 
 from aiostem.exceptions import CommandError, ReplySyntaxError
 from aiostem.protocol import (
     ArgumentKeyword,
     ArgumentString,
+    AuthMethod,
     CommandWord,
     Message,
     MessageData,
     QuoteStyle,
 )
-from aiostem.protocol.utils import CommandSerializer, ReplySyntax, ReplySyntaxFlag
+from aiostem.protocol.utils import (
+    CommandSerializer,
+    ReplySyntax,
+    ReplySyntaxFlag,
+    StringSequence,
+)
 
 
 class TestCommandSerializer:
@@ -223,3 +231,57 @@ class TestReplySyntax:
     def test_bad_syntax_kw_disabled_but_with_kvmap(self):
         with pytest.raises(RuntimeError, match='Keywords are disabled but we found items'):
             ReplySyntax(kwargs_map={'SERVER', 'server'})
+
+
+class TestStringSequence:
+    @pytest.mark.parametrize(
+        'entry',
+        [
+            [1, 2, 3, 4],
+            '1,2,3,4',
+            b'1,2,3,4',
+        ],
+    )
+    def test_with_simple_types(self, entry: Any):
+        adapter = TypeAdapter(Annotated[list[int], StringSequence()])
+        res = adapter.validate_python(entry)
+        assert res == [1, 2, 3, 4]
+
+        assert adapter.dump_python(res) == [1, 2, 3, 4]
+
+    @pytest.mark.parametrize(
+        ('entry', 'output'),
+        [
+            ('COOKIE', {AuthMethod.COOKIE}),
+            ('NULL,SAFECOOKIE', {AuthMethod.NULL, AuthMethod.SAFECOOKIE}),
+        ],
+    )
+    def test_with_strenum(self, entry: str, output: set[AuthMethod]):
+        adapter = TypeAdapter(Annotated[set[AuthMethod], StringSequence()])
+        for item in (entry, output):
+            assert adapter.validate_python(item) == output
+
+    def test_json_schema(self):
+        adapter = TypeAdapter(Annotated[tuple[str, int], StringSequence()])
+        schema = adapter.json_schema()
+        assert schema == {
+            'maxItems': 2,
+            'minItems': 2,
+            'prefixItems': [
+                {'type': 'string'},
+                {'type': 'integer'},
+            ],
+            'separator': ',',
+            'type': 'string',
+        }
+
+    @pytest.mark.parametrize(
+        'type_',
+        [
+            Annotated[int, StringSequence()],
+            Annotated[bytes, StringSequence()],
+        ],
+    )
+    def test_usage_error(self, type_):
+        with pytest.raises(TypeError, match='source type is not a collection'):
+            TypeAdapter(type_)

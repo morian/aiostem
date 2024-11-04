@@ -12,6 +12,7 @@ description = 'Asynchronous Tor controller library for asyncio and Python'
 readme = 'README.rst'
 classifiers = [
 	'Framework :: AsyncIO',
+	'Framework :: Pydantic :: 2',
 	'Intended Audience :: Developers',
 	'Intended Audience :: Information Technology',
 	'License :: OSI Approved :: MIT License',

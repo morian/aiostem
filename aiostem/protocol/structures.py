@@ -3,6 +3,15 @@ from __future__ import annotations
 from enum import IntEnum, StrEnum
 
 
+class AuthMethod(StrEnum):
+    """Known authentication methods."""
+
+    NULL = 'NULL'
+    HASHEDPASSWORD = 'HASHEDPASSWORD'
+    COOKIE = 'COOKIE'
+    SAFECOOKIE = 'SAFECOOKIE'
+
+
 class CircuitPurpose(StrEnum):
     """All possible purposes for circuits."""
 

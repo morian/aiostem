@@ -40,7 +40,9 @@ from .command import (
 )
 from .event import EventWord, EventWordInternal
 from .message import Message, MessageData, MessageLine, messages_from_stream
+from .reply import Reply, ReplyGetConf, ReplyProtocolInfo
 from .structures import (
+    AuthMethod,
     CircuitPurpose,
     CloseStreamReason,
     Feature,
@@ -55,6 +57,7 @@ __all__ = [
     'Argument',
     'ArgumentKeyword',
     'ArgumentString',
+    'AuthMethod',
     'BaseCommand',
     'CircuitPurpose',
     'CloseStreamReason',
@@ -103,6 +106,9 @@ __all__ = [
     'OnionClientAuthFlags',
     'OnionNewKeyType',
     'OnionServiceFlags',
+    'Reply',
+    'ReplyGetConf',
+    'ReplyProtocolInfo',
     'QuoteStyle',
     'Signal',
     'messages_from_stream',
