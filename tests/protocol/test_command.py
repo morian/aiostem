@@ -222,7 +222,7 @@ class TestCommands:
 
     def test_load_conf(self):
         cmd = CommandLoadConf(text='SocksPort 127.0.0.1:9050\n')
-        assert cmd.serialize() == '+LOADCONF\r\nSocksPort 127.0.0.1:9050\r\n\r\n.\r\n'
+        assert cmd.serialize() == '+LOADCONF\r\nSocksPort 127.0.0.1:9050\r\n.\r\n'
 
     def test_take_ownership(self):
         cmd = CommandTakeOwnership()

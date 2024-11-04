@@ -49,8 +49,7 @@ class MessageData(BaseMessage):
     def serialize(self) -> str:
         """Serialize this data sub-message to a string."""
         lines = [f'{self.status:03d}+{self.header}']
-        for line in self.data.split('\n'):
-            line = line.rstrip('\r')
+        for line in self.data.splitlines():
             if line.startswith('.'):
                 line = '.' + line
             lines.append(line)
@@ -125,10 +124,7 @@ async def messages_from_stream(stream: StreamReader) -> AsyncIterator[Message]:
     data = None  # type: MessageData | None
 
     while line_bytes := await stream.readline():
-        line = line_bytes.decode('ascii')
-
-        if line.endswith('\r\n'):  # pragma: no branch
-            line = line[:-2]
+        line = line_bytes.decode('ascii').removesuffix('\r\n')
 
         # Continuation of a data sub-message parser.
         if isinstance(data, MessageData):
