@@ -7,6 +7,7 @@
       * :exc:`CommandError`
       * :exc:`MessageError`
       * :exc:`ReplyStatusError`
+      * :exc:`ReplySyntaxError`
 """
 
 from __future__ import annotations
@@ -56,3 +57,7 @@ class ReplyStatusError(ProtocolError):
     def code(self) -> int | None:
         """Get the status code that generated this exception."""
         return self._code
+
+
+class ReplySyntaxError(ProtocolError):
+    """Raised when encountering an invalid syntax in a received message."""
