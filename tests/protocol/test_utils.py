@@ -174,6 +174,15 @@ class TestReplySyntax:
         result = syntax.parse(message)
         assert result['key'] == message.data
 
+    def test_keyword_value_is_raw(self):
+        syntax = ReplySyntax(
+            kwargs_map={'KEY': 'key'},
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_RAW,
+        )
+        message = MessageData(status=250, header='KEY=A long weird string')
+        result = syntax.parse(message)
+        assert result['key'] == 'A long weird string'
+
     def test_bad_parse_too_few_arguments(self):
         syntax = ReplySyntax(args_min=2, args_map=['severity', 'message'])
         message = Message(status=650, header='NOTICE')
@@ -225,8 +234,12 @@ class TestReplySyntax:
             ReplySyntax(flags=ReplySyntaxFlag.POS_REMAIN | ReplySyntaxFlag.KW_ENABLE)
 
     def test_bad_syntax_keys_vs_vals(self):
-        with pytest.raises(RuntimeError, match='OMIT_KEYS and OMIT_VALS are mutually'):
+        with pytest.raises(RuntimeError, match='KW_OMIT_KEYS and KW_OMIT_VALS are mutually'):
             ReplySyntax(flags=ReplySyntaxFlag.KW_OMIT_KEYS | ReplySyntaxFlag.KW_OMIT_VALS)
+
+    def test_bad_syntax_raw_vs_quoted(self):
+        with pytest.raises(RuntimeError, match='KW_RAW and KW_QUOTED are mutually exclusive'):
+            ReplySyntax(flags=ReplySyntaxFlag.KW_RAW | ReplySyntaxFlag.KW_QUOTED)
 
     def test_bad_syntax_kw_disabled_but_with_kvmap(self):
         with pytest.raises(RuntimeError, match='Keywords are disabled but we found items'):

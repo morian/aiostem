@@ -34,13 +34,23 @@ class TestReplies:
     async def test_get_conf(self):
         lines = [
             '250-ControlPort=0.0.0.0:9051',
+            '250-Log=notice stdout',
+            '250-EntryNode=',
             '250 HashedControlPassword',
         ]
         message = await create_message(lines)
         reply = ReplyGetConf.from_message(message)
-        assert len(reply.items) == 2
-        assert reply.items['ControlPort'] == '0.0.0.0:9051'
-        assert reply.items['HashedControlPassword'] is None
+        assert len(reply.values) == 4
+        assert reply.values['ControlPort'] == '0.0.0.0:9051'
+        assert reply.values['Log'] == 'notice stdout'
+        assert reply.values['EntryNode'] == ''
+        assert reply.values['HashedControlPassword'] is None
+
+    async def test_get_conf_empty(self):
+        message = await create_message(['250 OK'])
+        reply = ReplyGetConf.from_message(message)
+        assert len(reply.values) == 0
+        assert reply.status_text == 'OK'
 
     async def test_get_conf_error(self):
         lines = ['552 Unrecognized configuration key "A"']

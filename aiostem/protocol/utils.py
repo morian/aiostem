@@ -184,6 +184,8 @@ class ReplySyntaxFlag(IntFlag):
     KW_OMIT_VALS = 256
     #: Use data from :class:`MessageData` as a potential KW value.
     KW_USE_DATA = 512
+    #: No quoting or escape is performed (whole line is a value).
+    KW_RAW = 1024
 
 
 @dataclass(kw_only=True, slots=True)
@@ -196,6 +198,7 @@ class ReplySyntax:
         - `args_min` cannot be greater than `args_max`.
         - `kwargs_map` must be empty when `KW_ENABLE` is not set.
         - `POS_REMAIN` is mutually exclusive with `KW_ENABLE`.
+        - `KW_QUOTED` is mutually exclusive with `KW_RAW`.
 
     """
 
@@ -229,9 +232,16 @@ class ReplySyntax:
             msg = 'Positional remain and keywords are mutually exclusive.'
             raise RuntimeError(msg)
 
+        # Cannot both omit keys and values.
         omit_keys_vals = ReplySyntaxFlag.KW_OMIT_KEYS | ReplySyntaxFlag.KW_OMIT_VALS
         if self.flags & omit_keys_vals == omit_keys_vals:
-            msg = 'OMIT_KEYS and OMIT_VALS are mutually exclusive.'
+            msg = 'KW_OMIT_KEYS and KW_OMIT_VALS are mutually exclusive.'
+            raise RuntimeError(msg)
+
+        # Cannot both handle quotes and raw values.
+        raw_vs_quoted = ReplySyntaxFlag.KW_RAW | ReplySyntaxFlag.KW_QUOTED
+        if self.flags & raw_vs_quoted == raw_vs_quoted:
+            msg = 'KW_RAW and KW_QUOTED are mutually exclusive.'
             raise RuntimeError(msg)
 
         self.args_max = args_max
@@ -288,6 +298,9 @@ class ReplySyntax:
                             raise ReplySyntaxError(msg)
 
                         val, string = _string_unescape(string)
+                    elif self.flags & ReplySyntaxFlag.KW_RAW:
+                        val = string
+                        string = ''
                     else:
                         idx = _string_indexof(string, ' \t\r\v\n')
                         val = string[:idx]

@@ -32,9 +32,14 @@ class Reply(ABC):
     def from_message(cls, message: Message) -> Self:
         """Build a reply structure from a received message."""
 
+    @property
+    def status_is_error(self) -> bool:
+        """Whether our status is an error status."""
+        return bool(self.status >= 400)
+
     def raise_for_status(self) -> None:
         """Raise a ReplyStatusError when the reply status is an error."""
-        if self.status is not None and self.status >= 400:
+        if self.status_is_error:
             text = self.status_text
             if text is None:
                 text = f'Got status {self.status} in the command reply.'
@@ -101,25 +106,29 @@ class ReplyGetConf(Reply):
             | ReplySyntaxFlag.KW_OMIT_VALS
             | ReplySyntaxFlag.KW_USE_DATA
             | ReplySyntaxFlag.KW_EXTRA
+            | ReplySyntaxFlag.KW_RAW
         )
     )
 
-    #: List of configuration items.
-    items: Mapping[str, str | None] = field(default_factory=dict)
+    #: List of configuration values.
+    values: Mapping[str, str | None] = field(default_factory=dict)
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
         """Build a structure from a received message."""
-        is_success = bool(message.status == 250)
+        is_success = bool(message.status < 400)
+        has_data = bool(is_success and (len(message.items) > 0 or message.header != 'OK'))
+        status_text = None if has_data else message.header
         result = {
             'status': message.status,
-            'status_text': None if is_success else message.header,
-            'items': {},
+            'status_text': status_text,
+            'values': {},
         }  # type: dict[str, Any]
-        if is_success:
+
+        if has_data:
             for item in (*message.items, message):
                 update = cls.SYNTAX.parse(item)
                 for key, val in update.items():
                     if key is not None and isinstance(val, str | None):  # pragma: no branch
-                        result['items'][key] = val
+                        result['values'][key] = val
         return TypeAdapter(cls).validate_python(result)
