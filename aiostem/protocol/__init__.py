@@ -43,6 +43,7 @@ from .message import Message, MessageData, MessageLine, messages_from_stream
 from .reply import (
     Reply,
     ReplyAuthenticate,
+    ReplyExtendCircuit,
     ReplyGetConf,
     ReplyGetInfo,
     ReplyMapAddress,
@@ -121,6 +122,7 @@ __all__ = [
     'OnionServiceFlags',
     'Reply',
     'ReplyAuthenticate',
+    'ReplyExtendCircuit',
     'ReplyGetConf',
     'ReplyGetInfo',
     'ReplyMapAddress',

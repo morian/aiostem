@@ -244,6 +244,30 @@ class ReplyGetInfo(_ReplyGetMap):
 
 
 @dataclass(kw_only=True, slots=True)
+class ReplyExtendCircuit(_ReplyGetMap):
+    """A reply for a `GETINFO` command."""
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(args_min=2, args_map=[None, 'circuit'])
+
+    #: Built or extended circuit (None on error).
+    circuit: int | None = None
+
+    @classmethod
+    def from_message(cls, message: Message) -> Self:
+        """Build a structure from a received message."""
+        result = {'status': message.status}  # type: dict[str, Any]
+        if message.is_success:
+            update = cls.SYNTAX.parse(message)
+            for key, val in update.items():
+                if key is not None:  # pragma: no branch
+                    result[key] = val
+        else:
+            result['status_text'] = message.header
+
+        return TypeAdapter(cls).validate_python(result)
+
+
+@dataclass(kw_only=True, slots=True)
 class ReplyAuthenticate(_ReplySimple):
     """A reply for a `AUTHENTICATE` command."""
 

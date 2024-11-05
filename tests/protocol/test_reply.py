@@ -9,6 +9,7 @@ from aiostem.protocol import (
     AuthMethod,
     Message,
     ReplyAuthenticate,
+    ReplyExtendCircuit,
     ReplyGetConf,
     ReplyGetInfo,
     ReplyMapAddress,
@@ -141,6 +142,20 @@ class TestReplies:
         assert reply.is_error is True
         assert reply.is_success is False
         assert len(reply.values) == 0
+
+    async def test_extend_circuit(self):
+        lines = ['250 EXTENDED 56832']
+        message = await create_message(lines)
+        reply = ReplyExtendCircuit.from_message(message)
+        assert reply.circuit == 56832
+
+    async def test_extend_circuit_error(self):
+        lines = ['552 Unknown circuit "12"']
+        message = await create_message(lines)
+        reply = ReplyExtendCircuit.from_message(message)
+        assert reply.status == 552
+        assert reply.status_text == 'Unknown circuit "12"'
+        assert reply.circuit is None
 
     async def test_authenticate(self):
         lines = ['250 OK']
