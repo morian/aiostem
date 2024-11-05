@@ -54,6 +54,8 @@ class TestMessage:
         assert message.status == 650
         assert message.header == 'DEBUG'
         assert message.is_event is True
+        assert message.is_success is False
+        assert message.is_error is False
 
     async def test_simple_serialized(self):
         """Check that our simple message can be serialized back."""

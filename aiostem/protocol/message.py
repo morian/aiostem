@@ -25,6 +25,26 @@ class BaseMessage(ABC):
     header: str
 
     @property
+    def is_error(self) -> bool:
+        """Whether our status is an error status (greater than 400)."""
+        return bool(self.status >= 400 and self.status != 650)
+
+    @property
+    def is_event(self) -> bool:
+        """
+        Tell whether this message is an event.
+
+        This property is a simple helper to tell whether our status is 650.
+
+        """
+        return bool(self.status == 650)
+
+    @property
+    def is_success(self) -> bool:
+        """Whether our status is a success status (=250)."""
+        return bool(self.status == 250)
+
+    @property
     def keyword(self) -> str:
         """
         Extract the first word from the header.
@@ -72,16 +92,6 @@ class Message(BaseMessage):
 
     #: List of sub-messages received within this message.
     items: Sequence[MessageLine | MessageData] = field(default_factory=list)
-
-    @property
-    def is_event(self) -> bool:
-        """
-        Tell whether this message is an event.
-
-        This property is a simple helper to tell whether our status is 650.
-
-        """
-        return bool(self.status == 650)
 
     @property
     def keyword(self) -> str:

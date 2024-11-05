@@ -161,6 +161,8 @@ class CommandGetConf(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.GETCONF
+
+    #: List of configuration keys to request (duplicates mean duplicate answers).
     keywords: MutableSequence[str] = field(default_factory=list)
 
     def _serialize(self) -> CommandSerializer:

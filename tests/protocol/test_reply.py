@@ -8,7 +8,10 @@ from aiostem.exceptions import ReplyStatusError
 from aiostem.protocol import (
     AuthMethod,
     Message,
+    ReplyAuthenticate,
     ReplyGetConf,
+    ReplyGetInfo,
+    ReplyMapAddress,
     ReplyProtocolInfo,
     messages_from_stream,
 )
@@ -20,7 +23,19 @@ pytestmark = pytest.mark.asyncio
 
 
 async def create_message(lines: list[str]) -> Message:
-    """Build a single message of the provided lines."""
+    """
+    Get a single message from the provided lines.
+
+    Args:
+        lines: a list of lines to build a stream from.
+
+    Raises:
+        RuntimeError: when no message was found.
+
+    Returns:
+        The first message extracted from the lines.
+
+    """
     stream = create_stream(lines)
     async for msg in messages_from_stream(stream):
         return msg
@@ -29,7 +44,7 @@ async def create_message(lines: list[str]) -> Message:
 
 
 class TestReplies:
-    """Check that replies are well parsed."""
+    """Check that replies are properly parsed."""
 
     async def test_get_conf(self):
         lines = [
@@ -51,6 +66,7 @@ class TestReplies:
         reply = ReplyGetConf.from_message(message)
         assert len(reply.values) == 0
         assert reply.status_text == 'OK'
+        assert reply.is_success is True
 
     async def test_get_conf_error(self):
         lines = ['552 Unrecognized configuration key "A"']
@@ -58,6 +74,80 @@ class TestReplies:
         reply = ReplyGetConf.from_message(message)
         with pytest.raises(ReplyStatusError, match='Unrecognized configuration key "A"'):
             reply.raise_for_status()
+
+    async def test_get_conf_multi(self):
+        lines = [
+            '250-ControlPort=0.0.0.0:9051',
+            '250-ControlPort=0.0.0.0:9052',
+            '250 ControlPort=0.0.0.0:9053',
+        ]
+        message = await create_message(lines)
+        reply = ReplyGetConf.from_message(message)
+        assert isinstance(reply.values['ControlPort'], list)
+        assert len(reply.values['ControlPort']) == 3
+
+    async def test_map_address(self):
+        lines = [
+            '250-127.218.108.43=bogus1.google.com',
+            '250 one.one.one.one=1.1.1.1',
+        ]
+        message = await create_message(lines)
+        reply = ReplyMapAddress.from_message(message)
+        assert reply.status == 250
+        assert reply.status_text is None
+        assert len(reply.items) == 2
+        assert reply.items[0].original == '127.218.108.43'
+        assert reply.items[0].replacement == 'bogus1.google.com'
+        assert reply.items[1].original == 'one.one.one.one'
+        assert reply.items[1].replacement == '1.1.1.1'
+
+    async def test_map_address_error(self):
+        lines = [
+            "512-syntax error: invalid address '@@@'",
+            '250 one.one.one.one=1.1.1.1',
+        ]
+        message = await create_message(lines)
+        reply = ReplyMapAddress.from_message(message)
+        assert reply.status == 512
+        assert reply.status_text == "syntax error: invalid address '@@@'"
+        assert len(reply.items) == 2
+        assert reply.items[0].status == 512
+        assert reply.items[0].original is None
+        assert reply.items[0].replacement is None
+        assert reply.items[1].status == 250
+        assert reply.items[1].original == 'one.one.one.one'
+        assert reply.items[1].replacement == '1.1.1.1'
+
+    async def test_get_info(self):
+        lines = [
+            '250-version=0.4.8.12',
+            '250+orconn-status=',
+            '$4D0F2ADB9CD55C3EBD14823D54B6541B99A51C19~Unnamed CONNECTED',
+            '$DCD645A9C7183A893AC4EF0369AAB5ED1ADBD2AF~fifo4ka CONNECTED',
+            '$DAC825BBF05D678ABDEA1C3086E8D99CF0BBF112~malene CONNECTED',
+            '$CB44E8ED1FAB648275C39756EB1758060C43BCA4~NOTaGlowieRelay CONNECTED',
+            '.',
+            '250 OK',
+        ]
+        message = await create_message(lines)
+        reply = ReplyGetInfo.from_message(message)
+        assert len(reply.values) == 2
+        assert set(reply.values) == {'version', 'orconn-status'}
+
+    async def test_get_info_error(self):
+        lines = ['552 Not running in server mode']
+        message = await create_message(lines)
+        reply = ReplyGetInfo.from_message(message)
+        assert reply.is_error is True
+        assert reply.is_success is False
+        assert len(reply.values) == 0
+
+    async def test_authenticate(self):
+        lines = ['250 OK']
+        message = await create_message(lines)
+        reply = ReplyAuthenticate.from_message(message)
+        assert reply.status == 250
+        assert reply.status_text == 'OK'
 
     async def test_protocol_info(self):
         lines = [

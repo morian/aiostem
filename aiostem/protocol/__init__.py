@@ -40,7 +40,20 @@ from .command import (
 )
 from .event import EventWord, EventWordInternal
 from .message import Message, MessageData, MessageLine, messages_from_stream
-from .reply import Reply, ReplyGetConf, ReplyProtocolInfo
+from .reply import (
+    Reply,
+    ReplyAuthenticate,
+    ReplyGetConf,
+    ReplyGetInfo,
+    ReplyMapAddress,
+    ReplyMapAddressItem,
+    ReplyProtocolInfo,
+    ReplyResetConf,
+    ReplySaveConf,
+    ReplySetConf,
+    ReplySetEvents,
+    ReplySignal,
+)
 from .structures import (
     AuthMethod,
     CircuitPurpose,
@@ -107,8 +120,17 @@ __all__ = [
     'OnionNewKeyType',
     'OnionServiceFlags',
     'Reply',
+    'ReplyAuthenticate',
     'ReplyGetConf',
+    'ReplyGetInfo',
+    'ReplyMapAddress',
+    'ReplyMapAddressItem',
     'ReplyProtocolInfo',
+    'ReplyResetConf',
+    'ReplySaveConf',
+    'ReplySetConf',
+    'ReplySetEvents',
+    'ReplySignal',
     'QuoteStyle',
     'Signal',
     'messages_from_stream',
