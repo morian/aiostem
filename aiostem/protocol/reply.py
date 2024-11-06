@@ -144,6 +144,11 @@ class ReplySetEvents(_ReplySimple):
 
 
 @dataclass(kw_only=True, slots=True)
+class ReplyAuthenticate(_ReplySimple):
+    """A reply for a `AUTHENTICATE` command."""
+
+
+@dataclass(kw_only=True, slots=True)
 class ReplySaveConf(_ReplySimple):
     """A reply for a `SAVECONF` command."""
 
@@ -268,8 +273,48 @@ class ReplyExtendCircuit(_ReplyGetMap):
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyAuthenticate(_ReplySimple):
-    """A reply for a `AUTHENTICATE` command."""
+class ReplySetCircuitPurpose(_ReplySimple):
+    """A reply for a `SETCIRCUITPURPOSE` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyAttachStream(_ReplySimple):
+    """A reply for a `ATTACHSTREAM` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyPostDescriptor(_ReplySimple):
+    """A reply for a `POSTDESCRIPTOR` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyRedirectStream(_ReplySimple):
+    """A reply for a `REDIRECTSTREAM` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyCloseStream(_ReplySimple):
+    """A reply for a `CLOSESTREAM` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyCloseCircuit(_ReplySimple):
+    """A reply for a `CLOSECIRCUIT` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyQuit(_ReplySimple):
+    """A reply for a `QUIT` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyUseFeature(_ReplySimple):
+    """A reply for a `USEFEATURE` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyResolve(_ReplySimple):
+    """A reply for a `RESOLVE` command."""
 
 
 @dataclass(kw_only=True, slots=True)
