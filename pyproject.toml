@@ -141,15 +141,15 @@ inline-quotes = 'single'
 multiline-quotes = 'double'
 
 [tool.ruff.lint.flake8-type-checking]
-runtime-evaluated-decorators = ['dataclasses.dataclass']
+runtime-evaluated-decorators = [
+	'dataclasses.dataclass',
+	'pydantic.BaseModel',
+]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 12
 
 [tool.ruff.lint.per-file-ignores]
-'bin/*' = [
-	'T201',   # `print` found
-]
 'tests/*.py' = [
 	'D',      # pydocstyle
 	'S101',   # bandit: Use of `assert` detected
@@ -157,6 +157,7 @@ max-complexity = 12
 
 [tool.mypy]
 files = ['aiostem/**/*.py']
+plugins = ['pydantic.mypy']
 python_version = '3.11'
 namespace_packages = true
 explicit_package_bases = true

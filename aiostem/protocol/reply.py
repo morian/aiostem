@@ -10,7 +10,8 @@ from pydantic import TypeAdapter
 
 from ..exceptions import ReplyStatusError
 from .structures import AuthMethod
-from .utils import ReplySyntax, ReplySyntaxFlag, StringSequence
+from .syntax import ReplySyntax, ReplySyntaxFlag
+from .utils import HexBytes, StringSequence
 
 if TYPE_CHECKING:
     from typing import Self
@@ -73,7 +74,7 @@ class _ReplyGetMap(Reply):
     """A base class for replies such as `GETCONF` and `GETINFO`."""
 
     #: This needs to be completed by the sub-class.
-    KW_SYNTAX: ClassVar[ReplySyntax] = ReplySyntax()
+    SYNTAX: ClassVar[ReplySyntax]
 
     @classmethod
     def _key_value_extract(
@@ -83,7 +84,7 @@ class _ReplyGetMap(Reply):
         """Extract key/value pairs from `messages`."""
         values = {}  # type: dict[str, list[str | None] | str | None]
         for item in messages:
-            update = cls.KW_SYNTAX.parse(item)
+            update = cls.SYNTAX.parse(item)
             for key, val in update.items():
                 if key is not None and isinstance(val, str | None):  # pragma: no branch
                     if key in values:
@@ -111,7 +112,7 @@ class ReplyResetConf(_ReplySimple):
 class ReplyGetConf(_ReplyGetMap):
     """A reply for a `GETCONF` command."""
 
-    KW_SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         flags=(
             ReplySyntaxFlag.KW_ENABLE
             | ReplySyntaxFlag.KW_OMIT_VALS
@@ -224,7 +225,7 @@ class ReplyMapAddress(Reply):
 class ReplyGetInfo(_ReplyGetMap):
     """A reply for a `GETINFO` command."""
 
-    KW_SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         flags=(
             ReplySyntaxFlag.KW_ENABLE
             | ReplySyntaxFlag.KW_OMIT_VALS
@@ -365,3 +366,49 @@ class ReplyProtocolInfo(Reply):
                 logger.info("No syntax handler for keyword '%s'", keyword)
 
         return TypeAdapter(cls).validate_python(result)
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyLoadConf(_ReplySimple):
+    """A reply for a `LOADCONF` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyTakeOwnership(_ReplySimple):
+    """A reply for a `TAKEOWNERSHIP` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyAuthChallenge(_ReplyGetMap):
+    """A reply for a `AUTHCHALLENGE` command."""
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_map=[None],
+        kwargs_map={
+            'SERVERHASH': 'server_hash',
+            'SERVERNONCE': 'server_nonce',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE,
+    )
+
+    server_hash: HexBytes | None = None
+    server_nonce: HexBytes | None = None
+
+    @classmethod
+    def from_message(cls, message: Message) -> Self:
+        """Build a structure from a received message."""
+        result = {'status': message.status}  # type: dict[str, Any]
+        if message.is_success:
+            update = cls.SYNTAX.parse(message)
+            for key, val in update.items():
+                if key is not None and isinstance(val, str):  # pragma: no branch
+                    result[key] = val
+        else:
+            result['status_text'] = message.header
+
+        return TypeAdapter(cls).validate_python(result)
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyDropOwnership(_ReplySimple):
+    """A reply for a `DROPOWNERSHIP` command."""

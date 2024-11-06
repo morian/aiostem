@@ -1,27 +1,22 @@
 from __future__ import annotations
 
-import logging
-from typing import Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar
 
 import pytest
-from pydantic import TypeAdapter
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
-from aiostem.exceptions import CommandError, ReplySyntaxError
+from aiostem.exceptions import CommandError
 from aiostem.protocol import (
     ArgumentKeyword,
     ArgumentString,
     AuthMethod,
     CommandWord,
-    Message,
-    MessageData,
     QuoteStyle,
 )
-from aiostem.protocol.utils import (
-    CommandSerializer,
-    ReplySyntax,
-    ReplySyntaxFlag,
-    StringSequence,
-)
+from aiostem.protocol.utils import CommandSerializer, HexBytes, StringSequence
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
 
 
 class TestCommandSerializer:
@@ -57,193 +52,81 @@ class TestCommandSerializer:
             ser.serialize()
 
 
-class TestReplySyntax:
-    """Checks on our reply parser."""
+class BaseEncoderTest:
+    DECODED_VALUE = None
+    ENCODED_VALUE = ''
+    TEST_CLASS = NotImplemented
+    SCHEMA_FORMAT = 'format'
+    VALUES: ClassVar[Mapping[str, Sequence[Any]]] = {
+        'good': [],
+        'fail': [],
+    }
 
-    def test_positional(self):
-        syntax = ReplySyntax(args_min=2, args_map=['severity', 'message'])
-        message = Message(status=650, header='NOTICE HelloWorld')
-        result = syntax.parse(message)
-        assert len(result) == 2
-        assert result['severity'] == 'NOTICE'
-        assert result['message'] == 'HelloWorld'
+    def stub_fail_values(self, value):
+        message = f'{self.SCHEMA_FORMAT.capitalize()} decoding error:'
+        with pytest.raises(ValidationError, match=message):
+            self.TEST_MODEL(v=value)
 
-    def test_positional_with_omission(self):
-        syntax = ReplySyntax(args_min=2, args_map=[None, 'message'])
-        message = Message(status=650, header='NOTICE HelloWorld')
-        result = syntax.parse(message)
-        assert len(result) == 1
-        assert result['message'] == 'HelloWorld'
+    def stub_good_values(self, value):
+        model = self.TEST_MODEL(v=value)
+        assert model.v == self.DECODED_VALUE
 
-    def test_positional_with_remain(self):
-        text = 'No user activity in a long time: becoming dormant'
-        syntax = ReplySyntax(
-            args_min=2,
-            args_map=['severity', 'message'],
-            flags=ReplySyntaxFlag.POS_REMAIN,
-        )
-        message = Message(status=650, header=f'NOTICE {text}')
-        result = syntax.parse(message)
-        assert result['message'] == text
+    def stub_good_encoding(self, value):
+        model = self.TEST_MODEL(v=value)
+        assert model.model_dump_json() == '{"v":"' + self.ENCODED_VALUE + '"}'
 
-    def test_keyword(self):
-        syntax = ReplySyntax(
-            args_map=['positional'],
-            kwargs_map={'ControlPort': 'control_port'},
-            flags=ReplySyntaxFlag.KW_ENABLE,
-        )
-        message = Message(status=650, header='TEST ControlPort=0.0.0.0:9051')
-        result = syntax.parse(message)
-        assert result['control_port'] == '0.0.0.0:9051'
-        assert result['positional'] == 'TEST'
+    def test_schema(self):
+        schema = self.TEST_MODEL.model_json_schema()
+        if self.SCHEMA_FORMAT is not None:
+            assert schema['properties']['v'] == {
+                'format': self.SCHEMA_FORMAT,
+                'title': 'V',
+                'type': 'string',
+            }
+        else:
+            assert schema['properties']['v'] == {'title': 'V', 'type': 'string'}
 
-    def test_keyword_quoted(self):
-        syntax = ReplySyntax(
-            kwargs_map={'KEY': 'key'},
-            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
-        )
-        message = Message(status=250, header='KEY="He said \\"Hello world\\"."')
-        result = syntax.parse(message)
-        assert result['key'] == 'He said "Hello world".'
 
-    def test_keyword_omit_keys(self):
-        syntax = ReplySyntax(
-            kwargs_map={None: 'flags'},
-            kwargs_multi={'flags'},
-            flags=(
-                ReplySyntaxFlag.KW_ENABLE
-                | ReplySyntaxFlag.KW_QUOTED
-                | ReplySyntaxFlag.KW_OMIT_KEYS
-            ),
-        )
-        # Some flags are quoted here, because why not!
-        message = Message(status=250, header='EXTENDED_EVENTS "VERBOSE_NAMES"')
-        result = syntax.parse(message)
-        flags = result['flags']
-        assert len(flags) == 2
-        assert flags == ['EXTENDED_EVENTS', 'VERBOSE_NAMES']
+class BaseHexEncoderTest(BaseEncoderTest):
+    DECODED_VALUE = b'These are bytes!'
 
-    def test_keyword_omit_value(self):
-        syntax = ReplySyntax(
-            kwargs_map={
-                'EXTENDED_EVENTS': 'EXTENDED_EVENTS',
-                'VERBOSE_NAMES': 'VERBOSE_NAMES',
-            },
-            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_OMIT_VALS,
-        )
-        message = Message(status=250, header='EXTENDED_EVENTS VERBOSE_NAMES')
-        result = syntax.parse(message)
-        assert set(result.keys()) == set(syntax.kwargs_map.keys())
 
-    def test_keyword_allow_all(self):
-        syntax = ReplySyntax(
-            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_EXTRA,
-        )
-        message = Message(status=250, header='Server=127.0.0.1 Port=9051')
-        result = syntax.parse(message)
-        assert len(result) == 2
-        assert result['Server'] == '127.0.0.1'
-        assert result['Port'] == '9051'
+# Dirty decorator to make our tests dynamic.
+# This looks for all 'stub_' methods in our direct parent and wraps this function
+# around pytest.mark.parametrize to inject our test values.
+def inject_test_values(cls):
+    class TestModel(BaseModel):
+        v: cls.TEST_CLASS
 
-    def test_keyword_ignored(self, caplog):
-        syntax = ReplySyntax(
-            kwargs_map={'Server': 'Server'},
-            flags=ReplySyntaxFlag.KW_ENABLE,
-        )
-        message = Message(status=250, header='Server=127.0.0.1 Port=9051')
-        with caplog.at_level(logging.INFO, logger='aiostem.protocol'):
-            result = syntax.parse(message)
-        assert len(result) == 1
-        assert 'Found an unhandled keyword: Port=9051' in caplog.text
+    for name, method in BaseEncoderTest.__dict__.items():
+        if name.startswith('stub_'):
+            action = name.split('_')[1]
+            values = [(method, value) for value in cls.VALUES.get(action, [])]
 
-    def test_keyword_value_empty_value(self):
-        syntax = ReplySyntax(
-            kwargs_map={'KEY': 'key'},
-            flags=ReplySyntaxFlag.KW_ENABLE,
-        )
-        message = Message(status=250, header='KEY=')
-        result = syntax.parse(message)
-        assert result['key'] == ''
+            @pytest.mark.parametrize(('method', 'value'), values)
+            def wrapper(self, method, value):
+                return method(self, value)
 
-    def test_keyword_value_in_data(self):
-        syntax = ReplySyntax(
-            kwargs_map={'KEY': 'key'},
-            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_USE_DATA,
-        )
-        message = MessageData(status=250, header='KEY=', data='Our value is "here"!')
-        result = syntax.parse(message)
-        assert result['key'] == message.data
+            setattr(cls, 'test_' + name[5:], wrapper)
 
-    def test_keyword_value_is_raw(self):
-        syntax = ReplySyntax(
-            kwargs_map={'KEY': 'key'},
-            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_RAW,
-        )
-        message = MessageData(status=250, header='KEY=A long weird string')
-        result = syntax.parse(message)
-        assert result['key'] == 'A long weird string'
+    cls.TEST_MODEL = TestModel
 
-    def test_bad_parse_too_few_arguments(self):
-        syntax = ReplySyntax(args_min=2, args_map=['severity', 'message'])
-        message = Message(status=650, header='NOTICE')
-        with pytest.raises(ReplySyntaxError, match='Received too few arguments'):
-            syntax.parse(message)
+    return cls
 
-    def test_bad_parse_remaining_data(self):
-        syntax = ReplySyntax(args_min=2, args_map=['severity', 'message'])
-        message = Message(status=650, header='NOTICE Hello world')
-        with pytest.raises(ReplySyntaxError, match='Unexpectedly found remaining data:'):
-            syntax.parse(message)
 
-    def test_bad_parse_keyword_quote_syntax(self):
-        syntax = ReplySyntax(
-            kwargs_map={'KEY': 'key'},
-            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
-        )
-        message = Message(status=250, header='KEY="Hello word')
-        with pytest.raises(ReplySyntaxError, match='No double-quote found before the end'):
-            syntax.parse(message)
-
-    def test_bad_parse_keyword_unexpected_quote(self):
-        syntax = ReplySyntax(
-            kwargs_map={'KEY': 'key'},
-            flags=ReplySyntaxFlag.KW_ENABLE,
-        )
-        message = Message(status=250, header='KEY="Hello word"')
-        with pytest.raises(ReplySyntaxError, match='Got an unexpected quoted value.'):
-            syntax.parse(message)
-
-    def test_bad_parse_no_omit_vals(self):
-        syntax = ReplySyntax(
-            kwargs_map={
-                'EXTENDED_EVENTS': 'EXTENDED_EVENTS',
-                'VERBOSE_NAMES': 'VERBOSE_NAMES',
-            },
-            flags=ReplySyntaxFlag.KW_ENABLE,
-        )
-        message = Message(status=250, header='EXTENDED_EVENTS VERBOSE_NAMES')
-        with pytest.raises(ReplySyntaxError, match='Got a single string without either'):
-            syntax.parse(message)
-
-    def test_bad_syntax_min_max(self):
-        with pytest.raises(RuntimeError, match='Minimum argument count is greater'):
-            ReplySyntax(args_min=2, args_map=['version'])
-
-    def test_bad_syntax_remain_vs_kw(self):
-        with pytest.raises(RuntimeError, match='Positional remain and keywords are mutually'):
-            ReplySyntax(flags=ReplySyntaxFlag.POS_REMAIN | ReplySyntaxFlag.KW_ENABLE)
-
-    def test_bad_syntax_keys_vs_vals(self):
-        with pytest.raises(RuntimeError, match='KW_OMIT_KEYS and KW_OMIT_VALS are mutually'):
-            ReplySyntax(flags=ReplySyntaxFlag.KW_OMIT_KEYS | ReplySyntaxFlag.KW_OMIT_VALS)
-
-    def test_bad_syntax_raw_vs_quoted(self):
-        with pytest.raises(RuntimeError, match='KW_RAW and KW_QUOTED are mutually exclusive'):
-            ReplySyntax(flags=ReplySyntaxFlag.KW_RAW | ReplySyntaxFlag.KW_QUOTED)
-
-    def test_bad_syntax_kw_disabled_but_with_kvmap(self):
-        with pytest.raises(RuntimeError, match='Keywords are disabled but we found items'):
-            ReplySyntax(kwargs_map={'SERVER', 'server'})
+@inject_test_values
+class TestHexBytes(BaseHexEncoderTest):
+    TEST_CLASS = HexBytes
+    ENCODED_VALUE = '54686573652061726520627974657321'
+    SCHEMA_FORMAT = 'hex'
+    VALUES: ClassVar[Mapping[str, Sequence[Any]]] = {
+        'good': [
+            b'These are bytes!',
+            HexBytes(b'These are bytes!'),
+            '54686573652061726520627974657321',
+        ],
+        'fail': ['546' '54T6'],
+    }
 
 
 class TestStringSequence:

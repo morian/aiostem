@@ -8,6 +8,7 @@ from aiostem.exceptions import ReplyStatusError
 from aiostem.protocol import (
     AuthMethod,
     Message,
+    ReplyAuthChallenge,
     ReplyAuthenticate,
     ReplyExtendCircuit,
     ReplyGetConf,
@@ -200,3 +201,23 @@ class TestReplies:
         with caplog.at_level(logging.INFO, logger='aiostem.protocol'):
             ReplyProtocolInfo.from_message(message)
         assert "No syntax handler for keyword 'TEST'" in caplog.text
+
+    async def test_auth_challenge(self):
+        server_hash = '700912005E616BC5558ACDC14B11304B0A03F45C4B1DBD60365FD66033D7276C'
+        server_nonce = 'E0BEAB4467F69317B5BEE45B04565F5FF277B896A2DE46A86C99B3999F77CE80'
+        line = f'250 AUTHCHALLENGE SERVERHASH={server_hash} SERVERNONCE={server_nonce}'
+        message = await create_message([line])
+        reply = ReplyAuthChallenge.from_message(message)
+        assert reply.status == 250
+        assert reply.status_text is None
+        assert reply.server_hash == bytes.fromhex(server_hash)
+        assert reply.server_nonce == bytes.fromhex(server_nonce)
+
+    async def test_auth_challenge_error(self):
+        line = '512 Wrong number of arguments for AUTHCHALLENGE'
+        message = await create_message([line])
+        reply = ReplyAuthChallenge.from_message(message)
+        assert reply.status == 512
+        assert reply.status_text == 'Wrong number of arguments for AUTHCHALLENGE'
+        with pytest.raises(ReplyStatusError, match='Wrong number of arguments'):
+            reply.raise_for_status()
