@@ -4,7 +4,7 @@ import logging
 
 import pytest
 
-from aiostem.exceptions import ReplyStatusError
+from aiostem.exceptions import ReplyError, ReplyStatusError
 from aiostem.protocol import (
     AuthMethod,
     Message,
@@ -202,7 +202,7 @@ class TestReplies:
             ReplyProtocolInfo.from_message(message)
         assert "No syntax handler for keyword 'TEST'" in caplog.text
 
-    async def test_auth_challenge(self):
+    async def test_auth_challenge_parse(self):
         server_hash = '700912005E616BC5558ACDC14B11304B0A03F45C4B1DBD60365FD66033D7276C'
         server_nonce = 'E0BEAB4467F69317B5BEE45B04565F5FF277B896A2DE46A86C99B3999F77CE80'
         line = f'250 AUTHCHALLENGE SERVERHASH={server_hash} SERVERNONCE={server_nonce}'
@@ -213,7 +213,7 @@ class TestReplies:
         assert reply.server_hash == bytes.fromhex(server_hash)
         assert reply.server_nonce == bytes.fromhex(server_nonce)
 
-    async def test_auth_challenge_error(self):
+    async def test_auth_challenge_syntax_error(self):
         line = '512 Wrong number of arguments for AUTHCHALLENGE'
         message = await create_message([line])
         reply = ReplyAuthChallenge.from_message(message)
@@ -221,3 +221,59 @@ class TestReplies:
         assert reply.status_text == 'Wrong number of arguments for AUTHCHALLENGE'
         with pytest.raises(ReplyStatusError, match='Wrong number of arguments'):
             reply.raise_for_status()
+
+        cookie = b'e8a05005deb487f5d9a0db9a026d28ad'
+        nonce = "I am a nonce!"
+        with pytest.raises(ReplyError, match='server_nonce is not set.'):
+            reply.build_client_hash(nonce, cookie)
+        with pytest.raises(ReplyError, match='server_nonce is not set.'):
+            reply.build_server_hash(nonce, cookie)
+
+    async def test_auth_challenge_error(self):
+        client_nonce_str = 'F1BE0456FB2626512D72B06509A16EAAA707B1981F31C9BBAD40A788A0A330A6'
+        server_hash = '000912005E616BC5558ACDC14B11304B0A03F45C4B1DBD60365FD66033D7276C'
+        server_nonce = 'E0BEAB4467F69317B5BEE45B04565F5FF277B896A2DE46A86C99B3999F77CE80'
+        cookie_str = 'E9FDE075EA5C9996F17AB280B3FD69FF6109ECA9369ED824045E8333DB58017A'
+        client_nonce = bytes.fromhex(client_nonce_str)
+        cookie = bytes.fromhex(cookie_str)
+
+        line = f'250 AUTHCHALLENGE SERVERHASH={server_hash} SERVERNONCE={server_nonce}'
+        message = await create_message([line])
+        reply = ReplyAuthChallenge.from_message(message)
+        with pytest.raises(ReplyError, match='Server hash provided by Tor is invalid'):
+            reply.raise_for_server_hash_error(client_nonce, cookie)
+
+    async def test_auth_challenge_success_bytes(self):
+        client_nonce_str = 'F1BE0456FB2626512D72B06509A16EAAA707B1981F31C9BBAD40A788A0A330A6'
+        server_hash = '700912005E616BC5558ACDC14B11304B0A03F45C4B1DBD60365FD66033D7276C'
+        server_nonce = 'E0BEAB4467F69317B5BEE45B04565F5FF277B896A2DE46A86C99B3999F77CE80'
+        cookie_str = 'E9FDE075EA5C9996F17AB280B3FD69FF6109ECA9369ED824045E8333DB58017A'
+        client_nonce = bytes.fromhex(client_nonce_str)
+        cookie = bytes.fromhex(cookie_str)
+
+        line = f'250 AUTHCHALLENGE SERVERHASH={server_hash} SERVERNONCE={server_nonce}'
+        message = await create_message([line])
+        reply = ReplyAuthChallenge.from_message(message)
+        reply.raise_for_server_hash_error(client_nonce, cookie)
+
+        client_hash_str = 'DDC1E1FC978DDF6CD2142EEA62559D026A2F84666B9F6B462224F36B7E9A9C54'
+        client_hash = bytes.fromhex(client_hash_str)
+        computed = reply.build_client_hash(client_nonce, cookie)
+        assert computed == client_hash
+
+    async def test_auth_challenge_success_string(self):
+        server_hash = '01BAB534C249A47B46D8CA235683B43D075C134820CAF3C0214DBDE2ADD55ED3'
+        server_nonce = '76A744F700967CE08FE7E45797FA54BDCDEBF12F273080EB58562B80DBD02400'
+        cookie_str = 'E9FDE075EA5C9996F17AB280B3FD69FF6109ECA9369ED824045E8333DB58017A'
+        cookie = bytes.fromhex(cookie_str)
+        client_nonce = 'I am a nonce!'
+
+        line = f'250 AUTHCHALLENGE SERVERHASH={server_hash} SERVERNONCE={server_nonce}'
+        message = await create_message([line])
+        reply = ReplyAuthChallenge.from_message(message)
+        reply.raise_for_server_hash_error(client_nonce, cookie)
+
+        client_hash_str = '2E1DA1886E1D4D2695F10290C315877E55D838DAA04757E6D9730420DD39262C'
+        client_hash = bytes.fromhex(client_hash_str)
+        computed = reply.build_client_hash(client_nonce, cookie)
+        assert computed == client_hash

@@ -6,8 +6,9 @@
    * :exc:`ProtocolError`
       * :exc:`CommandError`
       * :exc:`MessageError`
-      * :exc:`ReplyStatusError`
-      * :exc:`ReplySyntaxError`
+      * :exc:`ReplyError`
+         * :exc:`ReplyStatusError`
+         * :exc:`ReplySyntaxError`
 """
 
 from __future__ import annotations
@@ -38,7 +39,11 @@ class MessageError(ProtocolError):
     """Raised as a result of a bad manipulation of a received :class:`.Message`."""
 
 
-class ReplyStatusError(ProtocolError):
+class ReplyError(ProtocolError):
+    """Any error raised during handling of a reply data structure."""
+
+
+class ReplyStatusError(ReplyError):
     """Raised when a reply status code is invalid."""
 
     def __init__(self, message: str, *, code: int | None = None) -> None:
@@ -59,5 +64,5 @@ class ReplyStatusError(ProtocolError):
         return self._code
 
 
-class ReplySyntaxError(ProtocolError):
+class ReplySyntaxError(ReplyError):
     """Raised when encountering an invalid syntax in a received message."""

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping, Sequence
@@ -8,7 +10,7 @@ from typing import TYPE_CHECKING, Annotated, Any, ClassVar
 
 from pydantic import TypeAdapter
 
-from ..exceptions import ReplyStatusError
+from ..exceptions import ReplyError, ReplyStatusError
 from .structures import AuthMethod
 from .syntax import ReplySyntax, ReplySyntaxFlag
 from .utils import HexBytes, StringSequence
@@ -382,6 +384,12 @@ class ReplyTakeOwnership(_ReplySimple):
 class ReplyAuthChallenge(_ReplyGetMap):
     """A reply for a `AUTHCHALLENGE` command."""
 
+    CLIENT_HASH_CONSTANT: ClassVar[bytes] = (
+        b'Tor safe cookie authentication controller-to-server hash'
+    )
+    SERVER_HASH_CONSTANT: ClassVar[bytes] = (
+        b'Tor safe cookie authentication server-to-controller hash'
+    )
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_map=[None],
         kwargs_map={
@@ -407,6 +415,68 @@ class ReplyAuthChallenge(_ReplyGetMap):
             result['status_text'] = message.header
 
         return TypeAdapter(cls).validate_python(result)
+
+    def build_client_hash(self, client_nonce: str | bytes, cookie: bytes) -> bytes:
+        """
+        Build a token suitable for authentication.
+
+        Args:
+            client_nonce: The client nonce used in :class:`CommandAuthChallenge`.
+            cookie: The cookie value read from the cookie file.
+
+        Returns:
+            A value that you can authenticate with.
+
+        """
+        if self.server_nonce is None:
+            msg = 'server_nonce is not set.'
+            raise ReplyError(msg)
+
+        if isinstance(client_nonce, str):
+            client_nonce = client_nonce.encode('ascii')
+        data = cookie + client_nonce + self.server_nonce
+        return hmac.new(self.CLIENT_HASH_CONSTANT, data, hashlib.sha256).digest()
+
+    def build_server_hash(self, client_nonce: str | bytes, cookie: bytes) -> bytes:
+        """
+        Recompute the server hash.
+
+        Args:
+            client_nonce: The client nonce used in :class:`CommandAuthChallenge`.
+            cookie: The cookie value read from the cookie file.
+
+        Raises:
+            ReplyError: when our server nonce is :obj:`None`.
+
+        Returns:
+            The same value as in `server_hash` if everything went well.
+
+        """
+        if self.server_nonce is None:
+            msg = 'server_nonce is not set.'
+            raise ReplyError(msg)
+
+        if isinstance(client_nonce, str):
+            client_nonce = client_nonce.encode('ascii')
+        data = cookie + client_nonce + self.server_nonce
+        return hmac.new(self.SERVER_HASH_CONSTANT, data, hashlib.sha256).digest()
+
+    def raise_for_server_hash_error(self, client_nonce: str | bytes, cookie: bytes) -> None:
+        """
+        Check that our server hash is consistent with what we compute.
+
+        Args:
+            client_nonce: The client nonce used in :class:`CommandAuthChallenge`.
+            cookie: The cookie value read from the cookie file.
+
+        Raises:
+            ReplyError: when our server nonce does not match the one we computed.
+
+        """
+        computed = self.build_server_hash(client_nonce, cookie)
+        if computed != self.server_hash:
+            msg = 'Server hash provided by Tor is invalid.'
+            raise ReplyError(msg)
 
 
 @dataclass(kw_only=True, slots=True)
