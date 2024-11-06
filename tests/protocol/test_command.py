@@ -42,9 +42,8 @@ from aiostem.protocol import (
     CommandTakeOwnership,
     CommandUseFeature,
     EventWord,
-    OnionAddKeyType,
     OnionClientAuthFlags,
-    OnionNewKeyType,
+    OnionKeyType,
     OnionServiceFlags,
     Signal,
 )
@@ -260,16 +259,27 @@ class TestCommands:
 
     def test_add_onion(self):
         cmd = CommandAddOnion(
-            key_type=OnionAddKeyType.NEW,
-            key=OnionNewKeyType.ED25519_V3,
+            key_type='NEW',
+            key=OnionKeyType.ED25519_V3,
             ports=['80,127.0.0.1:80'],
         )
         assert cmd.serialize() == 'ADD_ONION NEW:ED25519-V3 Port=80,127.0.0.1:80\r\n'
 
+    def test_add_onion_bytes(self):
+        key = b'\xe6PG\xf74\xa4\xfc\xa3O\xaa\x95\x91X+\x8d\x1a'
+        cmd = CommandAddOnion(
+            key_type=OnionKeyType.ED25519_V3,
+            key=key,
+            ports=['80,127.0.0.1:80'],
+        )
+        assert cmd.serialize() == (
+            'ADD_ONION ED25519-V3:5lBH9zSk/KNPqpWRWCuNGg== Port=80,127.0.0.1:80\r\n'
+        )
+
     def test_add_onion_with_client_auth(self):
         cmd = CommandAddOnion(
-            key_type=OnionAddKeyType.NEW,
-            key=OnionNewKeyType.BEST,
+            key_type='NEW',
+            key='BEST',
             ports=['80,127.0.0.1:80'],
             flags={OnionServiceFlags.DISCARD_PK},
             max_streams=2,
@@ -282,8 +292,8 @@ class TestCommands:
 
     def test_add_onion_with_client_auth_v3(self):
         cmd = CommandAddOnion(
-            key_type=OnionAddKeyType.NEW,
-            key=OnionNewKeyType.BEST,
+            key_type='NEW',
+            key='BEST',
             ports=['80,127.0.0.1:80'],
             client_auth_v3=['5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ'],
         )
@@ -295,7 +305,7 @@ class TestCommands:
     def test_add_onion_key_error_1(self):
         key = 'MC4CAQAwBQYDK2VwBCIEIKK7usustM7o4IjJCPp0zQZpjNKHi42e3phc4VgWt08V'
         cmd = CommandAddOnion(
-            key_type=OnionAddKeyType.NEW,
+            key_type='NEW',
             key=key,
             ports=['80,127.0.0.1:80'],
         )
@@ -304,15 +314,15 @@ class TestCommands:
 
     def test_add_onion_key_error_2(self):
         cmd = CommandAddOnion(
-            key_type=OnionAddKeyType.RSA1024,
-            key=OnionNewKeyType.BEST,
+            key_type=OnionKeyType.RSA1024,
+            key='BEST',
             ports=['80,127.0.0.1:80'],
         )
         with pytest.raises(CommandError, match='Incompatible options for'):
             cmd.serialize()
 
     def test_add_onion_key_no_port(self):
-        cmd = CommandAddOnion(key_type=OnionAddKeyType.NEW, key=OnionNewKeyType.BEST)
+        cmd = CommandAddOnion(key_type='NEW', key='BEST')
         with pytest.raises(CommandError, match='You must specify one or more virtual ports'):
             cmd.serialize()
 

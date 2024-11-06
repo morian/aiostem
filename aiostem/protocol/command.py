@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from base64 import b64encode
 from collections.abc import MutableMapping, MutableSequence
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import ClassVar
+from typing import ClassVar, Literal
 
 from ..exceptions import CommandError
 from .argument import Argument, ArgumentKeyword, ArgumentString, QuoteStyle  # noqa: F401
@@ -13,9 +14,8 @@ from .structures import (
     CircuitPurpose,
     CloseStreamReason,
     Feature,
-    OnionAddKeyType,
     OnionClientAuthFlags,
-    OnionNewKeyType,
+    OnionKeyType,
     OnionServiceFlags,
     Signal,
 )
@@ -826,8 +826,8 @@ class CommandAddOnion(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.ADD_ONION
-    key_type: OnionAddKeyType
-    key: OnionNewKeyType | str
+    key_type: OnionKeyType | Literal['NEW']
+    key: OnionKeyType | Literal['BEST'] | bytes | str  # noqa: PYI051
     flags: set[OnionServiceFlags] = field(default_factory=set)
     max_streams: int | None = None
     #: As in arguments to HiddenServicePort ("port,target")
@@ -842,8 +842,8 @@ class CommandAddOnion(Command):
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
 
-        do_generate = bool(self.key_type == OnionAddKeyType.NEW)
-        has_keyblob = bool(not isinstance(self.key, OnionNewKeyType))
+        do_generate = bool(self.key_type == 'NEW')
+        has_keyblob = bool(not isinstance(self.key, OnionKeyType) and self.key != 'BEST')
         if do_generate == has_keyblob:
             msg = "Incompatible options for 'key_type' and 'key'."
             raise CommandError(msg)
@@ -852,8 +852,21 @@ class CommandAddOnion(Command):
             msg = 'You must specify one or more virtual ports.'
             raise CommandError(msg)
 
-        key = f'{self.key_type.value}:{self.key}'
-        args.append(ArgumentString(key))
+        if isinstance(self.key_type, OnionKeyType):
+            key_type = self.key_type.value
+        else:
+            key_type = self.key_type
+
+        match self.key:
+            case OnionKeyType():
+                key_data = self.key.value
+            case bytes():
+                key_data = b64encode(self.key).decode('ascii')
+            case str():  # pragma: no branch
+                key_data = self.key
+
+        key_spec = f'{key_type}:{key_data}'
+        args.append(ArgumentString(key_spec))
         if len(self.flags):
             flags = ','.join(self.flags)
             args.append(ArgumentKeyword('Flags', flags, quotes=QuoteStyle.NEVER))

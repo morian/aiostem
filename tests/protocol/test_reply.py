@@ -8,6 +8,8 @@ from aiostem.exceptions import ReplyError, ReplyStatusError
 from aiostem.protocol import (
     AuthMethod,
     Message,
+    OnionKeyType,
+    ReplyAddOnion,
     ReplyAuthChallenge,
     ReplyAuthenticate,
     ReplyExtendCircuit,
@@ -223,7 +225,7 @@ class TestReplies:
             reply.raise_for_status()
 
         cookie = b'e8a05005deb487f5d9a0db9a026d28ad'
-        nonce = "I am a nonce!"
+        nonce = 'I am a nonce!'
         with pytest.raises(ReplyError, match='server_nonce is not set.'):
             reply.build_client_hash(nonce, cookie)
         with pytest.raises(ReplyError, match='server_nonce is not set.'):
@@ -277,3 +279,35 @@ class TestReplies:
         client_hash = bytes.fromhex(client_hash_str)
         computed = reply.build_client_hash(client_nonce, cookie)
         assert computed == client_hash
+
+    async def test_add_onion(self):
+        lines = [
+            '250-ServiceID=xsa5oiu2bpnpvsgec5ti5gqdue4t4uxfmmobqibj5nuwkzxb2krtlgyd',
+            '250-PrivateKey=ED25519-V3:wCuCqxopubG0hu7WyeWsZvTa7ipqRCAnIVnghhc0pFvP'
+            '6CYUzsZJCNw3bBcuita8Dr59xaUqM2nJBFZRthLTtw==',
+            '250 OK',
+        ]
+        message = await create_message(lines)
+        reply = ReplyAddOnion.from_message(message)
+        assert reply.key_type == OnionKeyType.ED25519_V3
+        assert reply.key.hex() == (
+            'c02b82ab1a29b9b1b486eed6c9e5ac66f4daee2a6a4420272159e0861734a45b'
+            'cfe82614cec64908dc376c172e8ad6bc0ebe7dc5a52a3369c9045651b612d3b7'
+        )
+
+    async def test_add_onion_with_key(self):
+        lines = [
+            '250-ServiceID=xsa5oiu2bpnpvsgec5ti5gqdue4t4uxfmmobqibj5nuwkzxb2krtlgyd',
+            '250 OK',
+        ]
+        message = await create_message(lines)
+        reply = ReplyAddOnion.from_message(message)
+        assert reply.key_type is None
+        assert reply.key is None
+
+    async def test_add_onion_error(self):
+        line = '512 Bad arguments to ADD_ONION: Need at least 1 argument(s)'
+        message = await create_message([line])
+        reply = ReplyAddOnion.from_message(message)
+        with pytest.raises(ReplyStatusError, match='Bad arguments to ADD_ONION:'):
+            reply.raise_for_status()

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import typing
 from collections.abc import Collection, MutableSequence
 from dataclasses import dataclass
@@ -138,6 +139,40 @@ class EncoderProtocol(Protocol, Generic[T]):
         """
 
 
+class Base64Encoder(EncoderProtocol[bytes]):
+    """Encoder for base64 bytes."""
+
+    trim_padding: ClassVar[bool] = False
+
+    @classmethod
+    def decode(cls, data: str) -> bytes:
+        """Decode the provided base64 bytes to original bytes data."""
+        try:
+            encoded = data.encode()
+            if cls.trim_padding:
+                encoded = encoded + b'==='
+            return base64.standard_b64decode(encoded)
+        except ValueError as e:
+            raise PydanticCustomError(
+                'base64_decode',
+                "Base64 decoding error: '{error}'",
+                {'error': str(e)},
+            ) from e
+
+    @classmethod
+    def encode(cls, value: bytes) -> str:
+        """Encode the data to a base64 encoded string."""
+        encoded = base64.standard_b64encode(value)
+        if cls.trim_padding:
+            encoded = encoded.rstrip(b'=')
+        return encoded.decode()
+
+    @classmethod
+    def get_json_format(cls) -> Literal['base64']:
+        """Get the JSON format for the encoded data."""
+        return 'base64'
+
+
 class HexEncoder(EncoderProtocol[bytes]):
     """Specific encoder for hex encoded strings."""
 
@@ -274,3 +309,4 @@ class StringSequence:
 
 
 HexBytes = Annotated[bytes, EncodedBytes(encoder=HexEncoder)]
+Base64Bytes = Annotated[bytes, EncodedBytes(encoder=Base64Encoder)]

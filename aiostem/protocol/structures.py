@@ -68,11 +68,9 @@ class Feature(StrEnum):
     VERBOSE_NAMES = 'VERBOSE_NAMES'
 
 
-class OnionAddKeyType(StrEnum):
-    """All types of keys when creating an onion services."""
+class OnionKeyType(StrEnum):
+    """All types of keys for onion services."""
 
-    #: The server should generate a key of algorithm KeyBlob.
-    NEW = 'NEW'
     #: The server should use the 1024 bit RSA key provided in as KeyBlob (v2).
     RSA1024 = 'RSA1024'
     #: The server should use the ed25519 v3 key provided in as KeyBlob (v3).
@@ -84,23 +82,6 @@ class OnionClientAuthFlags(StrEnum):
 
     #: This client's credentials should be stored in the filesystem.
     PERMANENT = 'Permanent'
-
-
-class OnionNewKeyType(StrEnum):
-    """
-    All kind of keys we can generate when creating an onion services.
-
-    Note:
-        These values are only applicable with `OnionAddKeyType.NEW`.
-
-    """
-
-    #: The server should generate a key using the "best" supported algorithm.
-    BEST = 'BEST'
-    #: The server should generate a 1024 bit RSA key.
-    RSA1024 = 'RSA1024'
-    #: The server should generate an ed25519 private key.
-    ED25519_V3 = 'ED25519-V3'
 
 
 class OnionServiceFlags(StrEnum):

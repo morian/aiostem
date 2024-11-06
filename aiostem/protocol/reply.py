@@ -11,9 +11,9 @@ from typing import TYPE_CHECKING, Annotated, Any, ClassVar
 from pydantic import TypeAdapter
 
 from ..exceptions import ReplyError, ReplyStatusError
-from .structures import AuthMethod
+from .structures import AuthMethod, OnionKeyType
 from .syntax import ReplySyntax, ReplySyntaxFlag
-from .utils import HexBytes, StringSequence
+from .utils import Base64Bytes, HexBytes, StringSequence
 
 if TYPE_CHECKING:
     from typing import Self
@@ -381,7 +381,7 @@ class ReplyTakeOwnership(_ReplySimple):
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyAuthChallenge(_ReplyGetMap):
+class ReplyAuthChallenge(Reply):
     """A reply for a `AUTHCHALLENGE` command."""
 
     CLIENT_HASH_CONSTANT: ClassVar[bytes] = (
@@ -477,6 +477,63 @@ class ReplyAuthChallenge(_ReplyGetMap):
         if computed != self.server_hash:
             msg = 'Server hash provided by Tor is invalid.'
             raise ReplyError(msg)
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyDropGuards(_ReplySimple):
+    """A reply for a `DROPGUARDS` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyHsFetch(_ReplySimple):
+    """A reply for a `HSFETCH` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyAddOnion(Reply):
+    """A reply for a `ADD_ONION` command."""
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        kwargs_map={
+            'ServiceID': 'address',
+            'ClientAuth': 'client_auth',
+            'PrivateKey': 'priv',
+        },
+        kwargs_multi={'client_auth'},
+        flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_RAW,
+    )
+
+    #: Called `ServiceID` in the documentation, this is the onion address minus its TLD.
+    address: str | None = None
+    client_auth: Sequence[str] = field(default_factory=list)
+    key_type: OnionKeyType | None = None
+    key: Base64Bytes | None = None
+
+    @classmethod
+    def from_message(cls, message: Message) -> Self:
+        """Build a structure from a received message."""
+        result = {
+            'status': message.status,
+            'status_text': message.header,
+        }  # type: dict[str, Any]
+
+        if message.is_success:
+            keywords = {}  # type: dict[str, Any]
+            for sub in message.items:
+                update = cls.SYNTAX.parse(sub)
+                for key, val in update.items():
+                    if key is not None:  # pragma: no branch
+                        keywords[key] = val
+            key_spec = keywords.pop('priv', None)
+            if key_spec is not None:
+                key_type, key_blob = key_spec.split(':', maxsplit=1)
+                keywords['key_type'] = key_type
+                keywords['key'] = key_blob
+            result.update(keywords)
+        else:
+            result['status_text'] = message.header
+
+        return TypeAdapter(cls).validate_python(result)
 
 
 @dataclass(kw_only=True, slots=True)

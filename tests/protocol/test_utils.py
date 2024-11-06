@@ -13,7 +13,14 @@ from aiostem.protocol import (
     CommandWord,
     QuoteStyle,
 )
-from aiostem.protocol.utils import CommandSerializer, HexBytes, StringSequence
+from aiostem.protocol.utils import (
+    Base64Bytes,
+    Base64Encoder,
+    CommandSerializer,
+    EncodedBytes,
+    HexBytes,
+    StringSequence,
+)
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
@@ -112,6 +119,49 @@ def inject_test_values(cls):
     cls.TEST_MODEL = TestModel
 
     return cls
+
+
+@inject_test_values
+class TestBase64(BaseHexEncoderTest):
+    TEST_CLASS = Base64Bytes
+    ENCODED_VALUE = 'VGhlc2UgYXJlIGJ5dGVzIQ=='
+    SCHEMA_FORMAT = 'base64'
+    VALUES: ClassVar[Mapping[str, Sequence[Any]]] = {
+        'good': [
+            b'These are bytes!',
+            Base64Bytes(b'These are bytes!'),
+            'VGhlc2UgYXJlIGJ5dGVzIQ==',
+        ],
+        'fail': [
+            'VGhlc2UgYXJlIGJ5dGVzIQ',
+            '=Ghlc2UgYXJlIGJ5dGVzIQ',
+        ],
+    }
+
+
+class Base64TrimmedEncoder(Base64Encoder):
+    trim_padding: ClassVar[bool] = True
+
+
+Base64BytesTrimmed = Annotated[bytes, EncodedBytes(encoder=Base64TrimmedEncoder)]
+
+
+@inject_test_values
+class TestBase64Trimmed(BaseHexEncoderTest):
+    TEST_CLASS = Base64BytesTrimmed
+    ENCODED_VALUE = 'VGhlc2UgYXJlIGJ5dGVzIQ'
+    SCHEMA_FORMAT = 'base64'
+    VALUES: ClassVar[Mapping[str, Sequence[Any]]] = {
+        'good': [
+            b'These are bytes!',
+            Base64Bytes(b'These are bytes!'),
+            'VGhlc2UgYXJlIGJ5dGVzIQ==',
+            'VGhlc2UgYXJlIGJ5dGVzIQ',
+        ],
+        'fail': [
+            '=Ghlc2UgYXJlIGJ5dGVzIQ',
+        ],
+    }
 
 
 @inject_test_values
