@@ -19,7 +19,7 @@ from .structures import (
     OnionServiceFlags,
     Signal,
 )
-from .utils import CommandSerializer
+from .utils import Base64Bytes, CommandSerializer
 
 
 class CommandWord(StrEnum):
@@ -964,7 +964,7 @@ class CommandOnionClientAuthAdd(Command):
     #: V3 onion address without the `.onion` suffix.
     address: str
     #: Base64 encoding of x25519 key.
-    key: str
+    key: Base64Bytes | str
     #: An optional nickname for the client.
     nickname: str | None = None
     #: This client's credentials should be stored in the filesystem.
@@ -976,7 +976,14 @@ class CommandOnionClientAuthAdd(Command):
         args = []  # type: MutableSequence[Argument]
 
         args.append(ArgumentString(self.address))
-        args.append(ArgumentString(f'x25519:{self.key}'))
+
+        match self.key:
+            case bytes():
+                key_data = b64encode(self.key).decode('ascii')
+            case str():  # pragma: no branch
+                key_data = self.key
+
+        args.append(ArgumentString(f'x25519:{key_data}'))
 
         if self.nickname is not None:
             kwarg = ArgumentKeyword(

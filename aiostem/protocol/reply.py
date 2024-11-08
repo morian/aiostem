@@ -524,6 +524,7 @@ class ReplyAddOnion(Reply):
                 for key, val in update.items():
                     if key is not None:  # pragma: no branch
                         keywords[key] = val
+
             key_spec = keywords.pop('priv', None)
             if key_spec is not None:
                 key_type, key_blob = key_spec.split(':', maxsplit=1)
@@ -537,5 +538,30 @@ class ReplyAddOnion(Reply):
 
 
 @dataclass(kw_only=True, slots=True)
+class ReplyDelOnion(_ReplySimple):
+    """A reply for a `DEL_ONION` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyHsPost(_ReplySimple):
+    """A reply for a `HSPOST` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyOnionClientAuthAdd(_ReplySimple):
+    """A reply for a `ONION_CLIENT_AUTH_ADD` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyOnionClientAuthRemove(_ReplySimple):
+    """A reply for a `ONION_CLIENT_AUTH_REMOVE` command."""
+
+
+@dataclass(kw_only=True, slots=True)
 class ReplyDropOwnership(_ReplySimple):
     """A reply for a `DROPOWNERSHIP` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyDropTimeouts(_ReplySimple):
+    """A reply for a `DROPTIMEOUTS` command."""

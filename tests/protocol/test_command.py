@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import secrets
+from base64 import b64decode
 
 import pytest
 
@@ -346,10 +347,16 @@ class TestCommands:
             'desc\r\n.\r\n'
         )
 
-    def test_onion_client_auth_add(self):
+    def test_onion_client_auth_add_as_str(self):
         key = 'MC4CAQAwBQYDK2VuBCIEIKDySsdThgzcc+q+6a3c0GojnneBiCrcr3gakYMcl6ZV'
         cmd = CommandOnionClientAuthAdd(address='facebookcorewwwi', key=key)
         assert cmd.serialize() == f'ONION_CLIENT_AUTH_ADD facebookcorewwwi x25519:{key}\r\n'
+
+    def test_onion_client_auth_add_as_bytes(self):
+        k64 = 'MC4CAQAwBQYDK2VuBCIEIKDySsdThgzcc+q+6a3c0GojnneBiCrcr3gakYMcl6ZV'
+        key = b64decode(k64)
+        cmd = CommandOnionClientAuthAdd(address='facebookcorewwwi', key=key)
+        assert cmd.serialize() == f'ONION_CLIENT_AUTH_ADD facebookcorewwwi x25519:{k64}\r\n'
 
     def test_onion_client_auth_add_advanced(self):
         key = 'MC4CAQAwBQYDK2VuBCIEIKDySsdThgzcc+q+6a3c0GojnneBiCrcr3gakYMcl6ZV'
