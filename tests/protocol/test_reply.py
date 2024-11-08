@@ -8,7 +8,7 @@ from aiostem.exceptions import ReplyError, ReplyStatusError
 from aiostem.protocol import (
     AuthMethod,
     Message,
-    OnionKeyType,
+    OnionServiceKeyType,
     ReplyAddOnion,
     ReplyAuthChallenge,
     ReplyAuthenticate,
@@ -16,6 +16,7 @@ from aiostem.protocol import (
     ReplyGetConf,
     ReplyGetInfo,
     ReplyMapAddress,
+    ReplyOnionClientAuthView,
     ReplyProtocolInfo,
     messages_from_stream,
 )
@@ -289,7 +290,7 @@ class TestReplies:
         ]
         message = await create_message(lines)
         reply = ReplyAddOnion.from_message(message)
-        assert reply.key_type == OnionKeyType.ED25519_V3
+        assert reply.key_type == OnionServiceKeyType.ED25519_V3
         assert reply.key.hex() == (
             'c02b82ab1a29b9b1b486eed6c9e5ac66f4daee2a6a4420272159e0861734a45b'
             'cfe82614cec64908dc376c172e8ad6bc0ebe7dc5a52a3369c9045651b612d3b7'
@@ -310,4 +311,30 @@ class TestReplies:
         message = await create_message([line])
         reply = ReplyAddOnion.from_message(message)
         with pytest.raises(ReplyStatusError, match='Bad arguments to ADD_ONION:'):
+            reply.raise_for_status()
+
+    async def test_onion_client_auth_view(self):
+        lines = [
+            '250-ONION_CLIENT_AUTH_VIEW',
+            (
+                '250-CLIENT aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd '
+                'x25519:yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o= ClientName=Peter'
+            ),
+            '250 OK',
+        ]
+        message = await create_message(lines)
+        reply = ReplyOnionClientAuthView.from_message(message)
+        assert len(reply.clients) == 1
+
+        client = reply.clients[0]
+        assert client.address == 'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
+        assert client.name == 'Peter'
+        assert len(client.key) == 32
+        assert len(client.flags) == 0
+
+    async def test_onion_client_auth_view_error(self):
+        line = '512 Invalid v3 address "hjg"'
+        message = await create_message([line])
+        reply = ReplyOnionClientAuthView.from_message(message)
+        with pytest.raises(ReplyStatusError, match='Invalid v3 address "hjg"'):
             reply.raise_for_status()

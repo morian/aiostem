@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Annotated, Any, ClassVar
 from pydantic import TypeAdapter
 
 from ..exceptions import ReplyError, ReplyStatusError
-from .structures import AuthMethod, OnionKeyType
+from .structures import AuthMethod, OnionClientAuthKey, OnionServiceKeyType
 from .syntax import ReplySyntax, ReplySyntaxFlag
 from .utils import Base64Bytes, HexBytes, StringSequence
 
@@ -255,7 +255,7 @@ class ReplyGetInfo(_ReplyGetMap):
 class ReplyExtendCircuit(_ReplyGetMap):
     """A reply for a `GETINFO` command."""
 
-    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(args_min=2, args_map=[None, 'circuit'])
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(args_min=2, args_map=(None, 'circuit'))
 
     #: Built or extended circuit (None on error).
     circuit: int | None = None
@@ -337,7 +337,7 @@ class ReplyProtocolInfo(Reply):
         'PROTOCOLINFO': ReplySyntax(args_min=2, args_map=(None, 'protocol_version')),
         'VERSION': ReplySyntax(
             args_min=1,
-            args_map=[None],
+            args_map=(None,),
             kwargs_map={'Tor': 'tor_version'},
             flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
         ),
@@ -391,7 +391,7 @@ class ReplyAuthChallenge(Reply):
         b'Tor safe cookie authentication server-to-controller hash'
     )
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
-        args_map=[None],
+        args_map=(None,),
         kwargs_map={
             'SERVERHASH': 'server_hash',
             'SERVERNONCE': 'server_nonce',
@@ -506,7 +506,7 @@ class ReplyAddOnion(Reply):
     #: Called `ServiceID` in the documentation, this is the onion address minus its TLD.
     address: str | None = None
     client_auth: Sequence[str] = field(default_factory=list)
-    key_type: OnionKeyType | None = None
+    key_type: OnionServiceKeyType | None = None
     key: Base64Bytes | None = None
 
     @classmethod
@@ -555,6 +555,59 @@ class ReplyOnionClientAuthAdd(_ReplySimple):
 @dataclass(kw_only=True, slots=True)
 class ReplyOnionClientAuthRemove(_ReplySimple):
     """A reply for a `ONION_CLIENT_AUTH_REMOVE` command."""
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyOnionClientAuthView(Reply):
+    """A reply for a `ONION_CLIENT_AUTH_VIEW` command."""
+
+    SYNTAXES: ClassVar[Mapping[str, ReplySyntax]] = {
+        'ONION_CLIENT_AUTH_VIEW': ReplySyntax(args_map=('address',)),
+        'CLIENT': ReplySyntax(
+            args_min=3,
+            args_map=(None, 'address', 'key'),
+            kwargs_map={
+                'ClientName': 'name',
+                'Flags': 'flags',
+            },
+            flags=ReplySyntaxFlag.KW_ENABLE,
+        ),
+    }
+
+    address: str | None = None
+    clients: Sequence[OnionClientAuthKey] = field(default_factory=list)
+
+    @classmethod
+    def from_message(cls, message: Message) -> Self:
+        """Build a structure from a received message."""
+        result = {
+            'status': message.status,
+            'status_text': message.header,
+        }  # type: dict[str, Any]
+
+        if message.is_success:
+            clients = []  # type: list[Mapping[str | None, Any]]
+            for item in message.items:
+                keyword = item.keyword
+                syntax = cls.SYNTAXES.get(keyword)
+                if syntax is not None:  # pragma: no branch
+                    update = syntax.parse(item)
+                    if keyword == 'CLIENT':
+                        client = dict(update)
+                        key_blob = client.pop('key', None)
+                        if isinstance(key_blob, str):  # pragma: no branch
+                            key_type, key_data = key_blob.split(':', maxsplit=1)
+                            client['key_type'] = key_type
+                            client['key'] = key_data
+                        clients.append(client)
+                    else:
+                        for key, val in update.items():
+                            if key is not None:  # pragma: no branch
+                                result[key] = val
+
+            result['clients'] = clients
+
+        return TypeAdapter(cls).validate_python(result)
 
 
 @dataclass(kw_only=True, slots=True)

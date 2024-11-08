@@ -44,8 +44,8 @@ from aiostem.protocol import (
     CommandUseFeature,
     EventWord,
     OnionClientAuthFlags,
-    OnionKeyType,
     OnionServiceFlags,
+    OnionServiceKeyType,
     Signal,
 )
 
@@ -261,7 +261,7 @@ class TestCommands:
     def test_add_onion(self):
         cmd = CommandAddOnion(
             key_type='NEW',
-            key=OnionKeyType.ED25519_V3,
+            key=OnionServiceKeyType.ED25519_V3,
             ports=['80,127.0.0.1:80'],
         )
         assert cmd.serialize() == 'ADD_ONION NEW:ED25519-V3 Port=80,127.0.0.1:80\r\n'
@@ -269,7 +269,7 @@ class TestCommands:
     def test_add_onion_bytes(self):
         key = b'\xe6PG\xf74\xa4\xfc\xa3O\xaa\x95\x91X+\x8d\x1a'
         cmd = CommandAddOnion(
-            key_type=OnionKeyType.ED25519_V3,
+            key_type=OnionServiceKeyType.ED25519_V3,
             key=key,
             ports=['80,127.0.0.1:80'],
         )
@@ -315,7 +315,7 @@ class TestCommands:
 
     def test_add_onion_key_error_2(self):
         cmd = CommandAddOnion(
-            key_type=OnionKeyType.RSA1024,
+            key_type=OnionServiceKeyType.RSA1024,
             key='BEST',
             ports=['80,127.0.0.1:80'],
         )
@@ -348,40 +348,45 @@ class TestCommands:
         )
 
     def test_onion_client_auth_add_as_str(self):
-        key = 'MC4CAQAwBQYDK2VuBCIEIKDySsdThgzcc+q+6a3c0GojnneBiCrcr3gakYMcl6ZV'
-        cmd = CommandOnionClientAuthAdd(address='facebookcorewwwi', key=key)
-        assert cmd.serialize() == f'ONION_CLIENT_AUTH_ADD facebookcorewwwi x25519:{key}\r\n'
+        address = 'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
+        k64 = 'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o='
+        cmd = CommandOnionClientAuthAdd(address=address, key=k64)
+        assert cmd.serialize() == f'ONION_CLIENT_AUTH_ADD {address} x25519:{k64}\r\n'
 
     def test_onion_client_auth_add_as_bytes(self):
-        k64 = 'MC4CAQAwBQYDK2VuBCIEIKDySsdThgzcc+q+6a3c0GojnneBiCrcr3gakYMcl6ZV'
+        address = 'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
+        k64 = 'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o='
         key = b64decode(k64)
-        cmd = CommandOnionClientAuthAdd(address='facebookcorewwwi', key=key)
-        assert cmd.serialize() == f'ONION_CLIENT_AUTH_ADD facebookcorewwwi x25519:{k64}\r\n'
+        cmd = CommandOnionClientAuthAdd(address=address, key=key)
+        assert cmd.serialize() == f'ONION_CLIENT_AUTH_ADD {address} x25519:{k64}\r\n'
 
     def test_onion_client_auth_add_advanced(self):
-        key = 'MC4CAQAwBQYDK2VuBCIEIKDySsdThgzcc+q+6a3c0GojnneBiCrcr3gakYMcl6ZV'
+        address = 'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
+        k64 = 'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o='
         cmd = CommandOnionClientAuthAdd(
-            address='facebookcorewwwi',
-            key=key,
+            address=address,
+            key=k64,
             nickname='Peter',
             flags={OnionClientAuthFlags.PERMANENT},
         )
         assert cmd.serialize() == (
-            f'ONION_CLIENT_AUTH_ADD facebookcorewwwi x25519:{key} '
+            f'ONION_CLIENT_AUTH_ADD {address} x25519:{k64} '
             'ClientName=Peter Flags=Permanent\r\n'
         )
 
     def test_onion_client_auth_remove(self):
-        cmd = CommandOnionClientAuthRemove(address='facebookcorewwwi')
-        assert cmd.serialize() == 'ONION_CLIENT_AUTH_REMOVE facebookcorewwwi\r\n'
+        address = 'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
+        cmd = CommandOnionClientAuthRemove(address=address)
+        assert cmd.serialize() == f'ONION_CLIENT_AUTH_REMOVE {address}\r\n'
 
     def test_onion_client_auth_view(self):
         cmd = CommandOnionClientAuthView()
         assert cmd.serialize() == 'ONION_CLIENT_AUTH_VIEW\r\n'
 
     def test_onion_client_auth_view_with_address(self):
-        cmd = CommandOnionClientAuthView(address='facebookcorewwwi')
-        assert cmd.serialize() == 'ONION_CLIENT_AUTH_VIEW facebookcorewwwi\r\n'
+        address = 'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
+        cmd = CommandOnionClientAuthView(address=address)
+        assert cmd.serialize() == f'ONION_CLIENT_AUTH_VIEW {address}\r\n'
 
     def test_drop_ownership(self):
         cmd = CommandDropOwnership()

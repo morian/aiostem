@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from base64 import b64encode
-from collections.abc import MutableMapping, MutableSequence
+from collections.abc import (
+    MutableMapping,
+    MutableSequence,
+    Set as AbstractSet,
+)
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import ClassVar, Literal
@@ -15,8 +19,9 @@ from .structures import (
     CloseStreamReason,
     Feature,
     OnionClientAuthFlags,
-    OnionKeyType,
+    OnionClientAuthKeyType,
     OnionServiceFlags,
+    OnionServiceKeyType,
     Signal,
 )
 from .utils import Base64Bytes, CommandSerializer
@@ -826,8 +831,8 @@ class CommandAddOnion(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.ADD_ONION
-    key_type: OnionKeyType | Literal['NEW']
-    key: OnionKeyType | Literal['BEST'] | bytes | str  # noqa: PYI051
+    key_type: OnionServiceKeyType | Literal['NEW']
+    key: OnionServiceKeyType | Literal['BEST'] | bytes | str  # noqa: PYI051
     flags: set[OnionServiceFlags] = field(default_factory=set)
     max_streams: int | None = None
     #: As in arguments to HiddenServicePort ("port,target")
@@ -843,7 +848,9 @@ class CommandAddOnion(Command):
         args = []  # type: MutableSequence[Argument]
 
         do_generate = bool(self.key_type == 'NEW')
-        has_keyblob = bool(not isinstance(self.key, OnionKeyType) and self.key != 'BEST')
+        has_keyblob = bool(
+            not isinstance(self.key, OnionServiceKeyType) and self.key != 'BEST'
+        )
         if do_generate == has_keyblob:
             msg = "Incompatible options for 'key_type' and 'key'."
             raise CommandError(msg)
@@ -852,13 +859,13 @@ class CommandAddOnion(Command):
             msg = 'You must specify one or more virtual ports.'
             raise CommandError(msg)
 
-        if isinstance(self.key_type, OnionKeyType):
+        if isinstance(self.key_type, OnionServiceKeyType):
             key_type = self.key_type.value
         else:
             key_type = self.key_type
 
         match self.key:
-            case OnionKeyType():
+            case OnionServiceKeyType():
                 key_data = self.key.value
             case bytes():
                 key_data = b64encode(self.key).decode('ascii')
@@ -964,11 +971,12 @@ class CommandOnionClientAuthAdd(Command):
     #: V3 onion address without the `.onion` suffix.
     address: str
     #: Base64 encoding of x25519 key.
+    key_type: OnionClientAuthKeyType = OnionClientAuthKeyType.X25519
     key: Base64Bytes | str
     #: An optional nickname for the client.
     nickname: str | None = None
     #: This client's credentials should be stored in the filesystem.
-    flags: set[OnionClientAuthFlags] = field(default_factory=set)
+    flags: AbstractSet[OnionClientAuthFlags] = field(default_factory=set)
 
     def _serialize(self) -> CommandSerializer:
         """Append `ONION_CLIENT_AUTH_ADD` specific arguments."""
@@ -983,7 +991,7 @@ class CommandOnionClientAuthAdd(Command):
             case str():  # pragma: no branch
                 key_data = self.key
 
-        args.append(ArgumentString(f'x25519:{key_data}'))
+        args.append(ArgumentString(f'{self.key_type.value}:{key_data}'))
 
         if self.nickname is not None:
             kwarg = ArgumentKeyword(

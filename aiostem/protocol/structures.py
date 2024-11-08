@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+from collections.abc import Set as AbstractSet
+from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
+from typing import Annotated
+
+from .utils import Base64Bytes, StringSequence
 
 
 class AuthMethod(StrEnum):
@@ -68,20 +73,37 @@ class Feature(StrEnum):
     VERBOSE_NAMES = 'VERBOSE_NAMES'
 
 
-class OnionKeyType(StrEnum):
-    """All types of keys for onion services."""
-
-    #: The server should use the 1024 bit RSA key provided in as KeyBlob (v2).
-    RSA1024 = 'RSA1024'
-    #: The server should use the ed25519 v3 key provided in as KeyBlob (v3).
-    ED25519_V3 = 'ED25519-V3'
-
-
 class OnionClientAuthFlags(StrEnum):
     """List of flags attached to a running onion service."""
 
     #: This client's credentials should be stored in the filesystem.
     PERMANENT = 'Permanent'
+
+
+class OnionClientAuthKeyType(StrEnum):
+    """All types of keys for onion client authentication."""
+
+    X25519 = 'x25519'
+
+
+@dataclass(kw_only=True, slots=True)
+class OnionClientAuthKey:
+    """A client key attached to a single onion domain."""
+
+    #: Hidden service address.
+    address: str
+
+    #: Client's private x25519 key.
+    key_type: OnionClientAuthKeyType = OnionClientAuthKeyType.X25519
+    key: Base64Bytes
+
+    #: Client name (optional)
+    name: str | None = None
+
+    #: Flags associated with this client.
+    flags: Annotated[AbstractSet[OnionClientAuthFlags], StringSequence()] = field(
+        default_factory=set
+    )
 
 
 class OnionServiceFlags(StrEnum):
@@ -99,6 +121,15 @@ class OnionServiceFlags(StrEnum):
     NON_ANONYMOUS = 'NonAnonymous'
     #: Close the circuit is the maximum streams allowed is reached.
     MAX_STREAMS_CLOSE_CIRCUIT = 'MaxStreamsCloseCircuit'
+
+
+class OnionServiceKeyType(StrEnum):
+    """All types of keys for onion services."""
+
+    #: The server should use the 1024 bit RSA key provided in as KeyBlob (v2).
+    RSA1024 = 'RSA1024'
+    #: The server should use the ed25519 v3 key provided in as KeyBlob (v3).
+    ED25519_V3 = 'ED25519-V3'
 
 
 class Signal(StrEnum):
