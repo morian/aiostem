@@ -141,10 +141,8 @@ inline-quotes = 'single'
 multiline-quotes = 'double'
 
 [tool.ruff.lint.flake8-type-checking]
-runtime-evaluated-decorators = [
-	'dataclasses.dataclass',
-	'pydantic.BaseModel',
-]
+runtime-evaluated-base-classes = ['pydantic.BaseModel']
+runtime-evaluated-decorators = ['dataclasses.dataclass']
 
 [tool.ruff.lint.mccabe]
 max-complexity = 12

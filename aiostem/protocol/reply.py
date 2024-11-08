@@ -6,7 +6,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Self
 
 from pydantic import TypeAdapter
 
@@ -16,8 +16,6 @@ from .syntax import ReplySyntax, ReplySyntaxFlag
 from .utils import Base64Bytes, HexBytes, StringSequence
 
 if TYPE_CHECKING:
-    from typing import Self
-
     from .message import BaseMessage, Message
 
 logger = logging.getLogger(__package__)
@@ -27,8 +25,17 @@ logger = logging.getLogger(__package__)
 class BaseReply(ABC):
     """Base class for all replies and sub-replies."""
 
+    ADAPTER: ClassVar[TypeAdapter[Self] | None] = None
+
     status: int
     status_text: str | None = None
+
+    @classmethod
+    def adapter(cls) -> TypeAdapter[Self]:
+        """Get a cached type adapter to deserialize a reply."""
+        if cls.ADAPTER is None:
+            cls.ADAPTER = TypeAdapter(cls)
+        return cls.ADAPTER
 
     @property
     def is_error(self) -> bool:
@@ -68,7 +75,7 @@ class _ReplySimple(Reply):
     def from_message(cls, message: Message) -> Self:
         """Build a structure from a received message."""
         result = {'status': message.status, 'status_text': message.header}
-        return TypeAdapter(cls).validate_python(result)
+        return cls.adapter().validate_python(result)
 
 
 @dataclass(kw_only=True, slots=True)
@@ -138,7 +145,7 @@ class ReplyGetConf(_ReplyGetMap):
         if has_data:
             result['values'] = cls._key_value_extract([*message.items, message])
 
-        return TypeAdapter(cls).validate_python(result)
+        return cls.adapter().validate_python(result)
 
 
 @dataclass(kw_only=True, slots=True)
@@ -185,7 +192,7 @@ class ReplyMapAddressItem(BaseReply):
             result.update({'original': key, 'replacement': val})
         else:
             result['status_text'] = message.header
-        return TypeAdapter(cls).validate_python(result)
+        return cls.adapter().validate_python(result)
 
 
 @dataclass(kw_only=True, slots=True)
@@ -220,7 +227,7 @@ class ReplyMapAddress(Reply):
                 status_max = sub.status
 
             result['items'].append(sub)
-        return TypeAdapter(cls).validate_python(result)
+        return cls.adapter().validate_python(result)
 
 
 @dataclass(kw_only=True, slots=True)
@@ -248,7 +255,7 @@ class ReplyGetInfo(_ReplyGetMap):
         }
         if message.is_success:
             result['values'] = cls._key_value_extract(message.items)
-        return TypeAdapter(cls).validate_python(result)
+        return cls.adapter().validate_python(result)
 
 
 @dataclass(kw_only=True, slots=True)
@@ -272,7 +279,7 @@ class ReplyExtendCircuit(_ReplyGetMap):
         else:
             result['status_text'] = message.header
 
-        return TypeAdapter(cls).validate_python(result)
+        return cls.adapter().validate_python(result)
 
 
 @dataclass(kw_only=True, slots=True)
@@ -367,7 +374,7 @@ class ReplyProtocolInfo(Reply):
             else:
                 logger.info("No syntax handler for keyword '%s'", keyword)
 
-        return TypeAdapter(cls).validate_python(result)
+        return cls.adapter().validate_python(result)
 
 
 @dataclass(kw_only=True, slots=True)
@@ -414,7 +421,7 @@ class ReplyAuthChallenge(Reply):
         else:
             result['status_text'] = message.header
 
-        return TypeAdapter(cls).validate_python(result)
+        return cls.adapter().validate_python(result)
 
     def build_client_hash(self, client_nonce: str | bytes, cookie: bytes) -> bytes:
         """
@@ -534,7 +541,7 @@ class ReplyAddOnion(Reply):
         else:
             result['status_text'] = message.header
 
-        return TypeAdapter(cls).validate_python(result)
+        return cls.adapter().validate_python(result)
 
 
 @dataclass(kw_only=True, slots=True)
@@ -607,7 +614,7 @@ class ReplyOnionClientAuthView(Reply):
 
             result['clients'] = clients
 
-        return TypeAdapter(cls).validate_python(result)
+        return cls.adapter().validate_python(result)
 
 
 @dataclass(kw_only=True, slots=True)
