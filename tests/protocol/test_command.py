@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import secrets
-from base64 import b64decode
+from base64 import b32decode, b64decode
 
 import pytest
 
@@ -274,7 +274,7 @@ class TestCommands:
             ports=['80,127.0.0.1:80'],
         )
         assert cmd.serialize() == (
-            'ADD_ONION ED25519-V3:5lBH9zSk/KNPqpWRWCuNGg== Port=80,127.0.0.1:80\r\n'
+            'ADD_ONION ED25519-V3:5lBH9zSk/KNPqpWRWCuNGg Port=80,127.0.0.1:80\r\n'
         )
 
     def test_add_onion_with_client_auth(self):
@@ -292,15 +292,20 @@ class TestCommands:
         )
 
     def test_add_onion_with_client_auth_v3(self):
+        client = b32decode('RC3BHJ6WTBQPRRSMV65XGCZVSYJQZNWBQI3LLFS73VP6NHSIAD2Q====')
         cmd = CommandAddOnion(
             key_type='NEW',
             key='BEST',
             ports=['80,127.0.0.1:80'],
-            client_auth_v3=['5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ'],
+            client_auth_v3=[
+                '5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ',
+                client,
+            ],
         )
         assert cmd.serialize() == (
-            'ADD_ONION NEW:BEST Port=80,127.0.0.1:80 '
-            'ClientAuthV3=5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ\r\n'
+            'ADD_ONION NEW:BEST Flags=V3Auth Port=80,127.0.0.1:80 '
+            'ClientAuthV3=5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ '
+            'ClientAuthV3=RC3BHJ6WTBQPRRSMV65XGCZVSYJQZNWBQI3LLFS73VP6NHSIAD2Q\r\n'
         )
 
     def test_add_onion_key_error_1(self):
@@ -355,8 +360,8 @@ class TestCommands:
 
     def test_onion_client_auth_add_as_bytes(self):
         address = 'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
-        k64 = 'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o='
-        key = b64decode(k64)
+        k64 = 'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o'
+        key = b64decode(k64 + '=')
         cmd = CommandOnionClientAuthAdd(address=address, key=key)
         assert cmd.serialize() == f'ONION_CLIENT_AUTH_ADD {address} x25519:{k64}\r\n'
 

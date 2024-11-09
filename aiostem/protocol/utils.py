@@ -139,10 +139,46 @@ class EncoderProtocol(Protocol, Generic[T]):
         """
 
 
+class Base32Encoder(EncoderProtocol[bytes]):
+    """Encoder for base32 bytes."""
+
+    casefold: ClassVar[bool] = True
+    trim_padding: ClassVar[bool] = True
+
+    @classmethod
+    def decode(cls, data: str) -> bytes:
+        """Decode the provided base32 bytes to original bytes data."""
+        try:
+            if cls.trim_padding:
+                data = data.rstrip('=')
+                padlen = -len(data) % 8
+                data = data + padlen * '='
+            return base64.b32decode(data, cls.casefold)
+        except ValueError as e:
+            raise PydanticCustomError(
+                'base32_decode',
+                "Base32 decoding error: '{error}'",
+                {'error': str(e)},
+            ) from e
+
+    @classmethod
+    def encode(cls, value: bytes) -> str:
+        """Encode the data to a base32 encoded string."""
+        encoded = base64.b32encode(value)
+        if cls.trim_padding:
+            encoded = encoded.rstrip(b'=')
+        return encoded.decode()
+
+    @classmethod
+    def get_json_format(cls) -> Literal['base32']:
+        """Get the JSON format for the encoded data."""
+        return 'base32'
+
+
 class Base64Encoder(EncoderProtocol[bytes]):
     """Encoder for base64 bytes."""
 
-    trim_padding: ClassVar[bool] = False
+    trim_padding: ClassVar[bool] = True
 
     @classmethod
     def decode(cls, data: str) -> bytes:
@@ -150,7 +186,9 @@ class Base64Encoder(EncoderProtocol[bytes]):
         try:
             encoded = data.encode()
             if cls.trim_padding:
-                encoded = encoded + b'==='
+                encoded = encoded.rstrip(b'=')
+                padlen = -len(encoded) % 4
+                encoded = encoded + padlen * b'='
             return base64.standard_b64decode(encoded)
         except ValueError as e:
             raise PydanticCustomError(
@@ -309,4 +347,5 @@ class StringSequence:
 
 
 HexBytes = Annotated[bytes, EncodedBytes(encoder=HexEncoder)]
+Base32Bytes = Annotated[bytes, EncodedBytes(encoder=Base32Encoder)]
 Base64Bytes = Annotated[bytes, EncodedBytes(encoder=Base64Encoder)]

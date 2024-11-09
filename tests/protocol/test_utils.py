@@ -14,6 +14,8 @@ from aiostem.protocol import (
     QuoteStyle,
 )
 from aiostem.protocol.utils import (
+    Base32Bytes,
+    Base32Encoder,
     Base64Bytes,
     Base64Encoder,
     CommandSerializer,
@@ -121,34 +123,60 @@ def inject_test_values(cls):
     return cls
 
 
+class Base32PaddedEncoder(Base32Encoder):
+    trim_padding: ClassVar[bool] = False
+
+
+Base32BytesPadded = Annotated[bytes, EncodedBytes(encoder=Base32PaddedEncoder)]
+
+
 @inject_test_values
-class TestBase64(BaseHexEncoderTest):
-    TEST_CLASS = Base64Bytes
-    ENCODED_VALUE = 'VGhlc2UgYXJlIGJ5dGVzIQ=='
-    SCHEMA_FORMAT = 'base64'
+class TestBase32(BaseHexEncoderTest):
+    TEST_CLASS = Base32Bytes
+    ENCODED_VALUE = 'KRUGK43FEBQXEZJAMJ4XIZLTEE'
+    SCHEMA_FORMAT = 'base32'
     VALUES: ClassVar[Mapping[str, Sequence[Any]]] = {
+        'fail': [
+            'KRUGK43FEBQXEZJAMJ4XIZLTE9',  # Invalid character
+        ],
         'good': [
             b'These are bytes!',
-            Base64Bytes(b'These are bytes!'),
-            'VGhlc2UgYXJlIGJ5dGVzIQ==',
-        ],
-        'fail': [
-            'VGhlc2UgYXJlIGJ5dGVzIQ',
-            '=Ghlc2UgYXJlIGJ5dGVzIQ',
+            Base32Bytes(b'These are bytes!'),
+            'KRUGK43FEBQXEZJAMJ4XIZLTEE',
+            'krugk43febqxezjamj4xizltee',
         ],
     }
 
 
-class Base64TrimmedEncoder(Base64Encoder):
-    trim_padding: ClassVar[bool] = True
+@inject_test_values
+class TestBase32Padded(BaseHexEncoderTest):
+    TEST_CLASS = Base32BytesPadded
+    ENCODED_VALUE = 'KRUGK43FEBQXEZJAMJ4XIZLTEE======'
+    SCHEMA_FORMAT = 'base32'
+    VALUES: ClassVar[Mapping[str, Sequence[Any]]] = {
+        'fail': [
+            'KRUGK43FEBQXEZJAMJ4XIZLTE9',  # Invalid character
+            'KRUGK43FEBQXEZJAMJ4XIZLTEE',  # Bad padding
+        ],
+        'good': [
+            b'These are bytes!',
+            Base32Bytes(b'These are bytes!'),
+            'KRUGK43FEBQXEZJAMJ4XIZLTEE======',
+            'krugk43febqxezjamj4xizltee======',
+        ],
+    }
 
 
-Base64BytesTrimmed = Annotated[bytes, EncodedBytes(encoder=Base64TrimmedEncoder)]
+class Base64PaddedEncoder(Base64Encoder):
+    trim_padding: ClassVar[bool] = False
+
+
+Base64BytesPadded = Annotated[bytes, EncodedBytes(encoder=Base64PaddedEncoder)]
 
 
 @inject_test_values
-class TestBase64Trimmed(BaseHexEncoderTest):
-    TEST_CLASS = Base64BytesTrimmed
+class TestBase64(BaseHexEncoderTest):
+    TEST_CLASS = Base64Bytes
     ENCODED_VALUE = 'VGhlc2UgYXJlIGJ5dGVzIQ'
     SCHEMA_FORMAT = 'base64'
     VALUES: ClassVar[Mapping[str, Sequence[Any]]] = {
@@ -159,6 +187,24 @@ class TestBase64Trimmed(BaseHexEncoderTest):
             'VGhlc2UgYXJlIGJ5dGVzIQ',
         ],
         'fail': [
+            '=Ghlc2UgYXJlIGJ5dGVzIQ',
+        ],
+    }
+
+
+@inject_test_values
+class TestBase64Padded(BaseHexEncoderTest):
+    TEST_CLASS = Base64BytesPadded
+    ENCODED_VALUE = 'VGhlc2UgYXJlIGJ5dGVzIQ=='
+    SCHEMA_FORMAT = 'base64'
+    VALUES: ClassVar[Mapping[str, Sequence[Any]]] = {
+        'good': [
+            b'These are bytes!',
+            Base64Bytes(b'These are bytes!'),
+            'VGhlc2UgYXJlIGJ5dGVzIQ==',
+        ],
+        'fail': [
+            'VGhlc2UgYXJlIGJ5dGVzIQ',
             '=Ghlc2UgYXJlIGJ5dGVzIQ',
         ],
     }

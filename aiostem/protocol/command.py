@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from base64 import b64encode
+from base64 import b32encode, standard_b64encode
 from collections.abc import (
     MutableMapping,
     MutableSequence,
@@ -24,7 +24,7 @@ from .structures import (
     OnionServiceKeyType,
     Signal,
 )
-from .utils import Base64Bytes, CommandSerializer
+from .utils import Base32Bytes, Base64Bytes, CommandSerializer
 
 
 class CommandWord(StrEnum):
@@ -840,7 +840,33 @@ class CommandAddOnion(Command):
     #: Syntax: `ClientName:ClientBlob`
     client_auth: MutableSequence[str] = field(default_factory=list)
     #: Syntax: base32-encoded x25519 public key with only the key part.
-    client_auth_v3: MutableSequence[str] = field(default_factory=list)
+    client_auth_v3: MutableSequence[Base32Bytes | str] = field(default_factory=list)
+
+    def _serialize_client_auth_v3_key(self, client: Base32Bytes | str) -> str:
+        """Serialize a client key to a string."""
+        match client:
+            case bytes():
+                auth_data = b32encode(client).decode('ascii').rstrip('=')
+            case str():  # pragma: no branch
+                auth_data = client
+        return auth_data
+
+    def _serialize_service_key(self) -> str:
+        """Serialize the service key to a string."""
+        if isinstance(self.key_type, OnionServiceKeyType):
+            key_type = self.key_type.value
+        else:
+            key_type = self.key_type
+
+        match self.key:
+            case OnionServiceKeyType():
+                key_data = self.key.value
+            case bytes():
+                key_data = standard_b64encode(self.key).decode('ascii').rstrip('=')
+            case str():  # pragma: no branch
+                key_data = self.key
+
+        return f'{key_type}:{key_data}'
 
     def _serialize(self) -> CommandSerializer:
         """Append `ADD_ONION` specific arguments."""
@@ -859,24 +885,17 @@ class CommandAddOnion(Command):
             msg = 'You must specify one or more virtual ports.'
             raise CommandError(msg)
 
-        if isinstance(self.key_type, OnionServiceKeyType):
-            key_type = self.key_type.value
-        else:
-            key_type = self.key_type
-
-        match self.key:
-            case OnionServiceKeyType():
-                key_data = self.key.value
-            case bytes():
-                key_data = b64encode(self.key).decode('ascii')
-            case str():  # pragma: no branch
-                key_data = self.key
-
-        key_spec = f'{key_type}:{key_data}'
+        key_spec = self._serialize_service_key()
         args.append(ArgumentString(key_spec))
+
+        # Automatically set the V3 authentication when applicable.
+        if len(self.client_auth_v3):
+            self.flags.add(OnionServiceFlags.V3AUTH)
+
         if len(self.flags):
             flags = ','.join(self.flags)
             args.append(ArgumentKeyword('Flags', flags, quotes=QuoteStyle.NEVER))
+
         if self.max_streams is not None:
             kwarg = ArgumentKeyword('MaxStreams', self.max_streams, quotes=QuoteStyle.NEVER)
             args.append(kwarg)
@@ -884,8 +903,10 @@ class CommandAddOnion(Command):
             args.append(ArgumentKeyword('Port', port, quotes=QuoteStyle.NEVER_ENSURE))
         for auth in self.client_auth:
             args.append(ArgumentKeyword('ClientAuth', auth, quotes=QuoteStyle.NEVER_ENSURE))
-        for auth in self.client_auth_v3:
-            args.append(ArgumentKeyword('ClientAuthV3', auth, quotes=QuoteStyle.NEVER_ENSURE))
+        for auth_v3 in self.client_auth_v3:
+            key_spec = self._serialize_client_auth_v3_key(auth_v3)
+            kwarg = ArgumentKeyword('ClientAuthV3', key_spec, quotes=QuoteStyle.NEVER_ENSURE)
+            args.append(kwarg)
 
         ser.arguments.extend(args)
         return ser
@@ -987,7 +1008,7 @@ class CommandOnionClientAuthAdd(Command):
 
         match self.key:
             case bytes():
-                key_data = b64encode(self.key).decode('ascii')
+                key_data = standard_b64encode(self.key).decode('ascii').rstrip('=')
             case str():  # pragma: no branch
                 key_data = self.key
 

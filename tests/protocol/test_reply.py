@@ -296,7 +296,7 @@ class TestReplies:
             'cfe82614cec64908dc376c172e8ad6bc0ebe7dc5a52a3369c9045651b612d3b7'
         )
 
-    async def test_add_onion_with_key(self):
+    async def test_add_onion_with_service_key(self):
         lines = [
             '250-ServiceID=xsa5oiu2bpnpvsgec5ti5gqdue4t4uxfmmobqibj5nuwkzxb2krtlgyd',
             '250 OK',
@@ -305,6 +305,19 @@ class TestReplies:
         reply = ReplyAddOnion.from_message(message)
         assert reply.key_type is None
         assert reply.key is None
+
+    async def test_add_onion_with_client_auth_v3(self):
+        lines = [
+            '250-ServiceID=xin2djtit46y642io4deov5r6z63f2gz2ijpawxkrvm4kr3kjsu744ad',
+            '250-PrivateKey=ED25519-V3:sEOmgu/tc8jCkp58dkXZho66OjhDwvwc48qkQ2CeAlbE'
+            'zGnm22+kXNBH+rN5MQYSHWCMmYTjMbxbS7KAVSM+Yw==',
+            '250-ClientAuthV3=5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ',
+            '250-ClientAuthV3=RC3BHJ6WTBQPRRSMV65XGCZVSYJQZNWBQI3LLFS73VP6NHSIAD2Q',
+            '250 OK',
+        ]
+        message = await create_message(lines)
+        reply = ReplyAddOnion.from_message(message)
+        assert len(reply.client_auth_v3) == 2
 
     async def test_add_onion_error(self):
         line = '512 Bad arguments to ADD_ONION: Need at least 1 argument(s)'

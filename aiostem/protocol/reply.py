@@ -13,7 +13,7 @@ from pydantic import TypeAdapter
 from ..exceptions import ReplyError, ReplyStatusError
 from .structures import AuthMethod, OnionClientAuthKey, OnionServiceKeyType
 from .syntax import ReplySyntax, ReplySyntaxFlag
-from .utils import Base64Bytes, HexBytes, StringSequence
+from .utils import Base32Bytes, Base64Bytes, HexBytes, StringSequence
 
 if TYPE_CHECKING:
     from .message import BaseMessage, Message
@@ -504,15 +504,17 @@ class ReplyAddOnion(Reply):
         kwargs_map={
             'ServiceID': 'address',
             'ClientAuth': 'client_auth',
+            'ClientAuthV3': 'client_auth_v3',
             'PrivateKey': 'priv',
         },
-        kwargs_multi={'client_auth'},
+        kwargs_multi={'client_auth', 'client_auth_v3'},
         flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_RAW,
     )
 
     #: Called `ServiceID` in the documentation, this is the onion address minus its TLD.
     address: str | None = None
     client_auth: Sequence[str] = field(default_factory=list)
+    client_auth_v3: Sequence[Base32Bytes] = field(default_factory=list)
     key_type: OnionServiceKeyType | None = None
     key: Base64Bytes | None = None
 
@@ -530,7 +532,10 @@ class ReplyAddOnion(Reply):
                 update = cls.SYNTAX.parse(sub)
                 for key, val in update.items():
                     if key is not None:  # pragma: no branch
-                        keywords[key] = val
+                        if key in cls.SYNTAX.kwargs_multi and key in keywords:
+                            keywords[key].extend(val)
+                        else:
+                            keywords[key] = val
 
             key_spec = keywords.pop('priv', None)
             if key_spec is not None:
