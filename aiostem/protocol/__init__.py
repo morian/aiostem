@@ -38,7 +38,17 @@ from .command import (
     CommandUseFeature,
     CommandWord,
 )
-from .event import EventWord, EventWordInternal
+from .event import (
+    Event,
+    EventDisconnect,
+    EventHsDesc,
+    EventHsDescContent,
+    EventSignal,
+    EventUnknown,
+    EventWord,
+    EventWordInternal,
+    event_from_message,
+)
 from .message import Message, MessageData, MessageLine, messages_from_stream
 from .reply import (
     Reply,
@@ -82,6 +92,9 @@ from .structures import (
     CircuitPurpose,
     CloseStreamReason,
     Feature,
+    HsDescAction,
+    HsDescAuthType,
+    HsDescFailReason,
     OnionClientAuthFlags,
     OnionClientAuthKey,
     OnionClientAuthKeyType,
@@ -133,9 +146,18 @@ __all__ = [
     'CommandTakeOwnership',
     'CommandUseFeature',
     'CommandWord',
+    'Event',
+    'EventDisconnect',
+    'EventHsDesc',
+    'EventHsDescContent',
+    'EventSignal',
+    'EventUnknown',
     'EventWord',
     'EventWordInternal',
     'Feature',
+    'HsDescAction',
+    'HsDescAuthType',
+    'HsDescFailReason',
     'Message',
     'MessageData',
     'MessageLine',
@@ -182,4 +204,5 @@ __all__ = [
     'QuoteStyle',
     'Signal',
     'messages_from_stream',
+    'event_from_message',
 ]

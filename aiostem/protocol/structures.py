@@ -73,6 +73,46 @@ class Feature(StrEnum):
     VERBOSE_NAMES = 'VERBOSE_NAMES'
 
 
+class HsDescAction(StrEnum):
+    """Possible actions in a `HD_DESC` event."""
+
+    CREATED = 'CREATED'
+    FAILED = 'FAILED'
+    IGNORE = 'IGNORE'
+    RECEIVED = 'RECEIVED'
+    REQUESTED = 'REQUESTED'
+    UPLOAD = 'UPLOAD'
+    UPLOADED = 'UPLOADED'
+
+
+class HsDescAuthType(StrEnum):
+    """Possible values for AuthType in `HS_DESC` event."""
+
+    BASIC_AUTH = 'BASIC_AUTH'
+    NO_AUTH = 'NO_AUTH'
+    STEALTH_AUTH = 'STEALTH_AUTH'
+    UNKNOWN = 'UNKNOWN'
+
+
+class HsDescFailReason(StrEnum):
+    """Possible values for `REASON` in an `HS_DESC` event."""
+
+    #: Descriptor was retrieved, but found to be unparsable.
+    BAD_DESC = 'BAD_DESC'
+    #: HS descriptor with given identifier was not found.
+    NOT_FOUND = 'NOT_FOUND'
+    #: No suitable HSDir were found for the query.
+    QUERY_NO_HSDIR = 'QUERY_NO_HSDIR'
+    #: Query for this service is rate-limited.
+    QUERY_RATE_LIMITED = 'QUERY_RATE_LIMITED'
+    #: Query was rejected by HS directory.
+    QUERY_REJECTED = 'QUERY_REJECTED'
+    #: Nature of failure is unknown.
+    UNEXPECTED = 'UNEXPECTED'
+    #: Descriptor was rejected by HS directory.
+    UPLOAD_REJECTED = 'UPLOAD_REJECTED'
+
+
 class OnionClientAuthFlags(StrEnum):
     """List of flags attached to a running onion service."""
 
