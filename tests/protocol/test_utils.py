@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar
 
 import pytest
@@ -22,6 +23,8 @@ from aiostem.protocol.utils import (
     EncodedBytes,
     HexBytes,
     StringSequence,
+    TimedeltaSeconds,
+    TimedeltaSecondsTransformer,
 )
 
 if TYPE_CHECKING:
@@ -276,4 +279,30 @@ class TestStringSequence:
     )
     def test_usage_error(self, type_):
         with pytest.raises(TypeError, match='source type is not a collection'):
+            TypeAdapter(type_)
+
+
+class TestTimedeltaSeconds:
+    @pytest.mark.parametrize(
+        'entry',
+        [
+            timedelta(seconds=1234),
+            '1234',
+            1234,
+        ],
+    )
+    def test_with_multiple_types(self, entry: Any):
+        adapter = TypeAdapter(TimedeltaSeconds)
+        delta = adapter.validate_python(entry)
+        assert int(delta.total_seconds()) == 1234
+
+    @pytest.mark.parametrize(
+        'type_',
+        [
+            Annotated[int, TimedeltaSecondsTransformer()],
+            Annotated[bytes, TimedeltaSecondsTransformer()],
+        ],
+    )
+    def test_with_error(self, type_):
+        with pytest.raises(TypeError, match='source type is not a timedelta'):
             TypeAdapter(type_)

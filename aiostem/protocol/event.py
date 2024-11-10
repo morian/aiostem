@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import logging
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self  # noqa: F401
+from typing import Annotated, Any, ClassVar, Literal, Self, Union
 
-from pydantic import TypeAdapter
+from pydantic import Discriminator, Tag, TypeAdapter
 
 from ..exceptions import MessageError, ReplySyntaxError
 from .message import Message, MessageData
@@ -16,12 +18,33 @@ from .structures import (
     LogSeverity,
     NetworkLivenessStatus,
     Signal,
+    StatusActionClient,
+    StatusActionGeneral,
+    StatusActionServer,
+    StatusClientBootstrap,
+    StatusClientCircuitNotEstablished,
+    StatusClientDangerousPort,
+    StatusClientDangerousSocks,
+    StatusClientSocksBadHostname,
+    StatusGeneralBug,
+    StatusGeneralClockJumped,
+    StatusGeneralClockSkew,
+    StatusGeneralDangerousVersionReason,
+    StatusGeneralTooManyConnections,
+    StatusServerAcceptedServerDescriptor,
+    StatusServerBadServerDescriptor,
+    StatusServerCheckingReachability,
+    StatusServerExternalAddress,
+    StatusServerHibernationStatus,
+    StatusServerNameserverStatus,
+    StatusServerReachabilityFailed,
+    StatusServerReachabilitySucceeded,
+    StatusSeverity,
 )
 from .syntax import ReplySyntax, ReplySyntaxFlag
 from .utils import Base32Bytes, Base64Bytes, HexBytes
 
-if TYPE_CHECKING:
-    from collections.abc import Mapping  # noqa: F401
+logger = logging.getLogger(__package__)
 
 
 class EventWordInternal(StrEnum):
@@ -297,6 +320,244 @@ class EventLogErr(EventLog):
     TYPE = EventWord.ERR
 
 
+def _discriminate_status_by_action(v: Any) -> str:
+    match v:
+        case Mapping():
+            return v['action']
+        case None:
+            return '__NONE__'
+        case _:  # pragma: no cover
+            return v.action
+
+
+@dataclass(kw_only=True, slots=True)
+class EventStatus(Event):
+    """Base class for all `STATUS_*` events."""
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=3,
+        args_map=(None, 'severity', 'action', 'argstring'),
+        flags=ReplySyntaxFlag.POS_REMAIN,
+    )
+    SUBSYNTAXES: ClassVar[Mapping[str, ReplySyntax | None]]
+
+    severity: StatusSeverity
+    action: StrEnum
+
+    @classmethod
+    def from_message(cls, message: Message) -> Self:
+        """Build an event dataclass from a received message."""
+        result = {'arguments': None}  # type: dict[str | None, Any]
+        result.update(cls.SYNTAX.parse(message))
+
+        argstring = result.pop('argstring', '')
+        action = result['action']
+        if action in cls.SUBSYNTAXES:
+            syntax = cls.SUBSYNTAXES[action]
+            if syntax is not None:
+                # `action` here is used as a discriminator.
+                arguments = {'action': action}  # type: dict[str | None, Any]
+                arguments.update(syntax.parse_string(argstring))
+                result['arguments'] = arguments
+        else:
+            logger.info("No syntax handler for action '%s'.", action)
+        return cls.adapter().validate_python(result)
+
+
+@dataclass(kw_only=True, slots=True)
+class EventStatusGeneral(EventStatus):
+    """Parser for a `STATUS_GENERAL` event."""
+
+    SUBSYNTAXES: ClassVar[Mapping[str, ReplySyntax | None]] = {
+        'BUG': ReplySyntax(
+            kwargs_map={'REASON': 'reason'},
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+        'CLOCK_JUMPED': ReplySyntax(
+            kwargs_map={'TIME': 'time'},
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+        'CLOCK_SKEW': ReplySyntax(
+            kwargs_map={
+                'SOURCE': 'source',
+                'SKEW': 'skew',
+            },
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+        'DANGEROUS_VERSION': ReplySyntax(
+            kwargs_map={
+                'CURRENT': 'current',
+                'REASON': 'reason',
+                'RECOMMENDED': 'recommended',
+            },
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+        'DIR_ALL_UNREACHABLE': None,
+        'TOO_MANY_CONNECTIONS': ReplySyntax(
+            kwargs_map={'CURRENT': 'current'},
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+    }
+    TYPE = EventWord.STATUS_GENERAL
+
+    action: StatusActionGeneral
+    arguments: Annotated[
+        Union[  # noqa: UP007
+            Annotated[StatusGeneralBug, Tag('BUG')],
+            Annotated[StatusGeneralClockJumped, Tag('CLOCK_JUMPED')],
+            Annotated[StatusGeneralClockSkew, Tag('CLOCK_SKEW')],
+            Annotated[StatusGeneralDangerousVersionReason, Tag('DANGEROUS_VERSION')],
+            Annotated[StatusGeneralTooManyConnections, Tag('TOO_MANY_CONNECTIONS')],
+            Annotated[None, Tag('__NONE__')],
+        ],
+        Discriminator(_discriminate_status_by_action),
+    ]
+
+
+@dataclass(kw_only=True, slots=True)
+class EventStatusClient(EventStatus):
+    """Parser for a `STATUS_CLIENT` event."""
+
+    SUBSYNTAXES: ClassVar[Mapping[str, ReplySyntax | None]] = {
+        'BOOTSTRAP': ReplySyntax(
+            kwargs_map={
+                'COUNT': 'count',
+                'HOST': 'host',
+                'HOSTADDR': 'hostaddr',
+                'PROGRESS': 'progress',
+                'REASON': 'reason',
+                'RECOMMENDATION': 'recommendation',
+                'SUMMARY': 'summary',
+                'TAG': 'tag',
+                'WARNING': 'warning',
+            },
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+        'ENOUGH_DIR_INFO': None,
+        'NOT_ENOUGH_DIR_INFO': None,
+        'CIRCUIT_ESTABLISHED': None,
+        'CIRCUIT_NOT_ESTABLISHED': ReplySyntax(
+            kwargs_map={'REASON': 'reason'},
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+        'CONSENSUS_ARRIVED': None,
+        'DANGEROUS_PORT': ReplySyntax(
+            kwargs_map={
+                'PORT': 'port',
+                'RESULT': 'result',
+            },
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+        'DANGEROUS_SOCKS': ReplySyntax(
+            kwargs_map={
+                'PROTOCOL': 'protocol',
+                'ADDRESS': 'address',
+            },
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+        'SOCKS_UNKNOWN_PROTOCOL': None,
+        'SOCKS_BAD_HOSTNAME': ReplySyntax(
+            kwargs_map={'HOSTNAME': 'hostname'},
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+    }
+    TYPE = EventWord.STATUS_CLIENT
+
+    action: StatusActionClient
+    arguments: Annotated[
+        Union[  # noqa: UP007
+            Annotated[StatusClientBootstrap, Tag('BOOTSTRAP')],
+            Annotated[StatusClientCircuitNotEstablished, Tag('CIRCUIT_NOT_ESTABLISHED')],
+            Annotated[StatusClientDangerousPort, Tag('DANGEROUS_PORT')],
+            Annotated[StatusClientDangerousSocks, Tag('DANGEROUS_SOCKS')],
+            Annotated[StatusClientSocksBadHostname, Tag('SOCKS_BAD_HOSTNAME')],
+            Annotated[None, Tag('__NONE__')],
+        ],
+        Discriminator(_discriminate_status_by_action),
+    ]
+
+
+@dataclass(kw_only=True, slots=True)
+class EventStatusServer(EventStatus):
+    """Parser for a `STATUS_SERVER` event."""
+
+    SUBSYNTAXES: ClassVar[Mapping[str, ReplySyntax | None]] = {
+        'EXTERNAL_ADDRESS': ReplySyntax(
+            kwargs_map={
+                'ADDRESS': 'address',
+                'HOSTNAME': 'hostname',
+                'METHOD': 'method',
+            },
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+        'CHECKING_REACHABILITY': ReplySyntax(
+            kwargs_map={
+                'ORADDRESS': 'or_address',
+                'DIRADDRESS': 'dir_address',
+            },
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+        'REACHABILITY_SUCCEEDED': ReplySyntax(
+            kwargs_map={
+                'ORADDRESS': 'or_address',
+                'DIRADDRESS': 'dir_address',
+            },
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+        'GOOD_SERVER_DESCRIPTOR': None,
+        'NAMESERVER_STATUS': ReplySyntax(
+            kwargs_map={
+                'NS': 'ns',
+                'STATUS': 'status',
+                'ERR': 'err',
+            },
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+        'NAMESERVER_ALL_DOWN': None,
+        'DNS_HIJACKED': None,
+        'DNS_USELESS': None,
+        'BAD_SERVER_DESCRIPTOR': ReplySyntax(
+            kwargs_map={
+                'DIRAUTH': 'dir_auth',
+                'REASON': 'reason',
+            },
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+        'ACCEPTED_SERVER_DESCRIPTOR': ReplySyntax(
+            kwargs_map={'DIRAUTH': 'dir_auth'},
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+        'REACHABILITY_FAILED': ReplySyntax(
+            kwargs_map={
+                'ORADDRESS': 'or_address',
+                'DIRADDRESS': 'dir_address',
+            },
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+        'HIBERNATION_STATUS': ReplySyntax(
+            kwargs_map={'STATUS': 'status'},
+            flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+        ),
+    }
+    TYPE = EventWord.STATUS_SERVER
+
+    action: StatusActionServer
+    arguments: Annotated[
+        Union[  # noqa: UP007
+            Annotated[StatusServerExternalAddress, Tag('EXTERNAL_ADDRESS')],
+            Annotated[StatusServerCheckingReachability, Tag('CHECKING_REACHABILITY')],
+            Annotated[StatusServerReachabilitySucceeded, Tag('REACHABILITY_SUCCEEDED')],
+            Annotated[StatusServerNameserverStatus, Tag('NAMESERVER_STATUS')],
+            Annotated[StatusServerBadServerDescriptor, Tag('BAD_SERVER_DESCRIPTOR')],
+            Annotated[StatusServerAcceptedServerDescriptor, Tag('ACCEPTED_SERVER_DESCRIPTOR')],
+            Annotated[StatusServerReachabilityFailed, Tag('REACHABILITY_FAILED')],
+            Annotated[StatusServerHibernationStatus, Tag('HIBERNATION_STATUS')],
+            Annotated[None, Tag('__NONE__')],
+        ],
+        Discriminator(_discriminate_status_by_action),
+    ]
+
+
 @dataclass(kw_only=True, slots=True)
 class EventUnknown(Event):
     """Structure for an unknown event."""
@@ -323,6 +584,9 @@ _EVENT_MAP = {
     'WARN': EventLogWarn,
     'ERR': EventLogErr,
     'SIGNAL': EventSignal,
+    'STATUS_GENERAL': EventStatusGeneral,
+    'STATUS_CLIENT': EventStatusClient,
+    'STATUS_SERVER': EventStatusServer,
 }  # type: Mapping[str, type[Event]]
 
 

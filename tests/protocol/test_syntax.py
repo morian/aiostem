@@ -20,6 +20,13 @@ class TestReplySyntax:
         assert result['severity'] == 'NOTICE'
         assert result['message'] == 'HelloWorld'
 
+    def test_positional_as_string(self):
+        syntax = ReplySyntax(args_min=2, args_map=['severity', 'message'])
+        result = syntax.parse_string('NOTICE HelloWorld')
+        assert len(result) == 2
+        assert result['severity'] == 'NOTICE'
+        assert result['message'] == 'HelloWorld'
+
     def test_positional_with_omission(self):
         syntax = ReplySyntax(args_min=2, args_map=[None, 'message'])
         message = Message(status=650, header='NOTICE HelloWorld')

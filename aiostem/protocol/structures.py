@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
-from typing import Annotated
+from typing import Annotated, Literal
 
-from .utils import Base64Bytes, StringSequence
+from .utils import Base64Bytes, StringSequence, TimedeltaSeconds
 
 
 class AuthMethod(StrEnum):
@@ -216,3 +216,281 @@ class Signal(StrEnum):
     DORMANT = 'DORMANT'
     #: Tell Tor to stop being "dormant".
     ACTIVE = 'ACTIVE'
+
+
+class StatusActionClient(StrEnum):
+    """Possible actions for a client status event."""
+
+    #: Tor has made some progress at establishing a connection to the Tor network.
+    BOOTSTRAP = 'BOOTSTRAP'
+    #: Tor is able to establish circuits for client use.
+    CIRCUIT_ESTABLISHED = 'CIRCUIT_ESTABLISHED'
+    #: We are no longer confident that we can build circuits.
+    CIRCUIT_NOT_ESTABLISHED = 'CIRCUIT_NOT_ESTABLISHED'
+    #: Tor has received and validated a new consensus networkstatus.
+    CONSENSUS_ARRIVED = 'CONSENSUS_ARRIVED'
+    #: A stream was initiated to a port that's commonly used for vuln-plaintext protocols.
+    DANGEROUS_PORT = 'DANGEROUS_PORT'
+    #: A connection was made to Tor's SOCKS port without support for hostnames.
+    DANGEROUS_SOCKS = 'DANGEROUS_SOCKS'
+    #: Tor now knows enough network-status documents and enough server descriptors.
+    ENOUGH_DIR_INFO = 'ENOUGH_DIR_INFO'
+    #: We fell below the desired threshold directory information.
+    NOT_ENOUGH_DIR_INFO = 'NOT_ENOUGH_DIR_INFO'
+    #: Some application gave us a funny-looking hostname.
+    SOCKS_BAD_HOSTNAME = 'SOCKS_BAD_HOSTNAME'
+    #: A connection was made to Tor's SOCKS port and did not speak the SOCKS protocol.
+    SOCKS_UNKNOWN_PROTOCOL = 'SOCKS_UNKNOWN_PROTOCOL'
+
+
+class StatusActionServer(StrEnum):
+    """
+    Possible actions for a server status event.
+
+    Notes:
+       - `SERVER_DESCRIPTOR_STATUS` was never implemented.
+
+    """
+
+    #: Our best idea for our externally visible IP has changed to 'IP'.
+    EXTERNAL_ADDRESS = 'EXTERNAL_ADDRESS'
+    #: We're going to start testing the reachability of our external OR port or directory port.
+    CHECKING_REACHABILITY = 'CHECKING_REACHABILITY'
+    #: We successfully verified the reachability of our external OR port or directory port.
+    REACHABILITY_SUCCEEDED = 'REACHABILITY_SUCCEEDED'
+    #: We successfully uploaded our server descriptor to one of the directory authorities.
+    GOOD_SERVER_DESCRIPTOR = 'GOOD_SERVER_DESCRIPTOR'
+    #: One of our nameservers has changed status.
+    NAMESERVER_STATUS = 'NAMESERVER_STATUS'
+    #: All of our nameservers have gone down.
+    NAMESERVER_ALL_DOWN = 'NAMESERVER_ALL_DOWN'
+    #: Our DNS provider is providing an address when it should be saying "NOTFOUND".
+    DNS_HIJACKED = 'DNS_HIJACKED'
+    #: Our DNS provider is giving a hijacked address instead of well-known websites.
+    DNS_USELESS = 'DNS_USELESS'
+    #: A directory authority rejected our descriptor.
+    BAD_SERVER_DESCRIPTOR = 'BAD_SERVER_DESCRIPTOR'
+    #: A single directory authority accepted our descriptor.
+    ACCEPTED_SERVER_DESCRIPTOR = 'ACCEPTED_SERVER_DESCRIPTOR'
+    #: We failed to connect to our external OR port or directory port successfully.
+    REACHABILITY_FAILED = 'REACHABILITY_FAILED'
+    #: Our bandwidth based accounting status has changed.
+    HIBERNATION_STATUS = 'HIBERNATION_STATUS'
+
+
+class StatusActionGeneral(StrEnum):
+    """
+    Possible actions for a general status event.
+
+    Note:
+       `BAD_LIBEVENT` has been removed since Tor 0.2.7.1.
+
+    """
+
+    #: Tor has encountered a situation that its developers never expected.
+    BUG = 'BUG'
+    #: Tor believes that none of the known directory servers are reachable.
+    DIR_ALL_UNREACHABLE = 'DIR_ALL_UNREACHABLE'
+    #: Tor spent enough time without CPU cycles that it has closed all its circuits.
+    CLOCK_JUMPED = 'CLOCK_JUMPED'
+    #: A lock skew has been detected by Tor.
+    CLOCK_SKEW = 'CLOCK_SKEW'
+    #: Tor has found that directory servers don't recommend its version of the Tor software.
+    DANGEROUS_VERSION = 'DANGEROUS_VERSION'
+    #: Tor has reached its ulimit -n on file descriptors or sockets.
+    TOO_MANY_CONNECTIONS = 'TOO_MANY_CONNECTIONS'
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusClientBootstrap:
+    """Arguments for a `STATUS_CLIENT` event with action `BOOTSTRAP`."""
+
+    progress: int
+    summary: str
+    tag: str
+    count: int | None = None
+    host: str | None = None
+    hostaddr: str | None = None
+    reason: str | None = None
+    recommendation: str | None = None
+    warning: str | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusClientCircuitNotEstablished:
+    """Arguments for a `STATUS_CLIENT` event with action `CIRCUIT_NOT_ESTABLISHED`."""
+
+    reason: str
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusClientDangerousPort:
+    """Arguments for a `STATUS_CLIENT` event with action `DANGEROUS_PORT`."""
+
+    port: int
+    reason: Literal['REJECT', 'WARN']
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusClientDangerousSocks:
+    """Arguments for a `STATUS_CLIENT` event with action `DANGEROUS_SOCKS`."""
+
+    address: str
+    protocol: Literal['SOCKS4', 'SOCKS5']
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusClientSocksUnknownProtocol:
+    """
+    Arguments for a `STATUS_CLIENT` event with action `SOCKS_UNKNOWN_PROTOCOL`.
+
+    This class is currently unused as the quotes are buggy.
+    Additionally the escaping is performed as CSTRING, which we do not handle.
+
+    """
+
+    #: First few characters that were sent to Tor on the SOCKS port.
+    data: str
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusClientSocksBadHostname:
+    """Arguments for a `STATUS_CLIENT` event with action `SOCKS_BAD_HOSTNAME`."""
+
+    hostname: str
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusGeneralClockJumped:
+    """Arguments for a `STATUS_GENERAL` event with action `CLOCK_JUMPED`."""
+
+    time: TimedeltaSeconds
+
+
+class StatusGeneralDangerousVersionReason(StrEnum):
+    """All reasons why we can get a dangerous version notice."""
+
+    NEW = 'NEW'
+    OBSOLETE = 'OBSOLETE'
+    RECOMMENDED = 'RECOMMENDED'
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusGeneralDangerousVersion:
+    """Arguments for a `STATUS_GENERAL` event with action `DANGEROUS_VERSION`."""
+
+    current: str
+    reason: StatusGeneralDangerousVersionReason
+    recommended: Annotated[set[str], StringSequence()]
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusGeneralTooManyConnections:
+    """Arguments for a `STATUS_GENERAL` event with action `TOO_MANY_CONNECTIONS`."""
+
+    #: Number of currently opened file descriptors.
+    current: int
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusGeneralBug:
+    """Arguments for a `STATUS_GENERAL` event with action `BUG`."""
+
+    reason: str
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusGeneralClockSkew:
+    """Arguments for a `STATUS_GENERAL` event with action `CLOCK_SKEW`."""
+
+    #: Estimate of how far we are from the time declared in the source.
+    skew: TimedeltaSeconds
+    #: "DIRSERV:" IP ":" Port
+    #: "NETWORKSTATUS:" IP ":" Port
+    #: "OR:" IP ":" Port
+    #: "CONSENSUS"
+    source: str
+
+
+class ExternalAddressResolveMethod(StrEnum):
+    """How the external method was resolved."""
+
+    NONE = 'NONE'
+    CONFIGURED = 'CONFIGURED'
+    CONFIGURED_ORPORT = 'CONFIGURED_ORPORT'
+    GETHOSTNAME = 'GETHOSTNAME'
+    INTERFACE = 'INTERFACE'
+    RESOLVED = 'RESOLVED'
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusServerExternalAddress:
+    """Arguments for a `STATUS_SERVER` event with action `EXTERNAL_ADDRESS`."""
+
+    #: Our external IP address.
+    address: str
+    hostname: str | None = None
+    method: ExternalAddressResolveMethod
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusServerCheckingReachability:
+    """Arguments for a `STATUS_SERVER` event with action `CHECKING_REACHABILITY`."""
+
+    dir_address: str | None = None
+    or_address: str
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusServerReachabilitySucceeded:
+    """Arguments for a `STATUS_SERVER` event with action `REACHABILITY_SUCCEEDED`."""
+
+    dir_address: str | None = None
+    or_address: str
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusServerNameserverStatus:
+    """Arguments for a `STATUS_SERVER` event with action `NAMESERVER_STATUS`."""
+
+    ns: str
+    status: NetworkLivenessStatus
+    err: str | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusServerBadServerDescriptor:
+    """Arguments for a `STATUS_SERVER` event with action `BAD_SERVER_DESCRIPTOR`."""
+
+    dir_auth: str
+    reason: str
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusServerAcceptedServerDescriptor:
+    """Arguments for a `STATUS_SERVER` event with action `ACCEPTED_SERVER_DESCRIPTOR`."""
+
+    dir_auth: str
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusServerReachabilityFailed:
+    """Arguments for a `STATUS_SERVER` event with action `REACHABILITY_FAILED`."""
+
+    dir_address: str | None = None
+    or_address: str
+
+
+@dataclass(kw_only=True, slots=True)
+class StatusServerHibernationStatus:
+    """Arguments for a `STATUS_SERVER` event with action `HIBERNATION_STATUS`."""
+
+    status: Literal['AWAKE', 'SOFT', 'HARD']
+
+
+class StatusSeverity(StrEnum):
+    """Possible severities for all status events."""
+
+    NOTICE = 'NOTICE'
+    WARN = 'WARN'
+    ERR = 'ERR'

@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import logging
+from datetime import timedelta
+
 import pytest
+from pydantic import ValidationError
 
 from aiostem.exceptions import MessageError, ReplySyntaxError
 from aiostem.protocol import (
@@ -15,6 +19,7 @@ from aiostem.protocol import (
     HsDescFailReason,
     LogSeverity,
     Signal,
+    StatusActionGeneral,
     event_from_message,
 )
 
@@ -119,6 +124,52 @@ class TestEvents:
         event = event_from_message(message)
         assert event.status == 'UP'
         assert bool(event.status) is True
+
+    async def test_status_general_clock_jumped(self):
+        line = '650 STATUS_GENERAL NOTICE CLOCK_JUMPED TIME=120'
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.action == StatusActionGeneral.CLOCK_JUMPED
+        assert isinstance(event.arguments.time, timedelta)
+        assert int(event.arguments.time.total_seconds()) == 120
+
+    async def test_status_general_dir_all_unreachable(self):
+        line = '650 STATUS_GENERAL NOTICE DIR_ALL_UNREACHABLE'
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.action == StatusActionGeneral.DIR_ALL_UNREACHABLE
+        assert event.arguments is None
+
+    async def test_status_general_unknown_action(self, caplog):
+        line = '650 STATUS_GENERAL NOTICE UNKNOWN_ACTION ARG=VAL'
+        message = await create_message([line])
+        with (
+            caplog.at_level(logging.INFO, logger='aiostem.protocol'),
+            pytest.raises(ValidationError, match='1 validation error for EventStatusGeneral'),
+        ):
+            event_from_message(message)
+        assert "No syntax handler for action 'UNKNOWN_ACTION'" in caplog.text
+
+    async def test_status_client_bootstrap(self):
+        line = '650 STATUS_CLIENT NOTICE BOOTSTRAP PROGRESS=100 TAG=done SUMMARY="Done"'
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.arguments.progress == 100
+        assert event.arguments.summary == 'Done'
+        assert event.arguments.tag == 'done'
+
+    async def test_status_client_dangerous_socks(self):
+        line = '650 STATUS_CLIENT WARN DANGEROUS_SOCKS PROTOCOL=SOCKS5 ADDRESS=1.1.1.1:443'
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.arguments.address == '1.1.1.1:443'
+        assert event.arguments.protocol == 'SOCKS5'
+
+    async def test_status_client_socks_bad_hostname(self):
+        line = '650 STATUS_CLIENT WARN SOCKS_BAD_HOSTNAME HOSTNAME="google.exit"'
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.arguments.hostname == 'google.exit'
 
     async def test_signal(self):
         line = '650 SIGNAL RELOAD'

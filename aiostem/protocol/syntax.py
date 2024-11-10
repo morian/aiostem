@@ -13,7 +13,7 @@ from enum import IntFlag
 from typing import TYPE_CHECKING
 
 from ..exceptions import ReplySyntaxError
-from .message import MessageData
+from .message import MessageData, MessageLine
 
 if TYPE_CHECKING:
     from .message import BaseMessage
@@ -279,3 +279,19 @@ class ReplySyntax:
                     logger.info(f'Found an unhandled keyword: {original_key}={val}')
 
         return result
+
+    def parse_string(
+        self,
+        string: str,
+    ) -> Mapping[str | None, Sequence[str | None] | str | None]:
+        """
+        Parse the provided string.
+
+        Args:
+            string: a plain header to parse as if it was a message header.
+
+        Returns:
+            A map of parsed values.
+
+        """
+        return self.parse(MessageLine(status=250, header=string))
