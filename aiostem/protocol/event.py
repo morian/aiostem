@@ -9,7 +9,13 @@ from pydantic import TypeAdapter
 
 from ..exceptions import MessageError, ReplySyntaxError
 from .message import Message, MessageData
-from .structures import HsDescAction, HsDescAuthType, HsDescFailReason, Signal
+from .structures import (
+    HsDescAction,
+    HsDescAuthType,
+    HsDescFailReason,
+    NetworkLivenessStatus,
+    Signal,
+)
 from .syntax import ReplySyntax, ReplySyntaxFlag
 from .utils import Base32Bytes, Base64Bytes, HexBytes
 
@@ -211,6 +217,25 @@ class EventHsDescContent(Event):
 
 
 @dataclass(kw_only=True, slots=True)
+class EventNetworkLiveness(Event):
+    """Structure for a `NETWORK_LIVENESS` event."""
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=2,
+        args_map=(None, 'status'),
+    )
+    TYPE = EventWord.NETWORK_LIVENESS
+
+    status: NetworkLivenessStatus
+
+    @classmethod
+    def from_message(cls, message: Message) -> Self:
+        """Build an event dataclass from a received message."""
+        result = cls.SYNTAX.parse(message)
+        return cls.adapter().validate_python(result)
+
+
+@dataclass(kw_only=True, slots=True)
 class EventUnknown(Event):
     """Structure for an unknown event."""
 
@@ -229,6 +254,7 @@ _EVENT_MAP = {
     'DISCONNECT': EventDisconnect,
     'HS_DESC': EventHsDesc,
     'HS_DESC_CONTENT': EventHsDescContent,
+    'NETWORK_LIVENESS': EventNetworkLiveness,
     'SIGNAL': EventSignal,
 }  # type: Mapping[str, type[Event]]
 

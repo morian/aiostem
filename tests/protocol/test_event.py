@@ -92,6 +92,13 @@ class TestEvents:
         with pytest.raises(ReplySyntaxError, match="Event 'HS_DESC_CONTENT' has no data"):
             event_from_message(message)
 
+    async def test_network_liveness(self):
+        line = '650 NETWORK_LIVENESS UP'
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.status == 'UP'
+        assert bool(event.status) is True
+
     async def test_signal(self):
         line = '650 SIGNAL RELOAD'
         message = await create_message([line])

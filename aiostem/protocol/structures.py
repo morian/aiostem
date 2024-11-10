@@ -95,7 +95,7 @@ class HsDescAuthType(StrEnum):
 
 
 class HsDescFailReason(StrEnum):
-    """Possible values for `REASON` in an `HS_DESC` event."""
+    """Possible values for `REASON` in a `HS_DESC` event."""
 
     #: Descriptor was retrieved, but found to be unparsable.
     BAD_DESC = 'BAD_DESC'
@@ -111,6 +111,17 @@ class HsDescFailReason(StrEnum):
     UNEXPECTED = 'UNEXPECTED'
     #: Descriptor was rejected by HS directory.
     UPLOAD_REJECTED = 'UPLOAD_REJECTED'
+
+
+class NetworkLivenessStatus(StrEnum):
+    """Possible values for `Status` in a `NETWORK_LIVENESS` event."""
+
+    DOWN = 'DOWN'
+    UP = 'UP'
+
+    def __bool__(self) -> bool:
+        """Whether the network is up as a boolean."""
+        return bool(self.value == self.UP)
 
 
 class OnionClientAuthFlags(StrEnum):
