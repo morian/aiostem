@@ -40,7 +40,7 @@ class MessageError(ProtocolError):
 
 
 class ReplyError(ProtocolError):
-    """Any error raised during handling of a reply data structure."""
+    """Any error raised during handling of a reply or an event data structure."""
 
 
 class ReplyStatusError(ReplyError):

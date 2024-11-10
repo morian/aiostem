@@ -13,6 +13,7 @@ from aiostem.protocol import (
     EventWordInternal,
     HsDescAction,
     HsDescFailReason,
+    LogSeverity,
     Signal,
     event_from_message,
 )
@@ -91,6 +92,26 @@ class TestEvents:
         message = await create_message(lines)
         with pytest.raises(ReplySyntaxError, match="Event 'HS_DESC_CONTENT' has no data"):
             event_from_message(message)
+
+    async def test_log_message_line(self):
+        line = '650 DEBUG conn_write_callback(): socket 14 wants to write.'
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.message == 'conn_write_callback(): socket 14 wants to write.'
+        assert event.severity == LogSeverity.DEBUG
+
+    async def test_log_message_as_data(self):
+        lines = [
+            '650+WARN',
+            'THIS IS A WARNING',
+            '> BE WARNED!',
+            '.',
+            '650 OK',
+        ]
+        message = await create_message(lines)
+        event = event_from_message(message)
+        assert event.message == 'THIS IS A WARNING\n> BE WARNED!'
+        assert event.severity == LogSeverity.WARN
 
     async def test_network_liveness(self):
         line = '650 NETWORK_LIVENESS UP'

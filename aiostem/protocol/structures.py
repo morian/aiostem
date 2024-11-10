@@ -113,6 +113,16 @@ class HsDescFailReason(StrEnum):
     UPLOAD_REJECTED = 'UPLOAD_REJECTED'
 
 
+class LogSeverity(StrEnum):
+    """Possible severities for all log events."""
+
+    DEBUG = 'DEBUG'
+    INFO = 'INFO'
+    NOTICE = 'NOTICE'
+    WARN = 'WARN'
+    ERR = 'ERR'
+
+
 class NetworkLivenessStatus(StrEnum):
     """Possible values for `Status` in a `NETWORK_LIVENESS` event."""
 

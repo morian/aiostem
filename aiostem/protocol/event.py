@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import TYPE_CHECKING, ClassVar, Literal, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Literal, Self  # noqa: F401
 
 from pydantic import TypeAdapter
 
@@ -13,6 +13,7 @@ from .structures import (
     HsDescAction,
     HsDescAuthType,
     HsDescFailReason,
+    LogSeverity,
     NetworkLivenessStatus,
     Signal,
 )
@@ -236,6 +237,67 @@ class EventNetworkLiveness(Event):
 
 
 @dataclass(kw_only=True, slots=True)
+class EventLog(Event):
+    """Base class for any event log."""
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=1,
+        args_map=('severity', 'message'),
+        flags=ReplySyntaxFlag.POS_REMAIN,
+    )
+
+    severity: LogSeverity
+    message: str
+
+    @classmethod
+    def from_message(cls, message: Message) -> Self:
+        """Build an event dataclass from a received message."""
+        result = {}  # type: dict[str | None, Any]
+        if len(message.items) and isinstance(message.items[0], MessageData):
+            result.update(cls.SYNTAX.parse(message.items[0]))
+            result['message'] = message.items[0].data
+        else:
+            result.update(cls.SYNTAX.parse(message))
+
+        return cls.adapter().validate_python(result)
+
+
+@dataclass(kw_only=True, slots=True)
+class EventLogDebug(EventLog):
+    """Event parser for `DEBUG` events."""
+
+    TYPE = EventWord.DEBUG
+
+
+@dataclass(kw_only=True, slots=True)
+class EventLogInfo(EventLog):
+    """Event parser for `INFO` events."""
+
+    TYPE = EventWord.INFO
+
+
+@dataclass(kw_only=True, slots=True)
+class EventLogNotice(EventLog):
+    """Event parser for `NOTICE` events."""
+
+    TYPE = EventWord.NOTICE
+
+
+@dataclass(kw_only=True, slots=True)
+class EventLogWarn(EventLog):
+    """Event parser for `WARN` events."""
+
+    TYPE = EventWord.WARN
+
+
+@dataclass(kw_only=True, slots=True)
+class EventLogErr(EventLog):
+    """Event parser for `ERR` events."""
+
+    TYPE = EventWord.ERR
+
+
+@dataclass(kw_only=True, slots=True)
 class EventUnknown(Event):
     """Structure for an unknown event."""
 
@@ -255,6 +317,11 @@ _EVENT_MAP = {
     'HS_DESC': EventHsDesc,
     'HS_DESC_CONTENT': EventHsDescContent,
     'NETWORK_LIVENESS': EventNetworkLiveness,
+    'DEBUG': EventLogDebug,
+    'INFO': EventLogInfo,
+    'NOTICE': EventLogNotice,
+    'WARN': EventLogWarn,
+    'ERR': EventLogErr,
     'SIGNAL': EventSignal,
 }  # type: Mapping[str, type[Event]]
 
