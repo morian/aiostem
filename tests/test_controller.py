@@ -190,7 +190,8 @@ class TestController:
         assert len(controller.event_handlers) == 0
 
     async def test_cmd_del_event_handler_error(self, controller):
-        callback = lambda: None
+        def callback(_):
+            pass
 
         await controller.add_event_handler('STATUS_CLIENT', callback)
         assert len(controller.event_handlers) == 1
