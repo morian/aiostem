@@ -15,8 +15,8 @@ from .structures import (
     HsDescAction,
     HsDescAuthType,
     HsDescFailReason,
+    LivenessStatus,
     LogSeverity,
-    NetworkLivenessStatus,
     Signal,
     StatusActionClient,
     StatusActionGeneral,
@@ -148,6 +148,19 @@ class Event(ABC):
 
 
 @dataclass(kw_only=True, slots=True)
+class EventSimple(Event):
+    """An event with a simple syntax parser."""
+
+    SYNTAX: ClassVar[ReplySyntax]
+
+    @classmethod
+    def from_message(cls, message: Message) -> Self:
+        """Build an event dataclass from a received message."""
+        result = cls.SYNTAX.parse(message)
+        return cls.adapter().validate_python(result)
+
+
+@dataclass(kw_only=True, slots=True)
 class EventDisconnect(Event):
     """
     Structure for a `DISCONNECT` event.
@@ -166,25 +179,19 @@ class EventDisconnect(Event):
 
 
 @dataclass(kw_only=True, slots=True)
-class EventSignal(Event):
+class EventSignal(EventSimple):
     """Structure for a `SIGNAL` event."""
 
-    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(args_min=2, args_map=(None, 'signal'))
+    SYNTAX = ReplySyntax(args_min=2, args_map=(None, 'signal'))
     TYPE = EventWord.SIGNAL
     signal: Signal
 
-    @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build an event dataclass from a received message."""
-        result = cls.SYNTAX.parse(message)
-        return cls.adapter().validate_python(result)
-
 
 @dataclass(kw_only=True, slots=True)
-class EventHsDesc(Event):
+class EventHsDesc(EventSimple):
     """Structure for a `HS_DESC` event."""
 
-    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+    SYNTAX = ReplySyntax(
         args_min=5,
         args_map=(None, 'action', 'address', 'auth_type', 'hs_dir', 'descriptor_id'),
         kwargs_map={
@@ -204,12 +211,6 @@ class EventHsDesc(Event):
     hs_dir_index: HexBytes | None = None
     reason: HsDescFailReason | None = None
     replica: int | None = None
-
-    @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build an event dataclass from a received message."""
-        result = cls.SYNTAX.parse(message)
-        return cls.adapter().validate_python(result)
 
 
 @dataclass(kw_only=True, slots=True)
@@ -240,22 +241,16 @@ class EventHsDescContent(Event):
 
 
 @dataclass(kw_only=True, slots=True)
-class EventNetworkLiveness(Event):
+class EventNetworkLiveness(EventSimple):
     """Structure for a `NETWORK_LIVENESS` event."""
 
-    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+    SYNTAX = ReplySyntax(
         args_min=2,
         args_map=(None, 'status'),
     )
     TYPE = EventWord.NETWORK_LIVENESS
 
-    status: NetworkLivenessStatus
-
-    @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build an event dataclass from a received message."""
-        result = cls.SYNTAX.parse(message)
-        return cls.adapter().validate_python(result)
+    status: LivenessStatus
 
 
 @dataclass(kw_only=True, slots=True)
@@ -571,10 +566,26 @@ class EventStatusServer(EventStatus):
 
 
 @dataclass(kw_only=True, slots=True)
-class EventPtLog(Event):
+class EventTransportLaunched(EventSimple):
+    """Structure for a `TRANSPORT_LAUNCHED` event."""
+
+    SYNTAX = ReplySyntax(
+        args_min=5,
+        args_map=(None, 'side', 'name', 'host', 'port'),
+    )
+    TYPE = EventWord.TRANSPORT_LAUNCHED
+
+    side: Literal['client', 'server']
+    name: str
+    host: str
+    port: int
+
+
+@dataclass(kw_only=True, slots=True)
+class EventPtLog(EventSimple):
     """Structure for a `PT_LOG` event."""
 
-    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+    SYNTAX = ReplySyntax(
         args_min=1,
         args_map=(None,),
         kwargs_map={
@@ -589,12 +600,6 @@ class EventPtLog(Event):
     program: str
     message: str
     severity: Annotated[LogSeverity, LogSeverityTransformer()]
-
-    @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build an event dataclass from a received message."""
-        result = cls.SYNTAX.parse(message)
-        return cls.adapter().validate_python(result)
 
 
 @dataclass(kw_only=True, slots=True)
@@ -656,6 +661,7 @@ _EVENT_MAP = {
     'STATUS_GENERAL': EventStatusGeneral,
     'STATUS_CLIENT': EventStatusClient,
     'STATUS_SERVER': EventStatusServer,
+    'TRANSPORT_LAUNCHED': EventTransportLaunched,
     'PT_LOG': EventPtLog,
     'PT_STATUS': EventPtStatus,
 }  # type: Mapping[str, type[Event]]

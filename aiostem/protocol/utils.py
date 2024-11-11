@@ -34,9 +34,9 @@ class CommandSerializer:
             name: the command name.
 
         """
+        self._body = None  # type: str | None
         self._command = name
         self._arguments = []  # type: MutableSequence[Argument]
-        self._body = None  # type: str | None
 
     def serialize(self) -> str:
         """

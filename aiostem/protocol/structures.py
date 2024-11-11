@@ -9,11 +9,18 @@ from .utils import Base64Bytes, StringSequence, TimedeltaSeconds
 
 
 class AuthMethod(StrEnum):
-    """Known authentication methods."""
+    """Known authentication methods on the control port.."""
 
+    #: No authentication is required.
     NULL = 'NULL'
+
+    #: A simple password authentication (hashed in the configuration file).
     HASHEDPASSWORD = 'HASHEDPASSWORD'
+
+    #: Provide the content of a cookie we read on the file-system.
     COOKIE = 'COOKIE'
+
+    #: Provide a proof that we know the value of the cookie on the file-system.
     SAFECOOKIE = 'SAFECOOKIE'
 
 
@@ -113,25 +120,31 @@ class HsDescFailReason(StrEnum):
     UPLOAD_REJECTED = 'UPLOAD_REJECTED'
 
 
-class LogSeverity(StrEnum):
-    """Possible severities for all log events."""
-
-    DEBUG = 'DEBUG'
-    INFO = 'INFO'
-    NOTICE = 'NOTICE'
-    WARNING = 'WARN'
-    ERROR = 'ERROR'
-
-
-class NetworkLivenessStatus(StrEnum):
+class LivenessStatus(StrEnum):
     """Possible values for `Status` in a `NETWORK_LIVENESS` event."""
 
     DOWN = 'DOWN'
     UP = 'UP'
 
     def __bool__(self) -> bool:
-        """Whether the network is up as a boolean."""
+        """
+        Whether the network is up as a boolean.
+
+        Returns:
+            :obj:`True` when this value is `UP`.
+
+        """
         return bool(self.value == self.UP)
+
+
+class LogSeverity(StrEnum):
+    """Possible severities for all kind of log events."""
+
+    DEBUG = 'DEBUG'
+    INFO = 'INFO'
+    NOTICE = 'NOTICE'
+    WARNING = 'WARN'
+    ERROR = 'ERROR'
 
 
 class OnionClientAuthFlags(StrEnum):
@@ -247,8 +260,8 @@ class StatusActionServer(StrEnum):
     """
     Possible actions for a server status event.
 
-    Notes:
-       - `SERVER_DESCRIPTOR_STATUS` was never implemented.
+    Note:
+       `SERVER_DESCRIPTOR_STATUS` was never implemented.
 
     """
 
@@ -454,7 +467,7 @@ class StatusServerNameserverStatus:
     """Arguments for a `STATUS_SERVER` event with action `NAMESERVER_STATUS`."""
 
     ns: str
-    status: NetworkLivenessStatus
+    status: LivenessStatus
     err: str | None = None
 
 

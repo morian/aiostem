@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING, Any, TypeAlias, overload
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
 
+    ValueTypes: TypeAlias = IntEnum | StrEnum | int | str
+
 from ..exceptions import CommandError
 
 #: List of characters in a string that need an escape.
@@ -19,7 +21,7 @@ def _serialize_value(value: None, *, allow_none: bool) -> None: ...
 
 
 @overload
-def _serialize_value(value: IntEnum | StrEnum | int | str, *, allow_none: bool) -> str: ...
+def _serialize_value(value: ValueTypes, *, allow_none: bool) -> str: ...
 
 
 def _serialize_value(value: Any, *, allow_none: bool = False) -> str | None:
@@ -114,7 +116,7 @@ class ArgumentKeyword(BaseArgument):
     def __init__(
         self,
         key: str | None,
-        value: IntEnum | StrEnum | str | int | None,
+        value: ValueTypes | None,
         *,
         quotes: QuoteStyle = QuoteStyle.AUTO,
     ) -> None:
@@ -177,12 +179,7 @@ class ArgumentKeyword(BaseArgument):
 class ArgumentString(BaseArgument):
     """Describe a string argument."""
 
-    def __init__(
-        self,
-        value: IntEnum | StrEnum | str | int,
-        *,
-        safe: bool = False,
-    ) -> None:
+    def __init__(self, value: ValueTypes, *, safe: bool = False) -> None:
         """
         Create a new string argument.
 

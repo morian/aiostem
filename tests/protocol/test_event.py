@@ -171,6 +171,13 @@ class TestEvents:
         event = event_from_message(message)
         assert event.arguments.hostname == 'google.exit'
 
+    async def test_status_transport_launched(self):
+        line = '650 TRANSPORT_LAUNCHED client obfs4 127.0.0.1 1234'
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.side == 'client'
+        assert event.port == 1234
+
     async def test_status_pt_log(self):
         line = (
             '650 PT_LOG PT=/usr/bin/obs4proxy SEVERITY=debug '
