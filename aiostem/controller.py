@@ -2,15 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import secrets
 from collections.abc import Callable
 from contextlib import AsyncExitStack, suppress
-from typing import TYPE_CHECKING, Any, TypeAlias, cast, overload
+from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
-from . import (
-    event as e,
-    reply as r,
-)
 from .connector import (
     DEFAULT_CONTROL_HOST,
     DEFAULT_CONTROL_PATH,
@@ -20,7 +15,6 @@ from .connector import (
     ControlConnectorPort,
 )
 from .exceptions import CommandError, ControllerError
-from .message import Message
 from .protocol import (
     Command,
     CommandAuthChallenge,
@@ -34,9 +28,24 @@ from .protocol import (
     CommandSetConf,
     CommandSetEvents,
     CommandSignal,
+    Event,
     EventWord,
     EventWordInternal,
+    Message,
+    ReplyAuthChallenge,
+    ReplyAuthenticate,
+    ReplyDropGuards,
+    ReplyGetConf,
+    ReplyGetInfo,
+    ReplyHsFetch,
+    ReplyProtocolInfo,
+    ReplyQuit,
+    ReplySetConf,
+    ReplySetEvents,
+    ReplySignal,
     Signal,
+    event_from_message,
+    messages_from_stream,
 )
 from .utils import hs_address_strip_tld
 
@@ -53,7 +62,7 @@ if TYPE_CHECKING:
 
 _EVENTS_TOR = frozenset(EventWord)
 _EVENTS_INTERNAL = frozenset(EventWordInternal)
-EventCallbackType: TypeAlias = Callable[[e.Event], Any]
+EventCallbackType: TypeAlias = Callable[[Event], Any]
 logger = logging.getLogger(__package__)
 
 
@@ -75,7 +84,7 @@ class Controller:
         self._context = None  # type: AsyncExitStack | None
         self._connected = False
         self._connector = connector
-        self._protoinfo = None  # type: r.ProtocolInfoReply | None
+        self._protoinfo = None  # type: ReplyProtocolInfo | None
         self._replies = None  # type: asyncio.Queue[Message | None] | None
         self._writer = None  # type: asyncio.StreamWriter | None
 
@@ -240,7 +249,7 @@ class Controller:
         """
         try:
             return Signal(signal)
-        except KeyError:
+        except ValueError:
             msg = f"Unknown signal '{signal}'"
             raise CommandError(msg) from None
 
@@ -252,8 +261,7 @@ class Controller:
         This is a fake event simply used to call all the registered callbacks and provide a
         way to gently tell the end user that we are no longer capable of handling anything.
         """
-        message = Message('650 DISCONNECT')
-        await self._on_event_received(message)
+        await self._on_event_received(Message(status=650, header='DISCONNECT'))
 
     async def _on_event_received(self, message: Message) -> None:
         """
@@ -265,18 +273,20 @@ class Controller:
             message: the raw event message.
 
         """
-        name = message.event_type
-        if name is not None:  # pragma: no branch
-            event = e.event_parser(message)
-
-            for callback in self._evt_callbacks.get(name, []):
+        try:
+            event = event_from_message(message)
+        except Exception:
+            logger.exception('Unable to handle a received event.')
+        else:
+            keyword = message.keyword
+            for callback in self._evt_callbacks.get(keyword, []):
                 # We do not care about exceptions in the event callback.
                 try:
                     coro = callback(event)
                     if asyncio.iscoroutine(coro):
                         await coro
-                except Exception:  # pragma: no cover
-                    logger.exception("Error handling callback for '%s'", name)
+                except Exception:
+                    logger.exception("Error while handling callback for '%s'", keyword)
 
     async def _reader_task(
         self,
@@ -292,17 +302,11 @@ class Controller:
 
         """
         try:
-            message = Message()
-
-            while line := await reader.readline():
-                message.add_line(line.decode('ascii'))
-                if message.parsed:
-                    if message.is_event:
-                        await self._on_event_received(message)
-                    else:
-                        await replies.put(message)
-
-                    message = Message()
+            async for message in messages_from_stream(reader):
+                if message.is_event:
+                    await self._on_event_received(message)
+                else:
+                    await replies.put(message)
         finally:
             self._connected = False
             # This is needed here because we may be stuck waiting on a reply.
@@ -310,7 +314,7 @@ class Controller:
                 replies.put_nowait(None)
             await self._notify_disconnect()
 
-    async def _request(self, command: Command) -> Message:
+    async def request(self, command: Command) -> Message:
         """
         Send any kind of command to the controller.
 
@@ -324,7 +328,7 @@ class Controller:
             ControllerError: when the controller is not connected.
 
         Returns:
-            The corresponding reply from the remote daemon.
+            The corresponding reply message from the remote daemon.
 
         """
         async with self._request_lock:
@@ -337,19 +341,20 @@ class Controller:
             replies = cast(asyncio.Queue[Message | None], self._replies)
             writer = cast(asyncio.StreamWriter, self._writer)
 
-            query = command.serialize()
-            writer.write(query.encode('ascii'))
+            frame = command.serialize()
+            writer.write(frame.encode('ascii'))
             await writer.drain()
 
         resp = await replies.get()
         replies.task_done()
 
+        # This is very hard to test here, let's not cover these few lines.
         if resp is None:  # pragma: no cover
             msg = 'Controller has disconnected!'
             raise ControllerError(msg)
         return resp
 
-    async def auth_challenge(self, nonce: bytes | str | None = None) -> r.AuthChallengeReply:
+    async def auth_challenge(self, nonce: bytes | str | None = None) -> ReplyAuthChallenge:
         """
         Start the authentication routine for the `SAFECOOKIE` method.
 
@@ -361,15 +366,16 @@ class Controller:
             nonce: an optional 32 bytes hexadecimal random value.
 
         Returns:
-            A :class:`AuthChallengeReply` object.
+            An authentication challenge reply.
 
         """
-        if nonce is None:
-            nonce = secrets.token_bytes(CommandAuthChallenge.NONCE_LENGTH)
         command = CommandAuthChallenge(nonce=nonce)
-        return await self.request(command)
+        message = await self.request(command)
+        reply = ReplyAuthChallenge.from_message(message)
+        reply.client_nonce = command.nonce
+        return reply
 
-    async def authenticate(self, password: str | None = None) -> r.AuthenticateReply:
+    async def authenticate(self, password: str | None = None) -> ReplyAuthenticate:
         """
         Authenticate to Tor's controller.
 
@@ -387,11 +393,12 @@ class Controller:
             ControllerError: when no authentication method is found.
 
         Returns:
-            The authentication result.
+            The authentication reply.
 
         """
         protoinfo = await self.protocol_info()
-        methods = set(protoinfo.methods)
+        protoinfo.raise_for_status()
+        methods = set(protoinfo.auth_methods)  # type: set[str]
 
         # No password was provided, we can't authenticate with this method.
         if password is None:
@@ -404,23 +411,24 @@ class Controller:
         elif 'HASHEDPASSWORD' in methods:
             token = password.encode()  # type: ignore[union-attr]
         elif 'SAFECOOKIE' in methods:
-            cookie = await protoinfo.cookie_file_read()
+            cookie = await protoinfo.read_cookie_file()
             if cookie is not None:
                 challenge = await self.auth_challenge()
                 challenge.raise_for_server_hash_error(cookie)
-                token = challenge.client_token_build(cookie)
+                token = challenge.build_client_hash(cookie)
         elif 'COOKIE' in methods:
-            token = await protoinfo.cookie_file_read()
+            token = await protoinfo.read_cookie_file()
         else:
             msg = 'No compatible authentication method found!'
             raise ControllerError(msg)
 
         command = CommandAuthenticate(token=token)
-        reply = await self.request(command)
-        self._authenticated = bool(reply.status == 250)
+        message = await self.request(command)
+        reply = ReplyAuthenticate.from_message(message)
+        self._authenticated = reply.is_success
         return reply
 
-    async def drop_guards(self) -> r.DropGuardsReply:
+    async def drop_guards(self) -> ReplyDropGuards:
         """
         Tell the server to drop all guard nodes.
 
@@ -429,11 +437,12 @@ class Controller:
             to tracking attacks over time.
 
         Returns:
-            The simple response.
+            A simple drop-guards reply where only the status is relevant.
 
         """
         command = CommandDropGuards()
-        return await self.request(command)
+        message = await self.request(command)
+        return ReplyDropGuards.from_message(message)
 
     async def add_event_handler(
         self,
@@ -459,6 +468,7 @@ class Controller:
 
         Raises:
             CommandError: when the event name does not exit.
+            ReplyStatusError: when the event could not be registered.
 
         """
         if not isinstance(event, EventWord | EventWordInternal):
@@ -472,7 +482,9 @@ class Controller:
                     keys = frozenset(self._evt_callbacks.keys())
                     reals = keys.difference(EventWordInternal)
                     events = frozenset(map(EventWord, reals))
-                    await self.set_events(events)
+
+                    reply = await self.set_events(events)
+                    reply.raise_for_status()
             except BaseException:
                 if not len(listeners):  # pragma: no branch
                     self._evt_callbacks.pop(event)
@@ -514,7 +526,7 @@ class Controller:
                     self._evt_callbacks[event.value] = backup_listeners
                     raise
 
-    async def get_conf(self, *args: str) -> r.GetConfReply:
+    async def get_conf(self, *args: str) -> ReplyGetConf:
         """
         Request the value of zero or move configuration variable(s).
 
@@ -529,9 +541,10 @@ class Controller:
 
         """
         command = CommandGetConf(keywords=[*args])
-        return await self.request(command)
+        message = await self.request(command)
+        return ReplyGetConf.from_message(message)
 
-    async def get_info(self, *args: str) -> r.GetInfoReply:
+    async def get_info(self, *args: str) -> ReplyGetInfo:
         """
         Request for Tor daemon information.
 
@@ -546,9 +559,10 @@ class Controller:
 
         """
         command = CommandGetInfo(keywords=[*args])
-        return await self.request(command)
+        message = await self.request(command)
+        return ReplyGetInfo.from_message(message)
 
-    async def protocol_info(self, version: int | None = None) -> r.ProtocolInfoReply:
+    async def protocol_info(self, version: int | None = None) -> ReplyProtocolInfo:
         """
         Get control protocol information from the remote Tor process.
 
@@ -566,19 +580,20 @@ class Controller:
             version: protocol version to ask for, should be 1.
 
         Returns:
-            A completed reply from Tor.
+            A completed protocol info reply from Tor.
 
         """
         if self.authenticated or not self._protoinfo:
             command = CommandProtocolInfo(version=version)
-            self._protoinfo = await self.request(command)
+            message = await self.request(command)
+            self._protoinfo = ReplyProtocolInfo.from_message(message)
         return self._protoinfo
 
     async def hs_fetch(
         self,
         address: str,
         servers: Iterable[str] | None = None,
-    ) -> r.HsFetchReply:
+    ) -> ReplyHsFetch:
         """
         Request a hidden service descriptor fetch.
 
@@ -590,69 +605,17 @@ class Controller:
             servers: an optional list of servers to query.
 
         Returns:
-            Whether the request was sent successfully.
+            A simple hsfetch reply where only the status is relevant.
 
         """
         address = hs_address_strip_tld(address.lower())
         command = CommandHsFetch(address=address)
         if servers is not None:
             command.servers.extend(servers)
-        return await self.request(command)
+        message = await self.request(command)
+        return ReplyHsFetch.from_message(message)
 
-    @overload
-    async def request(self, command: CommandAuthenticate) -> r.AuthenticateReply: ...
-
-    @overload
-    async def request(self, command: CommandAuthChallenge) -> r.AuthChallengeReply: ...
-
-    @overload
-    async def request(self, command: CommandDropGuards) -> r.DropGuardsReply: ...
-
-    @overload
-    async def request(self, command: CommandGetConf) -> r.GetConfReply: ...
-
-    @overload
-    async def request(self, command: CommandGetInfo) -> r.GetInfoReply: ...
-
-    @overload
-    async def request(self, command: CommandHsFetch) -> r.HsFetchReply: ...
-
-    @overload
-    async def request(self, command: CommandProtocolInfo) -> r.ProtocolInfoReply: ...
-
-    @overload
-    async def request(self, command: CommandQuit) -> r.QuitReply: ...
-
-    @overload
-    async def request(self, command: CommandSetConf) -> r.SetConfReply: ...
-
-    @overload
-    async def request(self, command: CommandSetEvents) -> r.SetEventsReply: ...
-
-    @overload
-    async def request(self, command: CommandSignal) -> r.SignalReply: ...
-
-    async def request(self, command: Command) -> r.Reply:
-        """
-        Send a provided command to the controller.
-
-        The command is first serialized, sent to the controller and we get back
-        a raw message that is then transformed into the appropriate reply.
-
-        For typing purposes, this method is overloaded with all the available
-        commands and returning their corresponding responses.
-
-        Args:
-            command: the command to send to Tor.
-
-        Returns:
-            The corresponding reply.
-
-        """
-        message = await self._request(command)
-        return r.reply_parser(command, message)
-
-    async def set_conf(self, items: Mapping[str, Any]) -> r.SetConfReply:
+    async def set_conf(self, items: Mapping[str, Any]) -> ReplySetConf:
         """
         Change configuration entries on the remote server.
 
@@ -663,19 +626,20 @@ class Controller:
             items: a map of new configuration entries to apply.
 
         Returns:
-            A simple response that tells if everything went well.
+            A simple setconf reply where only the status is relevant.
 
         """
         command = CommandSetConf()
         command.values.update(items)
-        return await self.request(command)
+        message = await self.request(command)
+        return ReplySetConf.from_message(message)
 
     async def set_events(
         self,
         events: AbstractSet[EventWord],
         *,
         extended: bool = False,
-    ) -> r.SetEventsReply:
+    ) -> ReplySetEvents:
         """
         Set the list of events that we subscribe to.
 
@@ -690,14 +654,15 @@ class Controller:
             extended: Tor may provide extra information with events for this connection.
 
         Returns:
-            A simple response.
+            A simple setevents reply where only the status is relevant.
 
         """
         command = CommandSetEvents(extended=extended)
         command.events.update(events)
-        return await self.request(command)
+        message = await self.request(command)
+        return ReplySetEvents.from_message(message)
 
-    async def signal(self, signal: Signal | str) -> r.SignalReply:
+    async def signal(self, signal: Signal | str) -> ReplySignal:
         """
         Send a signal to the controller.
 
@@ -708,21 +673,23 @@ class Controller:
             signal: name of the signal to send.
 
         Returns:
-            A simple response.
+            A simple signal reply where only the status is relevant.
 
         """
         if not isinstance(signal, Signal):
             signal = self._str_signal_to_enum(signal)
 
         command = CommandSignal(signal=signal)
-        return await self.request(command)
+        message = await self.request(command)
+        return ReplySignal.from_message(message)
 
-    async def quit(self) -> r.QuitReply:
+    async def quit(self) -> ReplyQuit:
         """
         Tells the server to hang up on this controller connection.
 
         Returns:
-            A simple response.
+            A simple quit reply where only the status is relevant.
 
         """
-        return await self.request(CommandQuit())
+        message = await self.request(CommandQuit())
+        return ReplyQuit.from_message(message)

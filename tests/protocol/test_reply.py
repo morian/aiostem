@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import secrets
 
 import pytest
 
@@ -186,6 +187,37 @@ class TestReplies:
         assert reply.tor_version == '0.4.8.12'
         assert AuthMethod.COOKIE in reply.auth_methods
 
+    async def test_protocol_info_read_cookie(self, tmp_path):
+        cookie_data = secrets.token_bytes(32)
+        cookie_path = tmp_path / 'cookiefile'
+        lines = [
+            '250-PROTOCOLINFO 1',
+            f'250-AUTH METHODS=COOKIE,SAFECOOKIE COOKIEFILE="{cookie_path}"',
+            '250-VERSION Tor="0.4.8.12"',
+            '250 OK',
+        ]
+
+        with open(cookie_path, 'wb') as fp:  # noqa: ASYNC230
+            fp.write(cookie_data)
+
+        message = await create_message(lines)
+        reply = ReplyProtocolInfo.from_message(message)
+        cookie = await reply.read_cookie_file()
+        assert cookie == cookie_data
+
+    async def test_protocol_info_no_cookie_file(self):
+        lines = [
+            '250-PROTOCOLINFO 1',
+            '250-AUTH METHODS=HASHEDPASSWORD',
+            '250-VERSION Tor="0.4.8.13"',
+            '250 OK',
+        ]
+        message = await create_message(lines)
+        reply = ReplyProtocolInfo.from_message(message)
+        assert reply.auth_cookie_file is None
+        with pytest.raises(FileNotFoundError, match='No cookie file found'):
+            await reply.read_cookie_file()
+
     async def test_protocol_info_error(self):
         message = await create_message(['513 No such version "aa"'])
         reply = ReplyProtocolInfo.from_message(message)
@@ -216,6 +248,12 @@ class TestReplies:
         assert reply.server_hash == bytes.fromhex(server_hash)
         assert reply.server_nonce == bytes.fromhex(server_nonce)
 
+        cookie = b'e8a05005deb487f5d9a0db9a026d28ad'
+        with pytest.raises(ReplyError, match='No client_nonce was found or provided.'):
+            reply.build_client_hash(cookie)
+        with pytest.raises(ReplyError, match='No client_nonce was found or provided.'):
+            reply.build_server_hash(cookie)
+
     async def test_auth_challenge_syntax_error(self):
         line = '512 Wrong number of arguments for AUTHCHALLENGE'
         message = await create_message([line])
@@ -227,10 +265,10 @@ class TestReplies:
 
         cookie = b'e8a05005deb487f5d9a0db9a026d28ad'
         nonce = 'I am a nonce!'
-        with pytest.raises(ReplyError, match='server_nonce is not set.'):
-            reply.build_client_hash(nonce, cookie)
-        with pytest.raises(ReplyError, match='server_nonce is not set.'):
-            reply.build_server_hash(nonce, cookie)
+        with pytest.raises(ReplyError, match='No server_nonce has been set.'):
+            reply.build_client_hash(cookie, nonce)
+        with pytest.raises(ReplyError, match='No server_nonce has been set.'):
+            reply.build_server_hash(cookie, nonce)
 
     async def test_auth_challenge_error(self):
         client_nonce_str = 'F1BE0456FB2626512D72B06509A16EAAA707B1981F31C9BBAD40A788A0A330A6'
@@ -244,7 +282,7 @@ class TestReplies:
         message = await create_message([line])
         reply = ReplyAuthChallenge.from_message(message)
         with pytest.raises(ReplyError, match='Server hash provided by Tor is invalid'):
-            reply.raise_for_server_hash_error(client_nonce, cookie)
+            reply.raise_for_server_hash_error(cookie, client_nonce)
 
     async def test_auth_challenge_success_bytes(self):
         client_nonce_str = 'F1BE0456FB2626512D72B06509A16EAAA707B1981F31C9BBAD40A788A0A330A6'
@@ -257,11 +295,11 @@ class TestReplies:
         line = f'250 AUTHCHALLENGE SERVERHASH={server_hash} SERVERNONCE={server_nonce}'
         message = await create_message([line])
         reply = ReplyAuthChallenge.from_message(message)
-        reply.raise_for_server_hash_error(client_nonce, cookie)
+        reply.raise_for_server_hash_error(cookie, client_nonce)
 
         client_hash_str = 'DDC1E1FC978DDF6CD2142EEA62559D026A2F84666B9F6B462224F36B7E9A9C54'
         client_hash = bytes.fromhex(client_hash_str)
-        computed = reply.build_client_hash(client_nonce, cookie)
+        computed = reply.build_client_hash(cookie, client_nonce)
         assert computed == client_hash
 
     async def test_auth_challenge_success_string(self):
@@ -274,11 +312,11 @@ class TestReplies:
         line = f'250 AUTHCHALLENGE SERVERHASH={server_hash} SERVERNONCE={server_nonce}'
         message = await create_message([line])
         reply = ReplyAuthChallenge.from_message(message)
-        reply.raise_for_server_hash_error(client_nonce, cookie)
+        reply.raise_for_server_hash_error(cookie, client_nonce)
 
         client_hash_str = '2E1DA1886E1D4D2695F10290C315877E55D838DAA04757E6D9730420DD39262C'
         client_hash = bytes.fromhex(client_hash_str)
-        computed = reply.build_client_hash(client_nonce, cookie)
+        computed = reply.build_client_hash(cookie, client_nonce)
         assert computed == client_hash
 
     async def test_add_onion(self):

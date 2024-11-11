@@ -27,18 +27,14 @@ classifiers = [
 	'Typing :: Typed',
 ]
 dependencies = [
-	'aiofiles >= 23.0, < 25.0',
-	'pydantic >= 2.9, < 3.0',
-	'stem >= 1.8.2, < 1.9',
+	'pydantic >= 2.6, < 3.0',
 ]
 requires-python = '>=3.11'
 
 [tool.setuptools.packages.find]
 include = [
 	'aiostem',
-	'aiostem.event',
 	'aiostem.protocol',
-	'aiostem.reply',
 ]
 
 [tool.setuptools.dynamic]

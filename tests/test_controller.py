@@ -1,65 +1,60 @@
 from __future__ import annotations
 
 import asyncio
+import logging
 from functools import partial
 
 import pytest
 
 from aiostem import Controller
-from aiostem.event import (
-    NetworkLivenessEvent,
-    SignalEvent,
-    StatusClientEvent,
-    UnknownEvent,
-    event_parser,
-)
 from aiostem.exceptions import CommandError, ControllerError, ProtocolError, ReplyStatusError
-from aiostem.message import Message
+from aiostem.protocol import (
+    CommandHsFetch,
+    EventNetworkLiveness,
+    EventSignal,
+    EventStatusClient,
+    EventUnknown,
+    Message,
+    event_from_message,
+)
 
 # All test coroutines will be treated as marked for asyncio.
 pytestmark = pytest.mark.asyncio
 
 
 class TestController:
-    async def test_base_controller(self, raw_controller):
-        assert raw_controller.authenticated is False
-        assert raw_controller.connected is True
-        assert raw_controller.entered is True
+    """Various tests around the main controller."""
 
-    async def test_unauth_protoinfo(self, raw_controller):
-        res1 = await raw_controller.protocol_info()
-        res2 = await raw_controller.protocol_info()
-        assert res1 == res2
+    async def test_initialized(self, controller_raw):
+        assert controller_raw.authenticated is False
+        assert controller_raw.connected is False
+        assert controller_raw.entered is False
 
-    async def test_already_entered(self, raw_controller):
+    async def test_exit_not_entered(self, controller_raw):
+        assert controller_raw.entered is False
+        await controller_raw.__aexit__(None, None, None)
+        assert controller_raw.entered is False
+
+    async def test_entered(self, controller_unauth):
+        assert controller_unauth.authenticated is False
+        assert controller_unauth.connected is True
+        assert controller_unauth.entered is True
+
+    async def test_already_entered(self, controller_unauth):
         with pytest.raises(RuntimeError, match='Controller is already entered'):
-            await raw_controller.__aenter__()
+            await controller_unauth.__aenter__()
+
+    async def test_controller_reuse(self, controller_raw):
+        for _ in range(3):
+            assert controller_raw.entered is False
+            async with controller_raw:
+                assert controller_raw.entered is True
 
     async def test_not_entered_from_path(self):
         controller = Controller.from_path('/run/tor/not_a_valid_socket.sock')
         with pytest.raises(FileNotFoundError, match='No such file'):
             await controller.__aenter__()
         assert controller.connected is False
-
-    async def test_authenticate_no_password(self, raw_controller):
-        with pytest.raises(FileNotFoundError, match='No such file'):
-            await raw_controller.authenticate()
-
-    @pytest.mark.timeout(2)
-    async def test_cmd_auth_challenge(self, raw_controller):
-        res = await raw_controller.auth_challenge(b'NOT A TOKEN')
-        with pytest.raises(ProtocolError, match='Tor provided the wrong server nonce.'):
-            res.raise_for_server_hash_error(b'THIS IS A COOKIE')
-
-        token = res.client_token_build(b'THIS IS A COOKIE')
-        assert isinstance(token, bytes), token
-        assert len(token) == 32
-
-    @pytest.mark.timeout(2)
-    async def test_cmd_auth_challenge_no_nonce(self, raw_controller):
-        res = await raw_controller.auth_challenge()
-        assert len(res.query.nonce) == 32
-        assert len(res.server_nonce) == 32
 
     async def test_not_entered_from_port(self):
         controller = Controller.from_port('qweqwe', 9051)
@@ -68,26 +63,53 @@ class TestController:
         with pytest.raises(ControllerError, match='Controller is not connected'):
             await controller.protocol_info()
 
+    async def test_unauth_protoinfo(self, controller_unauth):
+        res1 = await controller_unauth.protocol_info()
+        res2 = await controller_unauth.protocol_info()
+        assert res1 == res2
+
+    async def test_authenticate_no_password(self, controller_unauth):
+        with pytest.raises(FileNotFoundError, match='No such file'):
+            await controller_unauth.authenticate()
+
+    @pytest.mark.timeout(2)
+    async def test_cmd_auth_challenge(self, controller_unauth):
+        res = await controller_unauth.auth_challenge(b'NOT A TOKEN')
+        with pytest.raises(ProtocolError, match='Server hash provided by Tor is invalid.'):
+            res.raise_for_server_hash_error(b'THIS IS A COOKIE')
+
+        token = res.build_client_hash(b'THIS IS A COOKIE')
+        assert isinstance(token, bytes), token
+        # This is the expected length of the client hash.
+        assert len(token) == 32
+
+    @pytest.mark.timeout(2)
+    async def test_cmd_auth_challenge_no_nonce(self, controller_unauth):
+        # This means that the nonce is generated locally by `auth_challenge`.
+        res = await controller_unauth.auth_challenge()
+        assert len(res.client_nonce) == 32
+        assert len(res.server_nonce) == 32
+
     async def test_authenticated_controller(self, controller):
         assert controller.connected
         assert controller.authenticated
 
-    async def test_cmd_getinfo(self, controller):
+    async def test_cmd_get_info(self, controller):
         info = await controller.get_info('version')
         assert 'version' in info.values
 
-    async def test_cmd_getinfo_exception(self, controller):
+    async def test_cmd_get_info_error(self, controller):
+        res = await controller.get_info('THIS_IS_AN_INVALID_VALUE')
         with pytest.raises(ReplyStatusError, match='Unrecognized key') as exc:
-            await controller.get_info('THIS_IS_AN_INVALID_VALUE')
+            res.raise_for_status()
         assert exc.value.code >= 400
 
-    async def test_cmd_getconf(self, controller):
+    async def test_cmd_get_conf(self, controller):
         info = await controller.get_conf('DormantClientTimeout')
         assert info.values == {'DormantClientTimeout': '86400'}
 
-    async def test_cmd_setconf(self, controller):
+    async def test_cmd_set_conf(self, controller):
         conf = {'MaxClientCircuitsPending': '64'}
-
         result = await controller.set_conf(conf)
         assert result.status == 250
 
@@ -96,16 +118,32 @@ class TestController:
 
     async def test_cmd_protocol_info(self, controller):
         res1 = await controller.protocol_info()
-        assert res1.cookie_file is not None
-        assert res1.proto_version == 1
+        assert res1.auth_cookie_file is not None
+        assert res1.protocol_version == 1
         assert isinstance(res1.tor_version, str)
 
-        with pytest.raises(Exception, match='No such file or directory'):
-            await res1.cookie_file_read()
+    async def test_cmd_protocol_info_read_cookie_file_error(self, controller):
+        res1 = await controller.protocol_info()
+        with pytest.raises(FileNotFoundError, match='No such file or directory'):
+            await res1.read_cookie_file()
 
-    async def test_cmd_hsfetch_v2_error(self, controller):
+    async def test_cmd_hs_fetch_v2_error(self, controller):
+        reply = await controller.hs_fetch('tor66sezptuu2nta')
         with pytest.raises(ReplyStatusError, match='Invalid argument'):
-            await controller.hs_fetch('tor66sezptuu2nta')
+            reply.raise_for_status()
+
+    async def test_cmd_hs_fetch_with_servers(self, controller):
+        # Enable tracing for all sent commands.
+        controller.traces.add('command')
+
+        # This is an invalid argument here, no side effect.
+        await controller.hs_fetch('tor66sezptuu2nta', servers=('A', 'B'))
+
+        # Check that our trace has our command with our servers.
+        assert len(controller.trace_commands) == 1
+        command = controller.trace_commands[0]
+        assert isinstance(command, CommandHsFetch)
+        assert command.servers == ['A', 'B']
 
     async def test_cmd_drop_guard(self, controller):
         res = await controller.drop_guards()
@@ -113,29 +151,95 @@ class TestController:
 
     @pytest.mark.timeout(2)
     async def test_cmd_quit(self, controller):
-        test_event = asyncio.Event()
+        """Also checks that both sync and async callbacks are triggered."""
+        evt_sync = asyncio.Event()
+        evt_async = asyncio.Event()
 
-        def test_callback(event, ignored):
+        def callback_sync(event, _):
             event.set()
 
-        callback = partial(test_callback, test_event)
+        async def callback_async(event, _):
+            event.set()
 
-        await controller.add_event_handler('DISCONNECT', callback)
+        cb_sync = partial(callback_sync, evt_sync)
+        cb_async = partial(callback_async, evt_async)
+
+        await controller.add_event_handler('DISCONNECT', cb_sync)
+        await controller.add_event_handler('DISCONNECT', cb_async)
+
         reply = await controller.quit()
-        assert reply.status == 250
+        reply.raise_for_status()
 
-        message = reply.message
-        assert message.parsed is True
-        assert message.status_code == 250
+        await asyncio.wait(
+            (
+                asyncio.create_task(evt_sync.wait()),
+                asyncio.create_task(evt_async.wait()),
+            ),
+            return_when=asyncio.ALL_COMPLETED,
+        )
+        assert evt_sync.is_set()
+        assert evt_async.is_set()
 
-        await test_event.wait()
-        assert test_event.is_set()
+        await controller.del_event_handler('DISCONNECT', cb_async)
+        await controller.del_event_handler('DISCONNECT', cb_sync)
 
-        await controller.del_event_handler('DISCONNECT', callback)
+    async def test_cmd_add_event_handler_error(self, controller):
+        controller.error_on_set_events = True
+        with pytest.raises(ReplyStatusError, match='Triggered by PyTest.'):
+            await controller.add_event_handler('STATUS_CLIENT', lambda: None)
+        assert len(controller.event_handlers) == 0
+
+    async def test_cmd_del_event_handler_error(self, controller):
+        callback = lambda: None
+
+        await controller.add_event_handler('STATUS_CLIENT', callback)
+        assert len(controller.event_handlers) == 1
+
+        controller.error_on_set_events = True
+
+        with pytest.raises(ReplyStatusError, match='Triggered by PyTest.'):
+            await controller.del_event_handler('STATUS_CLIENT', callback)
+        assert len(controller.event_handlers) == 1
 
     async def test_cmd_subscribe_bad_event(self, controller):
         with pytest.raises(CommandError, match="Unknown event 'INVALID_EVENT'"):
-            await controller.add_event_handler('INVALID_EVENT', lambda x: None)
+            await controller.add_event_handler('INVALID_EVENT', lambda: None)
+
+    async def test_signal_bad_signal(self, controller):
+        with pytest.raises(CommandError, match="Unknown signal 'INVALID_SIGNAL'"):
+            await controller.signal('INVALID_SIGNAL')
+
+    async def test_bad_event_received(self, controller, caplog):
+        message = Message(status=250, header='HELLO WORLD')
+        with caplog.at_level(logging.ERROR, logger='aiostem'):
+            await controller.push_event_message(message)
+        assert 'Unable to handle a received event.' in caplog.text
+
+    @pytest.mark.timeout(2)
+    async def test_event_handler_with_error(self, controller, caplog):
+        """Check that we log and survive with a broken handler."""
+
+        def cb_sync(event, _):
+            event.set()
+            msg = 'Unexpected type XXX in YYY.'
+            raise TypeError(msg)
+
+        evt_sync = asyncio.Event()
+        callback = partial(cb_sync, evt_sync)
+        await controller.add_event_handler('DISCONNECT', callback)
+
+        with caplog.at_level(logging.ERROR, logger='aiostem'):
+            reply = await controller.quit()
+            reply.raise_for_status()
+            await evt_sync.wait()
+
+        assert evt_sync.is_set()
+        assert "Error while handling callback for 'DISCONNECT'" in caplog.text
+
+    async def test_del_non_existant_event_handler(self, controller):
+        assert len(controller.event_handlers) == 0
+        await controller.del_event_handler('DISCONNECT', lambda: None)
+        assert len(controller.event_handlers) == 0
 
     @pytest.mark.timeout(2)
     async def test_event_network(self, controller):
@@ -148,17 +252,16 @@ class TestController:
         callback = partial(on_network_event, future)
         await controller.add_event_handler('NETWORK_LIVENESS', callback)
 
-        message = Message('650 NETWORK_LIVENESS UP')
-        await controller.push_spurious_event(message)
+        message = Message(status=650, header='NETWORK_LIVENESS UP')
+        await controller.push_event_message(message)
 
         evt = await asyncio.ensure_future(future)
-        assert isinstance(evt, NetworkLivenessEvent)
-        assert evt.network_status == 'UP'
-        assert evt.is_connected is True
+        assert isinstance(evt, EventNetworkLiveness)
+        assert evt.status == 'UP'
 
     async def test_unknown_event(self):
-        evt = event_parser(Message('650 SPECIAL_EVENT'))
-        assert isinstance(evt, UnknownEvent)
+        evt = event_from_message(Message(status=650, header='SPECIAL_EVENT'))
+        assert isinstance(evt, EventUnknown)
 
     @pytest.mark.timeout(2)
     async def test_event_status_client(self, controller):
@@ -171,14 +274,17 @@ class TestController:
         callback = partial(on_status_event, future)
         await controller.add_event_handler('STATUS_CLIENT', callback)
 
-        message = Message('650 STATUS_CLIENT NOTICE BOOTSTRAP PROGRESS=100')
-        await controller.push_spurious_event(message)
+        message = Message(
+            header='STATUS_CLIENT NOTICE BOOTSTRAP TAG=done SUMMARY="Done" PROGRESS=100',
+            status=650,
+        )
+        await controller.push_event_message(message)
 
         evt = await asyncio.ensure_future(future)
-        assert isinstance(evt, StatusClientEvent)
+        assert isinstance(evt, EventStatusClient)
         assert evt.action == 'BOOTSTRAP'
         assert evt.severity == 'NOTICE'
-        assert evt.arguments['PROGRESS'] == '100'
+        assert evt.arguments.progress == 100
 
     @pytest.mark.timeout(2)
     async def test_event_signal(self, controller):
@@ -195,5 +301,5 @@ class TestController:
         assert res.status_text == 'OK'
 
         evt = await asyncio.ensure_future(future)
-        assert isinstance(evt, SignalEvent)
+        assert isinstance(evt, EventSignal)
         assert evt.signal == 'RELOAD'

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import secrets
 from abc import ABC, abstractmethod
 from base64 import b32encode, standard_b64encode
 from collections.abc import (
@@ -754,13 +755,23 @@ class CommandAuthChallenge(Command):
 
     NONCE_LENGTH: ClassVar[int] = 32
     command: ClassVar[CommandWord] = CommandWord.AUTHCHALLENGE
-    nonce: bytes | str
+    nonce: bytes | str | None
+
+    @classmethod
+    def generate_nonce(cls) -> bytes:
+        """Generate a nonce value."""
+        return secrets.token_bytes(cls.NONCE_LENGTH)
 
     def _serialize(self) -> CommandSerializer:
         """Append `AUTHCHALLENGE` specific arguments."""
+        # Generate a nonce while serializing as we need one!
+        if self.nonce is None:
+            self.nonce = self.generate_nonce()
+
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
         args.append(ArgumentString('SAFECOOKIE', safe=True))
+
         match self.nonce:
             case bytes():
                 args.append(ArgumentKeyword(None, self.nonce.hex(), quotes=QuoteStyle.NEVER))

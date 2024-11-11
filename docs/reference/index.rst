@@ -8,6 +8,5 @@ Code reference
 
    connector
    controller
-   events
    exceptions
    monitor

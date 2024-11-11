@@ -6,8 +6,13 @@ import dataclasses
 import pytest
 
 from aiostem import ControllerStatus, Monitor
-from aiostem.event import Event, NetworkLivenessEvent, StatusClientEvent, event_parser
-from aiostem.message import Message
+from aiostem.protocol import (
+    Event,
+    EventNetworkLiveness,
+    EventStatusClient,
+    Message,
+    event_from_message,
+)
 
 # All test coroutines will be treated as marked.
 pytestmark = pytest.mark.asyncio
@@ -19,10 +24,10 @@ class FakeMonitor(Monitor):
     event_until_ready = asyncio.Event()
     event_for_error = asyncio.Event()
 
-    async def on_ctrl_client_status(self, event: StatusClientEvent) -> None:
+    async def on_ctrl_client_status(self, event: EventStatusClient) -> None:
         await self._on_ctrl_client_status(event)
 
-    async def on_ctrl_liveness_status(self, event: NetworkLivenessEvent) -> None:
+    async def on_ctrl_liveness_status(self, event: EventNetworkLiveness) -> None:
         await self._on_ctrl_liveness_status(event)
 
     async def wait_until_ready(self) -> ControllerStatus:
@@ -35,7 +40,7 @@ class FakeMonitor(Monitor):
 
 
 def build_event(line: str) -> Event:
-    return event_parser(Message(line))
+    return event_from_message(Message(status=650, header=line))
 
 
 class TestMonitor:
@@ -61,9 +66,11 @@ class TestMonitor:
 
     @pytest.mark.timeout(5)
     async def test_monitor_keepalive_signal(self, controller):
+        controller.traces.add('signal')
+
         async with Monitor(controller, keepalive=True):
-            await controller.has_received_active.wait()
-            assert controller.last_signals == ['ACTIVE']
+            await controller.event_signal_active.wait()
+            assert 'ACTIVE' in controller.trace_signals
 
     @pytest.mark.timeout(5)
     async def test_monitor_events(self, controller):
@@ -71,20 +78,22 @@ class TestMonitor:
 
         # Check that we can properly handle PROGRESS messages sent by the controller.
         assert monitor.status.bootstrap == 0
-        event = build_event('650 STATUS_CLIENT NOTICE BOOTSTRAP PROGRESS=100')
-        assert isinstance(event, StatusClientEvent)
+        event = build_event(
+            'STATUS_CLIENT NOTICE BOOTSTRAP TAG=done SUMMARY="Done" PROGRESS=100',
+        )
+        assert isinstance(event, EventStatusClient)
         await monitor.on_ctrl_client_status(event)
         assert monitor.status.bootstrap == 100
 
         # Check that we can properly handle CIRCUIT_ESTABLISHED events.
         assert monitor.status.has_circuits is False
-        event = build_event('650 STATUS_CLIENT NOTICE CIRCUIT_ESTABLISHED')
+        event = build_event('STATUS_CLIENT NOTICE CIRCUIT_ESTABLISHED')
         await monitor.on_ctrl_client_status(event)
         assert monitor.status.has_circuits is True
 
         # Check that we can properly handle ENOUGH_DIR_INFO events.
         assert monitor.status.has_dir_info is False
-        event = build_event('650 STATUS_CLIENT NOTICE ENOUGH_DIR_INFO')
+        event = build_event('STATUS_CLIENT NOTICE ENOUGH_DIR_INFO')
         await monitor.on_ctrl_client_status(event)
         assert monitor.status.has_dir_info is True
 
@@ -94,24 +103,24 @@ class TestMonitor:
         assert status == monitor.status
 
         assert monitor.status.net_liveness is False
-        event = build_event('650 NETWORK_LIVENESS UP')
-        assert isinstance(event, NetworkLivenessEvent)
+        event = build_event('NETWORK_LIVENESS UP')
+        assert isinstance(event, EventNetworkLiveness)
         await monitor.on_ctrl_liveness_status(event)
         assert monitor.status.net_liveness is True
         assert monitor.is_healthy is True
 
-        event = build_event('650 STATUS_CLIENT NOTICE CIRCUIT_NOT_ESTABLISHED')
+        event = build_event('STATUS_CLIENT NOTICE CIRCUIT_NOT_ESTABLISHED REASON=CLOCK_JUMPED')
         await monitor.on_ctrl_client_status(event)
         assert monitor.status.has_circuits is False
         assert monitor.is_healthy is True
 
-        event = build_event('650 STATUS_CLIENT NOTICE NOT_ENOUGH_DIR_INFO')
+        event = build_event('STATUS_CLIENT NOTICE NOT_ENOUGH_DIR_INFO')
         await monitor.on_ctrl_client_status(event)
         assert monitor.status.has_dir_info is False
         assert monitor.is_healthy is False
 
         old_status = dataclasses.replace(monitor.status)
-        event = build_event('650 STATUS_CLIENT NOTICE NOT_A_VALID_ITEM')
+        event = build_event('STATUS_CLIENT NOTICE CONSENSUS_ARRIVED')
         await monitor.on_ctrl_client_status(event)
         assert monitor.status == old_status
 
@@ -126,8 +135,8 @@ class TestMonitor:
         await monitor.event_until_ready.wait()
         await asyncio.sleep(0.05)
 
-        event = build_event('650 NETWORK_LIVENESS UP')
-        assert isinstance(event, NetworkLivenessEvent)
+        event = build_event('NETWORK_LIVENESS UP')
+        assert isinstance(event, EventNetworkLiveness)
         await monitor.on_ctrl_liveness_status(event)
         status = await task
         assert status.healthcheck() is True, status
@@ -136,8 +145,8 @@ class TestMonitor:
         await monitor.event_for_error.wait()
         await asyncio.sleep(0.05)
 
-        event = build_event('650 NETWORK_LIVENESS DOWN')
-        assert isinstance(event, NetworkLivenessEvent)
+        event = build_event('NETWORK_LIVENESS DOWN')
+        assert isinstance(event, EventNetworkLiveness)
         await monitor.on_ctrl_liveness_status(event)
         status = await task
         assert status.healthcheck() is False, status

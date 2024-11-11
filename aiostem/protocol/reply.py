@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
+from functools import partial
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Self
 
 from pydantic import TypeAdapter
@@ -327,6 +329,21 @@ class ReplyResolve(_ReplySimple):
     """A reply for a `RESOLVE` command."""
 
 
+def _read_auth_cookie_file(path: str) -> bytes:
+    """
+    Read the provided cookie file, synchronously.
+
+    Args:
+        path: Path to the cookie file to read from.
+
+    Returns:
+        The file contents as bytes.
+
+    """
+    with open(path, 'rb') as fp:
+        return fp.read()
+
+
 @dataclass(kw_only=True, slots=True)
 class ReplyProtocolInfo(Reply):
     """A reply for a `PROTOCOLINFO` command."""
@@ -358,6 +375,25 @@ class ReplyProtocolInfo(Reply):
     protocol_version: int | None = None
     #: Version of Tor.
     tor_version: str | None = None
+
+    async def read_cookie_file(self) -> bytes:
+        """
+        Read the content of our the cookie file.
+
+        Raises:
+            FileNotFoundError: when there is no cookie file.
+
+        Returns:
+            The content of the cookie file.
+
+        """
+        if self.auth_cookie_file is None:
+            msg = 'No cookie file found in this reply.'
+            raise FileNotFoundError(msg)
+
+        loop = asyncio.get_running_loop()
+        func = partial(_read_auth_cookie_file, self.auth_cookie_file)
+        return await loop.run_in_executor(None, func)
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
@@ -406,6 +442,9 @@ class ReplyAuthChallenge(Reply):
         flags=ReplySyntaxFlag.KW_ENABLE,
     )
 
+    #: Not part of the real response, but very handy to have it here.
+    client_nonce: HexBytes | str | None = None
+
     server_hash: HexBytes | None = None
     server_nonce: HexBytes | None = None
 
@@ -423,7 +462,11 @@ class ReplyAuthChallenge(Reply):
 
         return cls.adapter().validate_python(result)
 
-    def build_client_hash(self, client_nonce: str | bytes, cookie: bytes) -> bytes:
+    def build_client_hash(
+        self,
+        cookie: bytes,
+        client_nonce: str | bytes | None = None,
+    ) -> bytes:
         """
         Build a token suitable for authentication.
 
@@ -435,8 +478,13 @@ class ReplyAuthChallenge(Reply):
             A value that you can authenticate with.
 
         """
+        client_nonce = client_nonce or self.client_nonce
+        if client_nonce is None:
+            msg = 'No client_nonce was found or provided.'
+            raise ReplyError(msg)
+
         if self.server_nonce is None:
-            msg = 'server_nonce is not set.'
+            msg = 'No server_nonce has been set.'
             raise ReplyError(msg)
 
         if isinstance(client_nonce, str):
@@ -444,7 +492,11 @@ class ReplyAuthChallenge(Reply):
         data = cookie + client_nonce + self.server_nonce
         return hmac.new(self.CLIENT_HASH_CONSTANT, data, hashlib.sha256).digest()
 
-    def build_server_hash(self, client_nonce: str | bytes, cookie: bytes) -> bytes:
+    def build_server_hash(
+        self,
+        cookie: bytes,
+        client_nonce: str | bytes | None = None,
+    ) -> bytes:
         """
         Recompute the server hash.
 
@@ -459,8 +511,13 @@ class ReplyAuthChallenge(Reply):
             The same value as in `server_hash` if everything went well.
 
         """
+        client_nonce = client_nonce or self.client_nonce
+        if client_nonce is None:
+            msg = 'No client_nonce was found or provided.'
+            raise ReplyError(msg)
+
         if self.server_nonce is None:
-            msg = 'server_nonce is not set.'
+            msg = 'No server_nonce has been set.'
             raise ReplyError(msg)
 
         if isinstance(client_nonce, str):
@@ -468,7 +525,11 @@ class ReplyAuthChallenge(Reply):
         data = cookie + client_nonce + self.server_nonce
         return hmac.new(self.SERVER_HASH_CONSTANT, data, hashlib.sha256).digest()
 
-    def raise_for_server_hash_error(self, client_nonce: str | bytes, cookie: bytes) -> None:
+    def raise_for_server_hash_error(
+        self,
+        cookie: bytes,
+        client_nonce: str | bytes | None = None,
+    ) -> None:
         """
         Check that our server hash is consistent with what we compute.
 
@@ -480,7 +541,7 @@ class ReplyAuthChallenge(Reply):
             ReplyError: when our server nonce does not match the one we computed.
 
         """
-        computed = self.build_server_hash(client_nonce, cookie)
+        computed = self.build_server_hash(cookie, client_nonce)
         if computed != self.server_hash:
             msg = 'Server hash provided by Tor is invalid.'
             raise ReplyError(msg)

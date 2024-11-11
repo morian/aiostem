@@ -333,7 +333,7 @@ class StatusClientBootstrap:
 class StatusClientCircuitNotEstablished:
     """Arguments for a `STATUS_CLIENT` event with action `CIRCUIT_NOT_ESTABLISHED`."""
 
-    reason: str
+    reason: Literal['CLOCK_JUMPED', 'DIR_ALL_UNREACHABLE', 'EXTERNAL_ADDRESS']
 
 
 @dataclass(kw_only=True, slots=True)

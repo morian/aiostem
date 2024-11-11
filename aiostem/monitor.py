@@ -7,10 +7,17 @@ from contextlib import AsyncExitStack, suppress
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar
 
-from .event import Event, NetworkLivenessEvent, StatusClientEvent
 from .exceptions import ControllerError, ReplyStatusError
-from .message import Message
-from .protocol import EventWord
+from .protocol import (
+    Event,
+    EventNetworkLiveness,
+    EventStatusClient,
+    EventWord,
+    Message,
+    Signal,
+    StatusActionClient,
+    StatusClientBootstrap,
+)
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -59,7 +66,7 @@ class ControllerStatus:
 class Monitor:
     """Monitor controller's status."""
 
-    DEFAULT_DORMANT_TIMEOUT: ClassVar[int] = 24 * 3600
+    DEFAULT_DORMANT_TIMEOUT: ClassVar[float] = 24 * 3600.0
 
     def __init__(
         self,
@@ -188,17 +195,19 @@ class Monitor:
         This is needed when the user does not plan on using the socks socket
         but still needs to send commands regularly through the control port.
         """
-        reply = await self._controller.get_conf('DormantClientTimeout')
-        try:
-            value = int(reply.values['DormantClientTimeout'])
-            logger.debug("Config 'DormantClientTimeout' is set to %d", value)
-        except (KeyError, ValueError):  # pragma: no cover
-            value = self.DEFAULT_DORMANT_TIMEOUT
+        dormant_timeout = self.DEFAULT_DORMANT_TIMEOUT
 
-        delay = 0.95 * value
+        reply = await self._controller.get_conf('DormantClientTimeout')
+        if reply.is_success:  # pragma: no branch
+            value = reply.values.get('DormantClientTimeout')
+            if isinstance(value, str):  # pragma: no branch
+                dormant_timeout = float(value)
+            logger.debug("Config 'DormantClientTimeout' is set to %d", value)
+
+        delay = 0.95 * dormant_timeout
         while True:
             logger.info("Sending the 'ACTIVE' signal to the controller")
-            await self._controller.signal('ACTIVE')
+            await self._controller.signal(Signal.ACTIVE)
             await asyncio.sleep(delay)
 
     async def _fetch_controller_status(self) -> bool:
@@ -209,33 +218,43 @@ class Monitor:
             Whether the underlying Tor daemon is healthy.
 
         """
-        info = await self._controller.get_info(
+        reply = await self._controller.get_info(
             'network-liveness',
             'status/bootstrap-phase',
             'status/circuit-established',
             'status/enough-dir-info',
         )
+        reply.raise_for_status()
+
+        values = {}  # type: dict[str, str]
+        for key, val in reply.values.items():
+            if isinstance(key, str) and isinstance(val, str):  # pragma: no branch
+                values[key] = val
+
         # Build a fake message to create an event-like object.
         # This avoids all the manual parsing of this thing...
-        message = Message('650 STATUS_CLIENT ' + info.values['status/bootstrap-phase'])
+        message = Message(
+            header='STATUS_CLIENT ' + values['status/bootstrap-phase'],
+            status=650,
+        )
 
-        self._status.bootstrap = int(StatusClientEvent(message).arguments['PROGRESS'])
-        self._status.has_circuits = bool(info.values['status/circuit-established'] == '1')
-        self._status.has_dir_info = bool(info.values['status/enough-dir-info'] == '1')
-        self._status.net_liveness = bool(info.values['network-liveness'] == 'up')
+        status = EventStatusClient.from_message(message)
+        if isinstance(status.arguments, StatusClientBootstrap):  # pragma: no cover
+            self._status.bootstrap = status.arguments.progress
+
+        self._status.has_circuits = bool(values['status/circuit-established'] == '1')
+        self._status.has_dir_info = bool(values['status/enough-dir-info'] == '1')
+        self._status.net_liveness = bool(values['network-liveness'] == 'up')
 
         return self.is_healthy
 
     async def _on_ctrl_liveness_status(self, event: Event) -> None:
         """Handle a `NETWORK_LIVENESS` event."""
-        if isinstance(event, NetworkLivenessEvent):  # pragma: no branch
-            statuses = {'UP': True, 'DOWN': False}
-            status = statuses.get(event.network_status)
-            if status is not None:  # pragma: no branch
-                async with self._condition:
-                    logger.debug('Network liveness: %s', event.network_status)
-                    self._status.net_liveness = status
-                    self._condition.notify_all()
+        if isinstance(event, EventNetworkLiveness):  # pragma: no branch
+            async with self._condition:
+                logger.debug('Network liveness: %s', event.status)
+                self._status.net_liveness = bool(event.status)
+                self._condition.notify_all()
 
     async def _on_ctrl_client_status(self, event: Event) -> None:
         """
@@ -244,21 +263,20 @@ class Monitor:
         Note that this is an event handler executed in the receive loop from the controller.
         You cannot perform new controller requests from here, use a queue or something else.
         """
-        if isinstance(event, StatusClientEvent):  # pragma: no branch
+        if isinstance(event, EventStatusClient):  # pragma: no branch
             async with self._condition:
                 match event.action:
-                    case 'BOOTSTRAP':
-                        progress = event.arguments.get('PROGRESS')
-                        if progress is not None:  # pragma: no branch
-                            with suppress(ValueError):
-                                self._status.bootstrap = int(progress)
-                    case 'CIRCUIT_ESTABLISHED':
+                    case StatusActionClient.BOOTSTRAP:
+                        args = event.arguments
+                        if isinstance(args, StatusClientBootstrap):  # pragma: no cover
+                            self._status.bootstrap = args.progress
+                    case StatusActionClient.CIRCUIT_ESTABLISHED:
                         self._status.has_circuits = True
-                    case 'CIRCUIT_NOT_ESTABLISHED':
+                    case StatusActionClient.CIRCUIT_NOT_ESTABLISHED:
                         self._status.has_circuits = False
-                    case 'ENOUGH_DIR_INFO':
+                    case StatusActionClient.ENOUGH_DIR_INFO:
                         self._status.has_dir_info = True
-                    case 'NOT_ENOUGH_DIR_INFO':
+                    case StatusActionClient.NOT_ENOUGH_DIR_INFO:
                         self._status.has_dir_info = False
                     case _:
                         # We are not not interested in other events.
