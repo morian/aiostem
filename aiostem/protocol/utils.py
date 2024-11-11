@@ -347,14 +347,37 @@ class StringSequence:
         return value
 
 
-class TimedeltaSecondsTransformer:
-    """Post-validator that gets a timdelta from an int or float."""
+class LogSeverityTransformer:
+    """Pre-validator for strings to build a valid `LogSeverity`."""
 
     def __get_pydantic_core_schema__(
         self,
         source: type[Any],
         handler: GetCoreSchemaHandler,
-    ) -> core_schema.CoreSchema:
+    ) -> CoreSchema:
+        """Set a custom validator used to transform the input string."""
+        return core_schema.no_info_before_validator_function(
+            self.parse_value,
+            handler(source),
+        )
+
+    def parse_value(self, value: Any) -> Any:
+        """Parse the input value, split it when it is a string."""
+        if isinstance(value, str):  # pragma: no branch
+            value = value.upper()
+            if value == 'ERR':
+                value = 'ERROR'
+        return value
+
+
+class TimedeltaTransformer:
+    """Pre-validator that gets a timdelta from an int or float."""
+
+    def __get_pydantic_core_schema__(
+        self,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
         """Set a custom validator used to transform seconds in a timedelta."""
         if not issubclass(source, timedelta):
             msg = f"source type is not a timedelta, got '{source.__name__}'"
@@ -377,4 +400,4 @@ class TimedeltaSecondsTransformer:
 HexBytes = Annotated[bytes, EncodedBytes(encoder=HexEncoder)]
 Base32Bytes = Annotated[bytes, EncodedBytes(encoder=Base32Encoder)]
 Base64Bytes = Annotated[bytes, EncodedBytes(encoder=Base64Encoder)]
-TimedeltaSeconds = Annotated[timedelta, TimedeltaSecondsTransformer()]
+TimedeltaSeconds = Annotated[timedelta, TimedeltaTransformer()]

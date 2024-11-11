@@ -116,7 +116,7 @@ class TestEvents:
         message = await create_message(lines)
         event = event_from_message(message)
         assert event.message == 'THIS IS A WARNING\n> BE WARNED!'
-        assert event.severity == LogSeverity.WARN
+        assert event.severity == LogSeverity.WARNING
 
     async def test_network_liveness(self):
         line = '650 NETWORK_LIVENESS UP'
@@ -134,7 +134,7 @@ class TestEvents:
         assert int(event.arguments.time.total_seconds()) == 120
 
     async def test_status_general_dir_all_unreachable(self):
-        line = '650 STATUS_GENERAL NOTICE DIR_ALL_UNREACHABLE'
+        line = '650 STATUS_GENERAL ERR DIR_ALL_UNREACHABLE'
         message = await create_message([line])
         event = event_from_message(message)
         assert event.action == StatusActionGeneral.DIR_ALL_UNREACHABLE
@@ -170,6 +170,29 @@ class TestEvents:
         message = await create_message([line])
         event = event_from_message(message)
         assert event.arguments.hostname == 'google.exit'
+
+    async def test_status_pt_log(self):
+        line = (
+            '650 PT_LOG PT=/usr/bin/obs4proxy SEVERITY=debug '
+            'MESSAGE="Connected to bridge A"'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.program == '/usr/bin/obs4proxy'
+        assert event.severity == LogSeverity.DEBUG
+        assert event.message == 'Connected to bridge A'
+
+    async def test_status_pt_status(self):
+        line = (
+            '650 PT_STATUS PT=/usr/bin/obs4proxy TRANSPORT=obfs4 '
+            'ADDRESS=198.51.100.123:1234 CONNECT=Success'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.program == '/usr/bin/obs4proxy'
+        assert event.transport == 'obfs4'
+        assert event.values['ADDRESS'] == '198.51.100.123:1234'
+        assert event.values['CONNECT'] == 'Success'
 
     async def test_signal(self):
         line = '650 SIGNAL RELOAD'

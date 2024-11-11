@@ -119,8 +119,8 @@ class LogSeverity(StrEnum):
     DEBUG = 'DEBUG'
     INFO = 'INFO'
     NOTICE = 'NOTICE'
-    WARN = 'WARN'
-    ERR = 'ERR'
+    WARNING = 'WARN'
+    ERROR = 'ERROR'
 
 
 class NetworkLivenessStatus(StrEnum):
@@ -486,11 +486,3 @@ class StatusServerHibernationStatus:
     """Arguments for a `STATUS_SERVER` event with action `HIBERNATION_STATUS`."""
 
     status: Literal['AWAKE', 'SOFT', 'HARD']
-
-
-class StatusSeverity(StrEnum):
-    """Possible severities for all status events."""
-
-    NOTICE = 'NOTICE'
-    WARN = 'WARN'
-    ERR = 'ERR'

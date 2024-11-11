@@ -12,6 +12,7 @@ from aiostem.protocol import (
     ArgumentString,
     AuthMethod,
     CommandWord,
+    LogSeverity,
     QuoteStyle,
 )
 from aiostem.protocol.utils import (
@@ -22,9 +23,10 @@ from aiostem.protocol.utils import (
     CommandSerializer,
     EncodedBytes,
     HexBytes,
+    LogSeverityTransformer,
     StringSequence,
     TimedeltaSeconds,
-    TimedeltaSecondsTransformer,
+    TimedeltaTransformer,
 )
 
 if TYPE_CHECKING:
@@ -282,6 +284,23 @@ class TestStringSequence:
             TypeAdapter(type_)
 
 
+class TestLogSeverity:
+    @pytest.mark.parametrize(
+        'entry',
+        [
+            LogSeverity.ERROR,
+            'ERR',
+            'ERROR',
+            'Error',
+            'err',
+        ],
+    )
+    def test_with_multiple_values(self, entry: Any):
+        adapter = TypeAdapter(Annotated[LogSeverity, LogSeverityTransformer()])
+        value = adapter.validate_python(entry)
+        assert value == LogSeverity.ERROR
+
+
 class TestTimedeltaSeconds:
     @pytest.mark.parametrize(
         'entry',
@@ -299,8 +318,8 @@ class TestTimedeltaSeconds:
     @pytest.mark.parametrize(
         'type_',
         [
-            Annotated[int, TimedeltaSecondsTransformer()],
-            Annotated[bytes, TimedeltaSecondsTransformer()],
+            Annotated[int, TimedeltaTransformer()],
+            Annotated[bytes, TimedeltaTransformer()],
         ],
     )
     def test_with_error(self, type_):

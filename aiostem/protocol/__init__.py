@@ -49,6 +49,8 @@ from .event import (
     EventLogNotice,
     EventLogWarn,
     EventNetworkLiveness,
+    EventPtLog,
+    EventPtStatus,
     EventSignal,
     EventUnknown,
     EventWord,
@@ -132,7 +134,6 @@ from .structures import (
     StatusServerNameserverStatus,
     StatusServerReachabilityFailed,
     StatusServerReachabilitySucceeded,
-    StatusSeverity,
 )
 
 __all__ = [
@@ -188,6 +189,8 @@ __all__ = [
     'EventLogWarn',
     'EventLogErr',
     'EventNetworkLiveness',
+    'EventPtLog',
+    'EventPtStatus',
     'EventSignal',
     'EventUnknown',
     'EventWord',
@@ -264,7 +267,6 @@ __all__ = [
     'StatusServerNameserverStatus',
     'StatusServerReachabilityFailed',
     'StatusServerReachabilitySucceeded',
-    'StatusSeverity',
     'QuoteStyle',
     'Signal',
     'messages_from_stream',

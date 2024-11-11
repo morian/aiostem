@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Annotated, Any, ClassVar, Literal, Self, Union
 
@@ -39,10 +39,9 @@ from .structures import (
     StatusServerNameserverStatus,
     StatusServerReachabilityFailed,
     StatusServerReachabilitySucceeded,
-    StatusSeverity,
 )
 from .syntax import ReplySyntax, ReplySyntaxFlag
-from .utils import Base32Bytes, Base64Bytes, HexBytes
+from .utils import Base32Bytes, Base64Bytes, HexBytes, LogSeverityTransformer
 
 logger = logging.getLogger(__package__)
 
@@ -269,7 +268,7 @@ class EventLog(Event):
         flags=ReplySyntaxFlag.POS_REMAIN,
     )
 
-    severity: LogSeverity
+    severity: Annotated[LogSeverity, LogSeverityTransformer()]
     message: str
 
     @classmethod
@@ -321,6 +320,16 @@ class EventLogErr(EventLog):
 
 
 def _discriminate_status_by_action(v: Any) -> str:
+    """
+    Discriminate a `STATUS_*` event by its actions.
+
+    Args:
+        v: The raw value to serialize/deserialize the event.
+
+    Returns:
+        The tag correspoding to the structure to parse in the `arguments` union.
+
+    """
     match v:
         case Mapping():
             return v['action']
@@ -341,7 +350,10 @@ class EventStatus(Event):
     )
     SUBSYNTAXES: ClassVar[Mapping[str, ReplySyntax | None]]
 
-    severity: StatusSeverity
+    severity: Annotated[
+        Literal[LogSeverity.NOTICE, LogSeverity.WARNING, LogSeverity.ERROR],
+        LogSeverityTransformer(),
+    ]
     action: StrEnum
 
     @classmethod
@@ -559,6 +571,63 @@ class EventStatusServer(EventStatus):
 
 
 @dataclass(kw_only=True, slots=True)
+class EventPtLog(Event):
+    """Structure for a `PT_LOG` event."""
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=1,
+        args_map=(None,),
+        kwargs_map={
+            'PT': 'program',
+            'MESSAGE': 'message',
+            'SEVERITY': 'severity',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED | ReplySyntaxFlag.KW_EXTRA,
+    )
+    TYPE = EventWord.PT_LOG
+
+    program: str
+    message: str
+    severity: Annotated[LogSeverity, LogSeverityTransformer()]
+
+    @classmethod
+    def from_message(cls, message: Message) -> Self:
+        """Build an event dataclass from a received message."""
+        result = cls.SYNTAX.parse(message)
+        return cls.adapter().validate_python(result)
+
+
+@dataclass(kw_only=True, slots=True)
+class EventPtStatus(Event):
+    """Structure for a `PT_STATUS` event."""
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=1,
+        args_map=(None,),
+        kwargs_map={
+            'TRANSPORT': 'transport',
+            'PT': 'program',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED | ReplySyntaxFlag.KW_EXTRA,
+    )
+    TYPE = EventWord.PT_STATUS
+
+    values: Mapping[str, str] = field(default_factory=dict)
+    transport: str
+    program: str
+
+    @classmethod
+    def from_message(cls, message: Message) -> Self:
+        """Build an event dataclass from a received message."""
+        extract = dict(cls.SYNTAX.parse(message))
+        result: dict[str, Any] = {
+            key: extract.pop(key, None) for key in ('program', 'transport')
+        }
+        result['values'] = extract
+        return cls.adapter().validate_python(result)
+
+
+@dataclass(kw_only=True, slots=True)
 class EventUnknown(Event):
     """Structure for an unknown event."""
 
@@ -587,6 +656,8 @@ _EVENT_MAP = {
     'STATUS_GENERAL': EventStatusGeneral,
     'STATUS_CLIENT': EventStatusClient,
     'STATUS_SERVER': EventStatusServer,
+    'PT_LOG': EventPtLog,
+    'PT_STATUS': EventPtStatus,
 }  # type: Mapping[str, type[Event]]
 
 
