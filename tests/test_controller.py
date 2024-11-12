@@ -27,6 +27,7 @@ pytestmark = pytest.mark.asyncio
 def tmp_cookie_data():
     return secrets.token_bytes(32)
 
+
 @pytest.fixture
 def tmp_cookie_path(tmp_path, tmp_cookie_data):
     cookie_path = tmp_path / 'cookiefile'

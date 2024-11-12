@@ -29,6 +29,8 @@ if TYPE_CHECKING:
 
 
 class CustomController(Controller):
+    """A controller finely tuned for tests."""
+
     def __init__(self, connector) -> None:
         super().__init__(connector)
         self.auth_cookie_data = None
