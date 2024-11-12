@@ -51,8 +51,8 @@ class ReplyStatusError(ReplyError):
         Create a new :class:`ReplyStatusError`.
 
         Args:
-            message: the original message received from Tor if possible
-            code: the status code associated with this message
+            message: The original message received from Tor if possible.
+            code: The status code associated with this message.
 
         """
         super().__init__(message)

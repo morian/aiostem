@@ -17,13 +17,24 @@ if TYPE_CHECKING:
     )
 
     from aiostem.controller import EventCallbackType
-    from aiostem.protocol import Command, EventWord, Message, ReplySetEvents, ReplySignal
+    from aiostem.protocol import (
+        Command,
+        EventWord,
+        Message,
+        ReplyAuthChallenge,
+        ReplyProtocolInfo,
+        ReplySetEvents,
+        ReplySignal,
+    )
 
 
 class CustomController(Controller):
     def __init__(self, connector) -> None:
         super().__init__(connector)
+        self.auth_cookie_data = None
+        self.auth_cookie_file = None
         self.error_on_set_events = False
+        self.enabled_auth_methods = set()
         self.traces = set()
         self.event_signal_active = asyncio.Event()
         self.trace_commands = []
@@ -34,6 +45,22 @@ class CustomController(Controller):
     def event_handlers(self) -> Mapping[str, Sequence[EventCallbackType]]:
         """Direct acccess to the event handlers."""
         return self._evt_callbacks
+
+    async def protocol_info(self, version: int | None = None) -> ReplyProtocolInfo:
+        """Filter out some auth_methods when asked to."""
+        reply = await super().protocol_info(version)
+        if self.enabled_auth_methods:
+            reply.auth_methods = self.enabled_auth_methods
+        if self.auth_cookie_file is not None:
+            reply.auth_cookie_file = self.auth_cookie_file
+        return reply
+
+    async def auth_challenge(self, nonce: bytes | str | None = None) -> ReplyAuthChallenge:
+        """Fix the auth challenge a little bit when needed."""
+        reply = await super().auth_challenge(nonce)
+        if self.auth_cookie_data is not None:
+            reply.server_hash = reply.build_server_hash(self.auth_cookie_data)
+        return reply
 
     async def push_event_message(self, message: Message) -> None:
         """Push a spurious event for test purposes."""

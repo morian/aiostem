@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import secrets
 from functools import partial
 
 import pytest
@@ -20,6 +21,18 @@ from aiostem.protocol import (
 
 # All test coroutines will be treated as marked for asyncio.
 pytestmark = pytest.mark.asyncio
+
+
+@pytest.fixture
+def tmp_cookie_data():
+    return secrets.token_bytes(32)
+
+@pytest.fixture
+def tmp_cookie_path(tmp_path, tmp_cookie_data):
+    cookie_path = tmp_path / 'cookiefile'
+    with open(cookie_path, 'wb') as fp:
+        fp.write(tmp_cookie_data)
+    return cookie_path
 
 
 class TestController:
@@ -67,6 +80,40 @@ class TestController:
         res1 = await controller_unauth.protocol_info()
         res2 = await controller_unauth.protocol_info()
         assert res1 == res2
+
+    async def test_authenticate_with_null(self, controller_unauth):
+        controller_unauth.enabled_auth_methods = {'NULL'}
+        reply = await controller_unauth.authenticate()
+        assert reply.is_error is True
+
+    async def test_authenticate_with_safecookie(
+        self,
+        controller_unauth,
+        tmp_cookie_data,
+        tmp_cookie_path,
+    ) -> None:
+        controller_unauth.enabled_auth_methods = {'SAFECOOKIE'}
+        controller_unauth.auth_cookie_data = tmp_cookie_data
+        controller_unauth.auth_cookie_file = tmp_cookie_path
+        reply = await controller_unauth.authenticate()
+        assert reply.is_error is True
+
+    async def test_authenticate_with_cookie(
+        self,
+        controller_unauth,
+        tmp_cookie_data,
+        tmp_cookie_path,
+    ):
+        controller_unauth.enabled_auth_methods = {'COOKIE'}
+        controller_unauth.auth_cookie_data = tmp_cookie_data
+        controller_unauth.auth_cookie_file = tmp_cookie_path
+        reply = await controller_unauth.authenticate()
+        assert reply.is_error is True
+
+    async def test_authenticate_with_unknown_auth(self, controller_unauth):
+        controller_unauth.enabled_auth_methods = {'UNKNOWN'}
+        with pytest.raises(ControllerError, match='No compatible authentication method found'):
+            await controller_unauth.authenticate()
 
     async def test_authenticate_no_password(self, controller_unauth):
         with pytest.raises(FileNotFoundError, match='No such file'):

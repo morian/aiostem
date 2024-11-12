@@ -11,9 +11,15 @@ The format is based on `Keep a Changelog`_ and this project adheres to `Semantic
 1.0.0 (UNRELEASED)
 ==================
 
+This is a major rework of this library as the whole underlying implementation has changed.
+All internal structures and protocol implementation were moved to `aiostem.protocol` and
+were re-implemented, using pydantic_ for type conversion and data validation.
+
+This refactoring breaks all previous APIs although the `Controller` stays quite familiar.
+
 Added
 -----
-- Added a premilinary sphinx documentation
+- Added a preliminary sphinx documentation
 - Added support for Python 3.13
 - Many docstrings for all common APIs
 
@@ -24,9 +30,14 @@ Changed
 
 Removed
 -------
+- Dependency on aiofiles_ and stem_ were removed after refactoring
 - The whole extra part of this library, including the `aiostem-hsscan` part
 - Debian and ubuntu packages are no longer available
 - Dropped support for python 3.10 and lower
+
+.. _aiofiles: https://pypi.org/project/aiofiles/
+.. _pydantic: https://pypi.org/project/pydantic/
+.. _stem: https://stem.torproject.org/
 
 
 0.3.1 (2024-02-04)
@@ -34,12 +45,12 @@ Removed
 
 Fixed
 -----
-- Fix request hanging aftrer Controller disconnect
+- Fix request hanging after Controller disconnects
 
 Updated
 -------
 - Use an `AsyncExitStack` to handle the context manager
-- Be more strict in coding style thanks to ruff's strictness
+- Be more strict in coding style thanks to ruff_'s strictness
 
 
 0.3.0 (2024-01-28)
@@ -64,14 +75,14 @@ Removed
 
 Updated
 -------
-- hsscan now set tor controller as active before running scans
+- `hsscan` now set tor controller as active before running scans
 - Message can now take one or multiple lines as argument
 - Python tasks now have names and cancel reasons
 - Greatly improve tests and code coverage
 
 Removed
 -------
-- Remove EXTENDED flag on SETEVENTS (deprecated by Tor)
+- Removed the EXTENDED flag on `SETEVENTS` (deprecated by Tor)
 
 
 0.2.9 (2023-10-08)
@@ -88,7 +99,9 @@ Fixed
 
 Updated
 -------
-- Use `ruff` as a linter!
+- Use ruff_ as a linter!
+
+.. _ruff: https://docs.astral.sh/ruff/
 
 
 0.2.8 (2022-11-20)

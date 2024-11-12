@@ -30,4 +30,8 @@ Reply exceptions
 ----------------
 
 .. autoexception:: ReplyStatusError
+
+   .. automethod:: __init__
+   .. autoproperty:: code
+
 .. autoexception:: ReplySyntaxError

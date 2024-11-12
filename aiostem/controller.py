@@ -412,10 +412,9 @@ class Controller:
             token = password.encode()  # type: ignore[union-attr]
         elif 'SAFECOOKIE' in methods:
             cookie = await protoinfo.read_cookie_file()
-            if cookie is not None:
-                challenge = await self.auth_challenge()
-                challenge.raise_for_server_hash_error(cookie)
-                token = challenge.build_client_hash(cookie)
+            challenge = await self.auth_challenge()
+            challenge.raise_for_server_hash_error(cookie)
+            token = challenge.build_client_hash(cookie)
         elif 'COOKIE' in methods:
             token = await protoinfo.read_cookie_file()
         else:
