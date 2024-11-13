@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 
 DEFAULT_CONTROL_PATH: str = '/var/run/tor/control'
 DEFAULT_CONTROL_HOST: str = '127.0.0.1'
 DEFAULT_CONTROL_PORT: int = 9051
 
 
-class ControlConnector:
+class ControlConnector(ABC):
     """
     Base class for all connector types used by the controller.
 
@@ -24,7 +24,7 @@ class ControlConnector:
         Open an asynchronous connection to the target control port.
 
         Returns:
-            A tuple of :class:`asyncio.StreamReader` and :class:`asyncio.StreamWriter`.
+            A tuple forming a full-duplex asyncio stream.
 
         """
 
@@ -40,8 +40,11 @@ class ControlConnectorPort(ControlConnector):
         """
         Create a controller connector using a TCP host and port.
 
+        Hint:
+            Use :meth:`.Controller.from_port` for an automated use of this class.
+
         Args:
-            host: ip address or hostname to the control host
+            host: Ip address or hostname to the control host
             port: TCP port to connect to
 
         """
@@ -63,7 +66,7 @@ class ControlConnectorPort(ControlConnector):
         Open an asynchronous connection to the target's TCP port.
 
         Returns:
-            A tuple of :class:`asyncio.StreamReader` and :class:`asyncio.StreamWriter`.
+            A tuple forming a full-duplex asyncio stream.
 
         """
         return await asyncio.open_connection(self.host, self.port)
@@ -76,8 +79,11 @@ class ControlConnectorPath(ControlConnector):
         """
         Create a controller connector using a local unix socket.
 
+        Hint:
+            Use :meth:`.Controller.from_path` for an automated use of this class.
+
         Args:
-            path: path to the unix socket on the local filesystem
+            path: Path to the unix socket on the local filesystem
 
         """
         self._path = path
@@ -92,7 +98,7 @@ class ControlConnectorPath(ControlConnector):
         Open an asynchronous connection to the target unix socket.
 
         Returns:
-            A tuple of :class:`asyncio.StreamReader` and :class:`asyncio.StreamWriter`.
+            A tuple forming a full-duplex asyncio stream.
 
         """
         return await asyncio.open_unix_connection(self.path)

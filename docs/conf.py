@@ -66,6 +66,7 @@ typehints_use_rtype = False
 
 # InterSphinx
 intersphinx_mapping = {
+    'pydantic': ('https://docs.pydantic.dev/2.9', None),
     'python': ('https://docs.python.org/3', None),
 }
 

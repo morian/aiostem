@@ -7,4 +7,7 @@ All other things you ever wanted to know about this project.
    :titlesonly:
 
    changelog
+   contributing
+   dependencies
    license
+   protocol

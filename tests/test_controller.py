@@ -8,7 +8,7 @@ from functools import partial
 import pytest
 
 from aiostem import Controller
-from aiostem.exceptions import CommandError, ControllerError, ProtocolError, ReplyStatusError
+from aiostem.exceptions import CommandError, ControllerError, ReplyError, ReplyStatusError
 from aiostem.protocol import (
     CommandHsFetch,
     EventNetworkLiveness,
@@ -123,7 +123,7 @@ class TestController:
     @pytest.mark.timeout(2)
     async def test_cmd_auth_challenge(self, controller_unauth):
         res = await controller_unauth.auth_challenge(b'NOT A TOKEN')
-        with pytest.raises(ProtocolError, match='Server hash provided by Tor is invalid.'):
+        with pytest.raises(ReplyError, match='Server hash provided by Tor is invalid.'):
             res.raise_for_server_hash_error(b'THIS IS A COOKIE')
 
         token = res.build_client_hash(b'THIS IS A COOKIE')

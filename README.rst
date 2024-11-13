@@ -1,78 +1,49 @@
 AioStem
 =======
 
-Asynchronous Tor controller library for asyncio and Python.
+``aiostem`` is an `asyncio`_ python library that provides a controller to connect
+and interact with the Tor control port. It therefore acts as an alternative to the
+community-maintained `stem`_ controller.
 
-
-What is this all about?
------------------------
-
-`Aiostem` is a python library that aims to provide an asynchronous control library
-for Tor. This goal is already fulfilled by `stem`_, maintained by the Tor community.
-`Stem` is not meant to be used in asynchronous python, and the un-released patches
-does not seem to really implement the protocol in an asynchronous fashion.
-
+.. _asyncio: https://docs.python.org/3/library/asyncio.html
 .. _stem: https://stem.torproject.org/
 
+
+Why should we have another library?
+-----------------------------------
+
+``Stem`` is not meant to be used in asynchronous python and the (today) unreleased patches
+does not seem to really implement the core protocol in an asynchronous fashion.
 Instead it seems to communicate with a synchronous instance spawned in another thread.
-The initial goal of this library is to offer a better support for the streaming of events,
-that can be generated while fetching hidden service descriptors for example.
 
-`Stem` was not meant to support huge massive and concurrent event streaming and fails
-miserably at this game.
+The initial goal of ``aiostem`` is to offer better support for events, as there can be many
+of them coming at a high rate. Moreover, I feel like `stem`_ has become too complex and
+too bloated with legacy support, while Tor ``v0.4.x`` is out for many years now.
 
-`Aiostem` currently offers the following features:
-   * A controller similar to the one used by `stem`_, with support for all authentication methods
-   * Subscribe or un-subscribe to events (using async callbacks)
-   * Gathering protocol information
-   * Sending signals to the daemon
-   * Exiting the controller
+This is also why this library can only connect to ``Tor v0.4.5`` and later.
 
-On the event side, the following ones are parsed in dedicated structures:
-   * `HS_DESC`, `HS_DESC_CONTENT` used to gather hidden service descriptors
-   * `NETWORK_LIVENESS` to be notified when the network goes down
-   * `SIGNAL` to be notified when a signal has been processed
-   * `STATUS_GENERAL`, `STATUS_CLIENT`, `STATUS_SERVER` for miscellaneous status information
 
-Additionally, a helper is provided to allow for fast hidden service descriptor fetching in
-package `aiostem.extra`. An example application is provided in `aiostem-hsscan`.
+Current development status
+--------------------------
 
-Do note that for convenience, this package uses `stem`_ to parse descriptors.
-This is already something that cannot block, which means there is little interest to reinvent
-what already exists (and this is not the funny part, trust me).
-
-On compatibility, just ensure you have a recent version of Tor (something like 0.4.1 or greater).
+All commands and replies were implemented from the protocol point of view, but only a few
+events are currently parsed appropriately. There is still work in progress on this side.
 
 
 Installation
 ------------
 
-Aiostem was tested successfully from Python 3.9 to Python 3.13.
+This package requires Python ≥ 3.11 and pulls a few other packages as dependencies.
 
-The best way to install it is by creating a dedicated `venv` using the `venv` package from python.
-Note that this might require the installation of distribution specific packages such as
-`python3-venv` and `python3-pip`.
-
-First create the target `venv` and source the environment:
-.. code-block:: console
-
-   python3 -m venv venv
-   source venv/bin/activate
-
-Then you can install Aiostem inside the environment from the wheel package, source distribution
-or from sources using `setup.py` (provided):
+To install the latest version use the following command:
 
 .. code-block:: console
 
-   python -m pip install dist/aiostem-*.whl
-
-.. code-block:: console
-
-   python -m pip install .
+   python -m pip install aiostem
 
 
-Getting started
----------------
+Use example
+-----------
 
 This simple example shows how to use the controller in asynchronous python.
 No extra thread is involved here, everything runs in the event loop.
@@ -95,7 +66,7 @@ No extra thread is involved here, everything runs in the event loop.
            # Be notified when hidden service descriptor content is available.
            await controller.add_event_handler('HS_DESC_CONTENT', on_hs_desc_content)
 
-           # Request a new identity (flush lots of caches).
+           # Request a new identity from the controller (this flushes caches).
            await controller.signal('NEWNYM')
 
            # Perform a descriptor request for this onion domain.
