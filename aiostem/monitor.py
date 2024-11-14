@@ -48,7 +48,8 @@ class ControllerStatus:
     #: Whether Tor has a working network.
     net_liveness: bool = False
 
-    def healthcheck(self) -> bool:
+    @property
+    def is_healthy(self) -> bool:
         """
         Tell whether we are healthy enough to run workers.
 
@@ -81,7 +82,7 @@ class Monitor:
             controller: a controller connected to Tor's daemon
 
         Keyword Args:
-            keepalive: whether we should run a task to keep Tor in `ACTIVE` mode.
+            keepalive: whether we should run a task to keep Tor in ``ACTIVE`` mode.
 
         """
         self._context = None  # type: AsyncExitStack | None
@@ -95,7 +96,7 @@ class Monitor:
         Start the controller's monitoring.
 
         This subscribes to relevant events from the controller and optionally starts
-        the keep-alive task used to ensure that Tor always stay `ACTIVE`. This later
+        the keep-alive task used to ensure that Tor always stay ``ACTIVE``. This later
         part is important if you don't plan on using the socks port but will only
         use the control port.
 
@@ -288,42 +289,74 @@ class Monitor:
                 self._condition.notify_all()
 
     @property
+    def condition(self) -> Condition:
+        """
+        Get the underlying asyncio condition.
+
+        This condition is triggered when any update has been received, which does
+        not guarantee that the global health status has changed.
+
+        USE EXAMPLE::
+
+           async with monitor.condition:
+               await monitor.condition.wait_for(monitor.is_healthy)
+               print('Monitor is now healthy.')
+
+        """
+        return self._condition
+
+    @property
     def is_entered(self) -> bool:
         """Tell whether the monitor context is currently entered."""
         return bool(self._context is not None)
 
     @property
     def is_healthy(self) -> bool:
-        """Tell whether the underlying controller is healthy."""
-        return self._status.healthcheck()
+        """
+        Tell whether the underlying controller is healthy.
+
+        This is a shorthand for ``monitor.status.is_healthy``.
+
+        """
+        return self._status.is_healthy
 
     @property
     def status(self) -> ControllerStatus:
-        """Get the current controller status."""
+        """
+        Get the current controller status.
+
+        Note that this status is no a copy but a reference to the internal status.
+        Any change on its field values have consequences on the Monitor's view.
+
+        """
         return self._status
 
     async def wait_for_error(self) -> ControllerStatus:
         """
         Wait until the controller stops being healthy.
 
+        This method can be implemented using :attr:`condition`, :attr:`is_healthy` and
+        :attr:`status`.
+
         Returns:
             The current controller's status.
 
         """
         async with self._condition:
-            while self._status.healthcheck():
-                await self._condition.wait()
+            await self._condition.wait_for(lambda: not self._status.is_healthy)
         return self._status
 
-    async def wait_until_ready(self) -> ControllerStatus:
+    async def wait_until_healthy(self) -> ControllerStatus:
         """
         Wait until the controller is ready and healthy.
 
+        This method can be implemented using :attr:`condition`, :attr:`is_healthy` and
+        :attr:`status`.
+
         Returns:
             The current controller's status.
 
         """
         async with self._condition:
-            while not self._status.healthcheck():
-                await self._condition.wait()
+            await self._condition.wait_for(lambda: self._status.is_healthy)
         return self._status

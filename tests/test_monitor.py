@@ -21,7 +21,7 @@ pytestmark = pytest.mark.asyncio
 class FakeMonitor(Monitor):
     """Provide a direct access to internal methods to make mypy happy."""
 
-    event_until_ready = asyncio.Event()
+    event_until_healthy = asyncio.Event()
     event_for_error = asyncio.Event()
 
     async def on_ctrl_client_status(self, event: EventStatusClient) -> None:
@@ -30,9 +30,9 @@ class FakeMonitor(Monitor):
     async def on_ctrl_liveness_status(self, event: EventNetworkLiveness) -> None:
         await self._on_ctrl_liveness_status(event)
 
-    async def wait_until_ready(self) -> ControllerStatus:
-        self.event_until_ready.set()
-        return await super().wait_until_ready()
+    async def wait_until_healthy(self) -> ControllerStatus:
+        self.event_until_healthy.set()
+        return await super().wait_until_healthy()
 
     async def wait_for_error(self) -> ControllerStatus:
         self.event_for_error.set()
@@ -52,7 +52,7 @@ class TestMonitor:
 
         status = await monitor.wait_for_error()
         assert isinstance(status, ControllerStatus), type(status)
-        assert status.healthcheck() is False
+        assert status.is_healthy is False
         assert status == monitor.status
 
         await monitor.__aexit__(None, None, None)
@@ -99,8 +99,9 @@ class TestMonitor:
 
         # We now have enough to tell that we are in a healthy state.
         assert monitor.is_healthy is True
-        status = await monitor.wait_until_ready()
-        assert status == monitor.status
+        async with monitor.condition:
+            await monitor.condition.wait_for(lambda: monitor.is_healthy)
+        assert monitor.status.is_healthy is True
 
         assert monitor.status.net_liveness is False
         event = build_event('NETWORK_LIVENESS UP')
@@ -131,15 +132,15 @@ class TestMonitor:
         monitor.status.has_dir_info = True
 
         assert monitor.is_healthy is False
-        task = asyncio.create_task(monitor.wait_until_ready())
-        await monitor.event_until_ready.wait()
+        task = asyncio.create_task(monitor.wait_until_healthy())
+        await monitor.event_until_healthy.wait()
         await asyncio.sleep(0.05)
 
         event = build_event('NETWORK_LIVENESS UP')
         assert isinstance(event, EventNetworkLiveness)
         await monitor.on_ctrl_liveness_status(event)
         status = await task
-        assert status.healthcheck() is True, status
+        assert status.is_healthy is True, status
 
         task = asyncio.create_task(monitor.wait_for_error())
         await monitor.event_for_error.wait()
@@ -149,4 +150,4 @@ class TestMonitor:
         assert isinstance(event, EventNetworkLiveness)
         await monitor.on_ctrl_liveness_status(event)
         status = await task
-        assert status.healthcheck() is False, status
+        assert status.is_healthy is False, status
