@@ -27,9 +27,14 @@ logger = logging.getLogger(__package__)
 class BaseReply(ABC):
     """Base class for all replies and sub-replies."""
 
+    #: Cached adapter used while deserializing the message.
     ADAPTER: ClassVar[TypeAdapter[Self] | None] = None
 
+    #: Reply status received.
+    #: See https://spec.torproject.org/control-spec/replies.html#replies
     status: int
+
+    #: Text associated with the reply status (if any).
     status_text: str | None = None
 
     @classmethod
@@ -50,7 +55,13 @@ class BaseReply(ABC):
         return bool(self.status == 250)
 
     def raise_for_status(self) -> None:
-        """Raise a ReplyStatusError when the reply status is an error."""
+        """
+        Raise when the reply status is an error.
+
+        Raises:
+            ReplyStatusError: when :meth:`is_error` is :obj:`True`.
+
+        """
         if self.is_error:
             text = self.status_text
             # The following case is theorically possible but never encountered for real.
@@ -66,11 +77,17 @@ class Reply(BaseReply):
     @classmethod
     @abstractmethod
     def from_message(cls, message: Message) -> Self:
-        """Build a reply structure from a received message."""
+        """
+        Build a reply structure from a received message.
+
+        Args:
+            message: The received message to build a reply from.
+
+        """
 
 
 @dataclass(kw_only=True, slots=True)
-class _ReplySimple(Reply):
+class ReplySimple(Reply):
     """Any simple reply with only a status and status_text."""
 
     @classmethod
@@ -81,10 +98,10 @@ class _ReplySimple(Reply):
 
 
 @dataclass(kw_only=True, slots=True)
-class _ReplyGetMap(Reply):
-    """A base class for replies such as `GETCONF` and `GETINFO`."""
+class ReplyGetMap(Reply):
+    """A base class for replies such as ``GETCONF`` and ``GETINFO``."""
 
-    #: This needs to be completed by the sub-class.
+    #: Needs to be completed by the sub-class.
     SYNTAX: ClassVar[ReplySyntax]
 
     @classmethod
@@ -110,17 +127,17 @@ class _ReplyGetMap(Reply):
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplySetConf(_ReplySimple):
+class ReplySetConf(ReplySimple):
     """A reply for a `SETCONF` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyResetConf(_ReplySimple):
+class ReplyResetConf(ReplySimple):
     """A reply for a `RESETCONF` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyGetConf(_ReplyGetMap):
+class ReplyGetConf(ReplyGetMap):
     """A reply for a `GETCONF` command."""
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
@@ -151,22 +168,22 @@ class ReplyGetConf(_ReplyGetMap):
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplySetEvents(_ReplySimple):
+class ReplySetEvents(ReplySimple):
     """A reply for a `SETEVENTS` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyAuthenticate(_ReplySimple):
+class ReplyAuthenticate(ReplySimple):
     """A reply for a `AUTHENTICATE` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplySaveConf(_ReplySimple):
+class ReplySaveConf(ReplySimple):
     """A reply for a `SAVECONF` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplySignal(_ReplySimple):
+class ReplySignal(ReplySimple):
     """A reply for a `SIGNAL` command."""
 
 
@@ -233,7 +250,7 @@ class ReplyMapAddress(Reply):
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyGetInfo(_ReplyGetMap):
+class ReplyGetInfo(ReplyGetMap):
     """A reply for a `GETINFO` command."""
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
@@ -261,7 +278,7 @@ class ReplyGetInfo(_ReplyGetMap):
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyExtendCircuit(_ReplyGetMap):
+class ReplyExtendCircuit(ReplyGetMap):
     """A reply for a `GETINFO` command."""
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(args_min=2, args_map=(None, 'circuit'))
@@ -285,47 +302,47 @@ class ReplyExtendCircuit(_ReplyGetMap):
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplySetCircuitPurpose(_ReplySimple):
+class ReplySetCircuitPurpose(ReplySimple):
     """A reply for a `SETCIRCUITPURPOSE` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyAttachStream(_ReplySimple):
+class ReplyAttachStream(ReplySimple):
     """A reply for a `ATTACHSTREAM` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyPostDescriptor(_ReplySimple):
+class ReplyPostDescriptor(ReplySimple):
     """A reply for a `POSTDESCRIPTOR` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyRedirectStream(_ReplySimple):
+class ReplyRedirectStream(ReplySimple):
     """A reply for a `REDIRECTSTREAM` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyCloseStream(_ReplySimple):
+class ReplyCloseStream(ReplySimple):
     """A reply for a `CLOSESTREAM` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyCloseCircuit(_ReplySimple):
+class ReplyCloseCircuit(ReplySimple):
     """A reply for a `CLOSECIRCUIT` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyQuit(_ReplySimple):
+class ReplyQuit(ReplySimple):
     """A reply for a `QUIT` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyUseFeature(_ReplySimple):
+class ReplyUseFeature(ReplySimple):
     """A reply for a `USEFEATURE` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyResolve(_ReplySimple):
+class ReplyResolve(ReplySimple):
     """A reply for a `RESOLVE` command."""
 
 
@@ -414,12 +431,12 @@ class ReplyProtocolInfo(Reply):
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyLoadConf(_ReplySimple):
+class ReplyLoadConf(ReplySimple):
     """A reply for a `LOADCONF` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyTakeOwnership(_ReplySimple):
+class ReplyTakeOwnership(ReplySimple):
     """A reply for a `TAKEOWNERSHIP` command."""
 
 
@@ -548,12 +565,12 @@ class ReplyAuthChallenge(Reply):
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyDropGuards(_ReplySimple):
+class ReplyDropGuards(ReplySimple):
     """A reply for a `DROPGUARDS` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyHsFetch(_ReplySimple):
+class ReplyHsFetch(ReplySimple):
     """A reply for a `HSFETCH` command."""
 
 
@@ -611,22 +628,22 @@ class ReplyAddOnion(Reply):
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyDelOnion(_ReplySimple):
+class ReplyDelOnion(ReplySimple):
     """A reply for a `DEL_ONION` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyHsPost(_ReplySimple):
+class ReplyHsPost(ReplySimple):
     """A reply for a `HSPOST` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyOnionClientAuthAdd(_ReplySimple):
+class ReplyOnionClientAuthAdd(ReplySimple):
     """A reply for a `ONION_CLIENT_AUTH_ADD` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyOnionClientAuthRemove(_ReplySimple):
+class ReplyOnionClientAuthRemove(ReplySimple):
     """A reply for a `ONION_CLIENT_AUTH_REMOVE` command."""
 
 
@@ -684,10 +701,10 @@ class ReplyOnionClientAuthView(Reply):
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyDropOwnership(_ReplySimple):
+class ReplyDropOwnership(ReplySimple):
     """A reply for a `DROPOWNERSHIP` command."""
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyDropTimeouts(_ReplySimple):
+class ReplyDropTimeouts(ReplySimple):
     """A reply for a `DROPTIMEOUTS` command."""

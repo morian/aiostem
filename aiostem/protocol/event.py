@@ -49,6 +49,7 @@ logger = logging.getLogger(__package__)
 class EventWordInternal(StrEnum):
     """All events handled internally in this library."""
 
+    #: The controller has been disconnected from Tor
     DISCONNECT = 'DISCONNECT'
 
 
@@ -131,7 +132,10 @@ class EventWord(StrEnum):
 class Event(ABC):
     """Base class for all events."""
 
+    #: Cached adapter used while deserializing the message.
     ADAPTER: ClassVar[TypeAdapter[Self] | None] = None
+
+    #: Type of event this class is for.
     TYPE: ClassVar[EventWordInternal | EventWord | None]
 
     @classmethod
@@ -149,8 +153,9 @@ class Event(ABC):
 
 @dataclass(kw_only=True, slots=True)
 class EventSimple(Event):
-    """An event with a simple syntax parser."""
+    """An event with a simple single syntax parser."""
 
+    #: Simple syntax to parse the message from.
     SYNTAX: ClassVar[ReplySyntax]
 
     @classmethod
@@ -669,7 +674,7 @@ _EVENT_MAP = {
 
 def event_from_message(message: Message) -> Event:
     """
-    Parse an event message to the corresponding structure.
+    Parse an event message to the corresponding event structure.
 
     Args:
         message: An event message to parse.

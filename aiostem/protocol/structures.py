@@ -209,17 +209,17 @@ class OnionServiceKeyType(StrEnum):
 class Signal(StrEnum):
     """All possible signals."""
 
-    #: Reload: reload config items.
+    #: Reload configuration items.
     RELOAD = 'RELOAD'
-    #: Controlled shutdown: if server is an OP, exit immediately.
+    #: Controlled shutdown, if server is an OP, exit immediately.
     SHUTDOWN = 'SHUTDOWN'
-    #: Dump stats: log information about open connections and circuits.
+    #: Dump stats, log information about open connections and circuits.
     DUMP = 'DUMP'
-    #: Debug: switch all open logs to loglevel debug.
+    #: Debug, switch all open logs to log level debug.
     DEBUG = 'DEBUG'
-    #: Immediate shutdown: clean up and exit now.
+    #: Immediate shutdown, clean up and exit now.
     HALT = 'HALT'
-    #: Forget the client-side cached IPs for all hostnames.
+    #: Forget the client-side cached IPs for all host names.
     CLEARDNSCACHE = 'CLEARDNSCACHE'
     #: Switch to clean circuits, so new requests don't share any circuits with old ones.
     NEWNYM = 'NEWNYM'

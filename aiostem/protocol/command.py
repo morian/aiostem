@@ -68,8 +68,9 @@ class CommandWord(StrEnum):
 
 
 class Command(ABC):
-    """Base interface class for all commands."""
+    """Base class for all commands."""
 
+    #: Command word this command is for.
     command: ClassVar[CommandWord]
 
     @abstractmethod
@@ -88,7 +89,7 @@ class Command(ABC):
         Serialize the command to text.
 
         Returns:
-            Text that can be sent through the wire.
+            Text that can be sent to Tor's control port.
 
         """
         ser = self._serialize()
@@ -98,7 +99,7 @@ class Command(ABC):
 @dataclass(kw_only=True)
 class CommandSetConf(Command):
     """
-    Command implementation for `SETCONF`.
+    Command implementation for ``SETCONF``.
 
     Change the value of one or more configuration variables.
 
@@ -127,7 +128,7 @@ class CommandSetConf(Command):
 @dataclass(kw_only=True)
 class CommandResetConf(Command):
     """
-    Command implementation for `RESETCONF`.
+    Command implementation for ``RESETCONF``.
 
     Remove all settings for a given configuration option entirely,
     assign its default value (if any), and then assign the value provided.
@@ -157,7 +158,7 @@ class CommandResetConf(Command):
 @dataclass(kw_only=True)
 class CommandGetConf(Command):
     """
-    Command implementation for `GETCONF`.
+    Command implementation for ``GETCONF``.
 
     Request the value of zero or more configuration variable(s).
 
@@ -184,7 +185,7 @@ class CommandGetConf(Command):
 @dataclass(kw_only=True)
 class CommandSetEvents(Command):
     """
-    Command implementation for `SETEVENTS`.
+    Command implementation for ``SETEVENTS``.
 
     Request the server to inform the client about interesting events.
 
@@ -195,14 +196,11 @@ class CommandSetEvents(Command):
 
     command: ClassVar[CommandWord] = CommandWord.SETEVENTS
     events: set[EventWord] = field(default_factory=set)
-    extended: bool = False
 
     def _serialize(self) -> CommandSerializer:
         """Append `SETEVENTS` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[Argument]
-        if self.extended:
-            args.append(ArgumentString('EXTENDED', safe=True))
         for evt in self.events:
             args.append(ArgumentString(evt, safe=True))
         ser.arguments.extend(args)
@@ -212,7 +210,7 @@ class CommandSetEvents(Command):
 @dataclass(kw_only=True)
 class CommandAuthenticate(Command):
     """
-    Command implementation for `AUTHENTICATE`.
+    Command implementation for ``AUTHENTICATE``.
 
     This command is used to authenticate to the server.
 
@@ -240,7 +238,7 @@ class CommandAuthenticate(Command):
 @dataclass(kw_only=True)
 class CommandSaveConf(Command):
     """
-    Command implementation for `SAVECONF`.
+    Command implementation for ``SAVECONF``.
 
     Instructs the server to write out its config options into its torrc.
 

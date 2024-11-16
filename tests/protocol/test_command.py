@@ -81,10 +81,6 @@ class TestCommands:
         cmd = CommandGetConf(keywords=['ControlPort', 'PIDFile'])
         assert cmd.serialize() == 'GETCONF ControlPort PIDFile\r\n'
 
-    def test_set_events_extended(self):
-        cmd = CommandSetEvents(extended=True)
-        assert cmd.serialize() == 'SETEVENTS EXTENDED\r\n'
-
     def test_set_events_circ(self):
         cmd = CommandSetEvents(events={EventWord.CIRC})
         assert cmd.serialize() == 'SETEVENTS CIRC\r\n'

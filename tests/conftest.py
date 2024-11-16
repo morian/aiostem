@@ -79,16 +79,11 @@ class CustomController(Controller):
 
         return message
 
-    async def set_events(
-        self,
-        events: AbstractSet[EventWord],
-        *,
-        extended: bool = False,
-    ) -> ReplySetEvents:
+    async def set_events(self, events: AbstractSet[EventWord]) -> ReplySetEvents:
         if self.error_on_set_events:
             msg = 'Triggered by PyTest.'
             raise ReplyStatusError(msg, code=500)
-        return await super().set_events(events, extended=extended)
+        return await super().set_events(events)
 
     async def signal(self, signal: str) -> ReplySignal:
         result = await super().signal(signal)

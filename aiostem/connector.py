@@ -3,8 +3,11 @@ from __future__ import annotations
 import asyncio
 from abc import ABC, abstractmethod
 
+#: Default path when connecting to a controller through an UNIX socket.
 DEFAULT_CONTROL_PATH: str = '/var/run/tor/control'
+#: Default host value when connecting to a TCP controller.
 DEFAULT_CONTROL_HOST: str = '127.0.0.1'
+#: Default port value when connecting to a TCP controller.
 DEFAULT_CONTROL_PORT: int = 9051
 
 
@@ -12,9 +15,8 @@ class ControlConnector(ABC):
     """
     Base class for all connector types used by the controller.
 
-    These are simply helper classes providing a pair of :class:`asyncio.StreamReader`
-    and :class:`asyncio.StreamWriter` needed to perform actions on the target control
-    port.
+    These are simply helper classes providing a pair of reader and writer needed
+    to perform actions on the target control port.
 
     """
 

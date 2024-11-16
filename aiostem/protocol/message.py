@@ -64,6 +64,7 @@ class BaseMessage(ABC):
 class MessageData(BaseMessage):
     """A sub-message with only a single line."""
 
+    #: Additional data (body of the message).
     data: str = ''
 
     def serialize(self) -> str:
@@ -120,13 +121,13 @@ async def messages_from_stream(stream: StreamReader) -> AsyncIterator[Message]:
     Parse messages from the underlying stream.
 
     Args:
-        stream: the asyncio stream reader to read messages from.
+        stream: The asyncio stream reader to read messages from.
 
     Raises:
-        ProtocolError: when we receive a malformed message.
+        ProtocolError: When we receive a malformed message.
 
     Yields:
-        Messages as they are parsed
+        Messages as they are parsed.
 
     """
     items = []  # type: list[MessageLine | MessageData]

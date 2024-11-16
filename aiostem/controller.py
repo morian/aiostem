@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack, suppress
 from typing import TYPE_CHECKING, Any, TypeAlias, cast
 
@@ -62,8 +62,10 @@ if TYPE_CHECKING:
 
 _EVENTS_TOR = frozenset(EventWord)
 _EVENTS_INTERNAL = frozenset(EventWordInternal)
-EventCallbackType: TypeAlias = Callable[[Event], Any]
 logger = logging.getLogger(__package__)
+
+#: Alias for event callbacks registered with :meth:`Controller.add_event_handler`.
+EventCallbackType: TypeAlias = Callable[[Event], Awaitable[None] | None]
 
 
 class Controller:
@@ -71,7 +73,12 @@ class Controller:
 
     def __init__(self, connector: ControlConnector) -> None:
         """
-        Initialize a new controller from a provided connector.
+        Initialize a new controller from a provided :class:`.ControlConnector`.
+
+        Notes:
+            You may want to alternatively use one of the following methods:
+                - :meth:`Controller.from_path`
+                - :meth:`Controller.from_port`
 
         Args:
             connector: the connector to the control socket.
@@ -93,7 +100,7 @@ class Controller:
         Enter Controller's context, connect to the target.
 
         Raises:
-            RuntimeError: when the context has already been entered
+            RuntimeError: when the context has already been entered.
 
         Returns:
             A connected controller (the same exact instance).
@@ -170,6 +177,12 @@ class Controller:
         """
         Create a new controller for a remote TCP host/port.
 
+        USE EXAMPLE::
+
+            async with Controller.from_port('10.0.0.1', 9051) as controller:
+                await controller.authenticate('password')
+                ...
+
         Args:
             host: ip address or hostname to the control host.
             port: TCP port to connect to.
@@ -185,8 +198,14 @@ class Controller:
         """
         Create a new controller for a local unix socket.
 
+        USE EXAMPLE::
+
+            async with Controller.from_path('/run/tor/control.sock') as controller:
+                await controller.authenticate()
+                ...
+
         Args:
-            path: path to the unix socket on the local filesystem.
+            path: path to the unix socket on the filesystem.
 
         Returns:
             A controller for the target unix socket.
@@ -318,14 +337,20 @@ class Controller:
         """
         Send any kind of command to the controller.
 
-        Note:
-            A single command can run at once due to an internal lock.
+        This method is the underlying call of any other command.
+
+        It can be used to send custom subclass of :class:`.Command`, and get the
+        raw :class:`Message` corresponding to the response. This :class:`.Message`
+        can then be parsed by an appropriate :class:`.Reply`.
+
+        Important:
+            A single command can run at any time due to an internal lock.
 
         Args:
-            command: the command we want to send to Tor.
+            command: The command we want to send to Tor.
 
         Raises:
-            ControllerError: when the controller is not connected.
+            ControllerError: When the controller is not connected.
 
         Returns:
             The corresponding reply message from the remote daemon.
@@ -356,14 +381,21 @@ class Controller:
 
     async def auth_challenge(self, nonce: bytes | str | None = None) -> ReplyAuthChallenge:
         """
-        Start the authentication routine for the `SAFECOOKIE` method.
+        Start the authentication for :attr:`~.protocol.structures.AuthMethod.SAFECOOKIE`.
 
-        Note:
+        When no ``nonce`` is provided, once is generated and provided back in the reply.
+        While this is obviously not part of the original reply from the server, it is
+        added to the reply structure for convenience.
+
+        Warning:
             This method is not meant to be called by the end-user but is rather
             used internally by :meth:`authenticate`.
 
+        Note:
+            This command can be sent while not authenticated (but only once).
+
         Args:
-            nonce: an optional 32 bytes hexadecimal random value.
+            nonce: 32 random bytes (optional).
 
         Returns:
             An authentication challenge reply.
@@ -380,20 +412,27 @@ class Controller:
         Authenticate to Tor's controller.
 
         Note:
-            Authentication methods are tries in the following order (when available):
-                - `NULL`: no authentication
-                - `HASHEDPASSWORD`: password authentication (when a password is provided)
-                - `SAFECOOKIE`: proof that we can read the cookie file
-                - `COOKIE`: provide the content of the cookie file
+            Available authentications are provided by :meth:`protocol_info`.
+
+        Important:
+            Authentication methods are tried in the following order (when available):
+                - ``NULL``: authentication is automatically granted
+                - ``HASHEDPASSWORD``: password authentication (when a password is provided)
+                - ``SAFECOOKIE``: proof that we can read the cookie file
+                - ``COOKIE``: provide the content of the cookie file
+
+        See Also:
+            :class:`.protocol.structures.AuthMethod`
 
         Args:
-            password: an optional password for the `HASHEDPASSWORD` method.
+            password: Optional password for method
+                :attr:`~.protocol.structures.AuthMethod.HASHEDPASSWORD`.
 
         Raises:
-            ControllerError: when no authentication method is found.
+            ControllerError: When no known authentication method was found.
 
         Returns:
-            The authentication reply.
+            The authentication reply (you should check the status here).
 
         """
         protoinfo = await self.protocol_info()
@@ -431,7 +470,7 @@ class Controller:
         """
         Tell the server to drop all guard nodes.
 
-        Important:
+        Warning:
             Do not invoke this command lightly; it can increase vulnerability
             to tracking attacks over time.
 
@@ -451,23 +490,33 @@ class Controller:
         """
         Register a callback function to be called when an event message is received.
 
-        A special event `DISCONNECT` is produced by this library and can be registered
-        here to be notified of any disconnection from the control socket.
+        Notes:
+            - A special event :attr:`~.protocol.event.EventWordInternal.DISCONNECT` is handled
+              internally by this library and can be registered here to be notified of any
+              disconnection from the control socket.
+            - Multiple callbacks can be set for a single event.
+              If so, they are called in the order they were registered.
 
-        Note:
-            Multiple callbacks can be set for a single event.
-            If so, they are called in the registering order.
+        USE EXAMPLE::
+
+            def client_status_callback(event: EventStatusClient):
+                print(event)
+
+            async with Controller.from_path('/run/tor/control.sock') as controller:
+                await controller.authenticate()
+                await controller.add_event_handler('STATUS_CLIENT', client_status_callback)
+                ...
 
         See Also:
             https://spec.torproject.org/control-spec/replies.html#asynchronous-events
 
         Args:
-            event: name of the event linked to the callback.
-            callback: a function or coroutine to be called when the event occurs.
+            event: Name of the event linked to the callback.
+            callback: A function or coroutine to be called when the event occurs.
 
         Raises:
-            CommandError: when the event name does not exit.
-            ReplyStatusError: when the event could not be registered.
+            CommandError: When the event name does not exit.
+            ReplyStatusError: When the event could not be registered.
 
         """
         if not isinstance(event, EventWord | EventWordInternal):
@@ -500,8 +549,8 @@ class Controller:
         Unregister a previously registered callback function.
 
         Args:
-            event: name of the event linked to the callback.
-            callback: a function or coroutine to be removed from the event list.
+            event: Name of the event linked to the callback.
+            callback: A function or coroutine to be removed from the event list.
 
         """
         if not isinstance(event, EventWord | EventWordInternal):
@@ -529,14 +578,18 @@ class Controller:
         """
         Request the value of zero or move configuration variable(s).
 
+        Note that you can request the same key multiple times, and some configuration
+        entries can provide multiple values. When any of this happens, the result
+        dictionary provides a :class:`~typing.Sequence` of strings as its value.
+
         See Also:
             https://spec.torproject.org/control-spec/commands.html#getconf
 
         Args:
-            args: a list of configuration variables to request.
+            args: A list of configuration variables to request.
 
         Returns:
-            A reply containing the corresponding values.
+            A reply containing the corresponding values (when successful).
 
         """
         command = CommandGetConf(keywords=[*args])
@@ -547,14 +600,17 @@ class Controller:
         """
         Request for Tor daemon information.
 
+        Note that you can request the same key multiple times. When this happens, the result
+        dictionary provides a :class:`~typing.Sequence` of strings as its value.
+
         See Also:
             https://spec.torproject.org/control-spec/commands.html#getinfo
 
         Args:
-            args: a list of information data to request.
+            args: A list of information data to request.
 
         Returns:
-            A reply containing the corresponding values.
+            A reply containing the corresponding values (when successful).
 
         """
         command = CommandGetInfo(keywords=[*args])
@@ -563,20 +619,22 @@ class Controller:
 
     async def protocol_info(self, version: int | None = None) -> ReplyProtocolInfo:
         """
-        Get control protocol information from the remote Tor process.
+        Get control protocol information from Tor.
 
-        This command is performed as part of the authentication process in order to get
-        all supported authentication methods.
+        This command is performed as part of the authentication process in order to find out
+        all supported authentication methods (see :class:`~.protocol.structures.AuthMethod`).
+
+        The ``version`` is supposed to set to ``1`` but Tor currently does not care.
 
         Note:
-            The command result is cached when not authenticated since we can only send
-            this command once in this situation.
+            The command result is cached when unauthenticated as we can only send this
+            command once in this situation.
 
         See Also:
             https://spec.torproject.org/control-spec/commands.html#protocolinfo
 
         Args:
-            version: protocol version to ask for, should be 1.
+            version: Protocol version to ask for when provided.
 
         Returns:
             A completed protocol info reply from Tor.
@@ -633,30 +691,22 @@ class Controller:
         message = await self.request(command)
         return ReplySetConf.from_message(message)
 
-    async def set_events(
-        self,
-        events: AbstractSet[EventWord],
-        *,
-        extended: bool = False,
-    ) -> ReplySetEvents:
+    async def set_events(self, events: AbstractSet[EventWord]) -> ReplySetEvents:
         """
         Set the list of events that we subscribe to.
 
-        Important:
+        Warning:
             This method should not probably be called by the end-user.
             Please see :meth:`add_event_handler` instead.
 
         Args:
-            events: a list of events to subscribe to.
-
-        Keyword Args:
-            extended: Tor may provide extra information with events for this connection.
+            events: a set of events to subscribe to.
 
         Returns:
             A simple setevents reply where only the status is relevant.
 
         """
-        command = CommandSetEvents(extended=extended)
+        command = CommandSetEvents()
         command.events.update(events)
         message = await self.request(command)
         return ReplySetEvents.from_message(message)
