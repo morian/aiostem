@@ -99,7 +99,14 @@ class ReplySimple(Reply):
 
 @dataclass(kw_only=True, slots=True)
 class ReplyGetMap(Reply):
-    """A base class for replies such as ``GETCONF`` and ``GETINFO``."""
+    """
+    A base reply class for commands returning maps of values.
+
+    These are replies for commands such as:
+        - :attr:`~.command.CommandWord.GETCONF`
+        - :attr:`~.command.CommandWord.GETINFO`
+
+    """
 
     #: Needs to be completed by the sub-class.
     SYNTAX: ClassVar[ReplySyntax]

@@ -69,7 +69,7 @@ class CommandError(ProtocolError):
 
 class MessageError(ProtocolError):
     """
-    Raised as a result of a bad manipulation of a received :class:`.protocol.Message`.
+    Raised as a result of a bad manipulation of a received :class:`.Message`.
 
     This error is currently only raised when a reply message gets incorrectly routed
     to the event processing part of the library.
@@ -92,8 +92,8 @@ class ReplyStatusError(ReplyError):
     """
     Raised when the reply status code is an error.
 
-    This can only be raised by :meth:`.protocol.Reply.raise_for_status`, which is
-    generally called by the end user.
+    Can only be raised by :meth:`.BaseReply.raise_for_status`, which is generally
+    called by the end user.
 
     The underlying protocol follows the semantic of SMTP or HTTP status codes.
 

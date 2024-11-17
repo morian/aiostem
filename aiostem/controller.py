@@ -340,7 +340,7 @@ class Controller:
         This method is the underlying call of any other command.
 
         It can be used to send custom subclass of :class:`.Command`, and get the
-        raw :class:`Message` corresponding to the response. This :class:`.Message`
+        raw :class:`.Message` corresponding to the response. This :class:`.Message`
         can then be parsed by an appropriate :class:`.Reply`.
 
         Important:

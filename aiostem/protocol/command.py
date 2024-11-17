@@ -99,7 +99,7 @@ class Command(ABC):
 @dataclass(kw_only=True)
 class CommandSetConf(Command):
     """
-    Command implementation for ``SETCONF``.
+    Command implementation for :attr:`~CommandWord.SETCONF`.
 
     Change the value of one or more configuration variables.
 
@@ -109,6 +109,8 @@ class CommandSetConf(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.SETCONF
+
+    #: All the configuration values you want to set.
     values: MutableMapping[str, int | str | None] = field(default_factory=dict)
 
     def _serialize(self) -> CommandSerializer:
@@ -128,7 +130,7 @@ class CommandSetConf(Command):
 @dataclass(kw_only=True)
 class CommandResetConf(Command):
     """
-    Command implementation for ``RESETCONF``.
+    Command implementation for :attr:`~CommandWord.RESETCONF`.
 
     Remove all settings for a given configuration option entirely,
     assign its default value (if any), and then assign the value provided.
@@ -139,6 +141,8 @@ class CommandResetConf(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.RESETCONF
+
+    #: All the configuration values you want to reset.
     values: MutableMapping[str, int | str | None] = field(default_factory=dict)
 
     def _serialize(self) -> CommandSerializer:

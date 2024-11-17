@@ -14,8 +14,23 @@ Base class
    :members:
 
 
-Command enumeration
--------------------
+Command classes
+---------------
+
+These commands could be built by the end-user along with :meth:`.Controller.request`
+but the faster way is to use the corresponding wrapper provided on the :class:`.Controller`.
+
+.. autoclass:: CommandSetConf
+   :undoc-members:
+   :members:
+
+.. autoclass:: CommandResetConf
+   :undoc-members:
+   :members:
+
+
+Command names
+-------------
 
 .. autoclass:: CommandWord
    :undoc-members:
