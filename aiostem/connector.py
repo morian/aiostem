@@ -46,8 +46,8 @@ class ControlConnectorPort(ControlConnector):
             Use :meth:`.Controller.from_port` for an automated use of this class.
 
         Args:
-            host: Ip address or hostname to the control host
-            port: TCP port to connect to
+            host: IP address or hostname to the control host.
+            port: TCP port to connect to.
 
         """
         self._host = host
@@ -85,7 +85,7 @@ class ControlConnectorPath(ControlConnector):
             Use :meth:`.Controller.from_path` for an automated use of this class.
 
         Args:
-            path: Path to the unix socket on the local filesystem
+            path: Path to the unix socket on the local file system.
 
         """
         self._path = path

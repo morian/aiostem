@@ -49,82 +49,82 @@ logger = logging.getLogger(__package__)
 class EventWordInternal(StrEnum):
     """All events handled internally in this library."""
 
-    #: The controller has been disconnected from Tor
+    #: The controller has been disconnected from Tor.
     DISCONNECT = 'DISCONNECT'
 
 
 class EventWord(StrEnum):
     """All possible events to subscribe to."""
 
-    #: Circuit status changed
+    #: Circuit status changed.
     CIRC = 'CIRC'
-    #: Stream status changed
+    #: Stream status changed.
     STREAM = 'STREAM'
-    #: OR Connection status changed
+    #: OR Connection status changed.
     ORCONN = 'ORCONN'
-    #: Bandwidth used in the last second
+    #: Bandwidth used in the last second.
     BW = 'BW'
-    #: Debug log message
+    #: Debug log message.
     DEBUG = 'DEBUG'
-    #: Info log message
+    #: Info log message.
     INFO = 'INFO'
-    #: Notice log message
+    #: Notice log message.
     NOTICE = 'NOTICE'
-    #: Warning log message
+    #: Warning log message.
     WARN = 'WARN'
-    #: Error log message
+    #: Error log message.
     ERR = 'ERR'
-    #: New descriptors available
+    #: New descriptors available.
     NEWDESC = 'NEWDESC'
-    #: New Address mapping
+    #: New Address mapping.
     ADDRMAP = 'ADDRMAP'
-    #: Descriptors uploaded to us in our role as authoritative dirserver
+    #: Descriptors uploaded to us in our role as authoritative dirserver.
     AUTHDIR_NEWDESCS = 'AUTHDIR_NEWDESCS'
-    #: Our descriptor changed
+    #: Our descriptor changed.
     DESCCHANGED = 'DESCCHANGED'
-    #: General status event
+    #: General status event.
     STATUS_GENERAL = 'STATUS_GENERAL'
-    #: Client status event
+    #: Client status event.
     STATUS_CLIENT = 'STATUS_CLIENT'
-    #: Server status event
+    #: Server status event.
     STATUS_SERVER = 'STATUS_SERVER'
-    #: Our set of guard nodes has changed
+    #: Our set of guard nodes has changed.
     GUARD = 'GUARD'
-    #: Network status has changed
+    #: Network status has changed.
     NS = 'NS'
-    #: Bandwidth used on an application stream
+    #: Bandwidth used on an application stream.
     STREAM_BW = 'STREAM_BW'
-    #: Per-country client stats
+    #: Per-country client stats.
     CLIENTS_SEEN = 'CLIENTS_SEEN'
-    #: New consensus networkstatus has arrived
+    #: New consensus networkstatus has arrived.
     NEWCONSENSUS = 'NEWCONSENSUS'
-    #: New circuit buildtime has been set
+    #: New circuit buildtime has been set.
     BUILDTIMEOUT_SET = 'BUILDTIMEOUT_SET'
-    #: Signal received
+    #: Signal received.
     SIGNAL = 'SIGNAL'
-    #: Configuration changed
+    #: Configuration changed.
     CONF_CHANGED = 'CONF_CHANGED'
-    #: Circuit status changed slightly
+    #: Circuit status changed slightly.
     CIRC_MINOR = 'CIRC_MINOR'
-    #: Pluggable transport launched
+    #: Pluggable transport launched.
     TRANSPORT_LAUNCHED = 'TRANSPORT_LAUNCHED'
-    #: Bandwidth used on an OR or DIR or EXIT connection
+    #: Bandwidth used on an OR or DIR or EXIT connection.
     CONN_BW = 'CONN_BW'
-    #: Bandwidth used by all streams attached to a circuit
+    #: Bandwidth used by all streams attached to a circuit.
     CIRC_BW = 'CIRC_BW'
-    #: Per-circuit cell stats
+    #: Per-circuit cell stats.
     CELL_STATS = 'CELL_STATS'
-    #: Token buckets refilled
+    #: Token buckets refilled.
     TB_EMPTY = 'TB_EMPTY'
-    #: HiddenService descriptors
+    #: HiddenService descriptors.
     HS_DESC = 'HS_DESC'
-    #: HiddenService descriptors content
+    #: HiddenService descriptors content.
     HS_DESC_CONTENT = 'HS_DESC_CONTENT'
-    #: Network liveness has changed
+    #: Network liveness has changed.
     NETWORK_LIVENESS = 'NETWORK_LIVENESS'
-    #: Pluggable Transport Logs
+    #: Pluggable Transport Logs.
     PT_LOG = 'PT_LOG'
-    #: Pluggable Transport Status
+    #: Pluggable Transport Status.
     PT_STATUS = 'PT_STATUS'
 
 

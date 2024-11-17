@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .argument import Argument, ArgumentKeyword, ArgumentString, QuoteStyle
+from .argument import ArgumentKeyword, ArgumentString, QuoteStyle
 from .command import (
     Command,
     CommandAddOnion,
@@ -141,7 +141,6 @@ from .structures import (
 )
 
 __all__ = [
-    'Argument',
     'ArgumentKeyword',
     'ArgumentString',
     'AuthMethod',

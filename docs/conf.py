@@ -62,6 +62,7 @@ autodoc_class_signature = 'separated'
 autodoc_preserve_defaults = False
 autodoc_type_aliases = {
     'EventCallbackType':  '~aiostem.controller.EventCallbackType',
+    'Argument': '~aiostem.protocol.argument.Argument',
 }
 autodoc_typehints = 'signature'
 autoclass_content = 'class'
@@ -95,7 +96,9 @@ _reftarget_fixmap = {
 # Map of known types that get badly requested to be a class.
 _reftype_fixmap = {
     'aiostem.controller.EventCallbackType': 'data',
+    'aiostem.protocol.argument.Argument': 'data',
     # Sometimes it is looked up as a class.
+    'typing.Annotated': 'obj',
     'typing.Self': 'obj',
 }
 

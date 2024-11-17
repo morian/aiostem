@@ -67,21 +67,21 @@ class CloseStreamReason(IntEnum):
     CONNRESET = 12
     #: Sent when closing connection because of Tor protocol violations.
     TORPROTOCOL = 13
-    #: Client sent `RELAY_BEGIN_DIR` to a non-directory relay.
+    #: Client sent ``RELAY_BEGIN_DIR`` to a non-directory relay.
     NOTDIRECTORY = 14
 
 
 class Feature(StrEnum):
-    """All known features."""
+    """All known features Tor supports."""
 
-    #: Same as passing 'EXTENDED' to SETEVENTS.
+    #: Ask for extended information while receiving events.
     EXTENDED_EVENTS = 'EXTENDED_EVENTS'
-    #: Replaces ServerID with LongName in events and GETINFO results.
+    #: Replaces ServerID with LongName in events and :attr:`~.CommandWord.GETINFO` results.
     VERBOSE_NAMES = 'VERBOSE_NAMES'
 
 
 class HsDescAction(StrEnum):
-    """Possible actions in a `HD_DESC` event."""
+    """Possible actions in a ``HD_DESC`` event."""
 
     CREATED = 'CREATED'
     FAILED = 'FAILED'
@@ -93,7 +93,7 @@ class HsDescAction(StrEnum):
 
 
 class HsDescAuthType(StrEnum):
-    """Possible values for AuthType in `HS_DESC` event."""
+    """Possible values for AuthType in ``HS_DESC`` event."""
 
     BASIC_AUTH = 'BASIC_AUTH'
     NO_AUTH = 'NO_AUTH'
@@ -102,7 +102,7 @@ class HsDescAuthType(StrEnum):
 
 
 class HsDescFailReason(StrEnum):
-    """Possible values for `REASON` in a `HS_DESC` event."""
+    """Possible values for ``REASON`` in a ``HS_DESC`` event."""
 
     #: Descriptor was retrieved, but found to be unparsable.
     BAD_DESC = 'BAD_DESC'
@@ -121,7 +121,7 @@ class HsDescFailReason(StrEnum):
 
 
 class LivenessStatus(StrEnum):
-    """Possible values for `Status` in a `NETWORK_LIVENESS` event."""
+    """Possible values for ``Status`` in a ``NETWORK_LIVENESS`` event."""
 
     DOWN = 'DOWN'
     UP = 'UP'
@@ -164,14 +164,16 @@ class OnionClientAuthKeyType(StrEnum):
 class OnionClientAuthKey:
     """A client key attached to a single onion domain."""
 
-    #: Hidden service address.
+    #: Hidden service address without the ``.onion`` suffix.
     address: str
 
-    #: Client's private x25519 key.
+    #: Client's private key type (currently only :attr:`~OnionClientAuthKeyType.X25519`).
     key_type: OnionClientAuthKeyType = OnionClientAuthKeyType.X25519
+
+    #: Client's private ``x25519`` key (32 bytes).
     key: Base64Bytes
 
-    #: Client name (optional)
+    #: Client name (optional).
     name: str | None = None
 
     #: Flags associated with this client.
@@ -181,7 +183,7 @@ class OnionClientAuthKey:
 
 
 class OnionServiceFlags(StrEnum):
-    """Available flag options for command `ADD_ONION`."""
+    """Available flag options for command :attr:`~.CommandWord.ADD_ONION`."""
 
     #: The server should not include the newly generated private key as part of the response.
     DISCARD_PK = 'DiscardPK'
@@ -207,7 +209,7 @@ class OnionServiceKeyType(StrEnum):
 
 
 class Signal(StrEnum):
-    """All possible signals."""
+    """All possible signals that can be sent to Tor."""
 
     #: Reload configuration items.
     RELOAD = 'RELOAD'

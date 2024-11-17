@@ -13,7 +13,7 @@ from enum import StrEnum
 from typing import ClassVar, Literal
 
 from ..exceptions import CommandError
-from .argument import Argument, ArgumentKeyword, ArgumentString, QuoteStyle  # noqa: F401
+from .argument import ArgumentKeyword, ArgumentString, QuoteStyle
 from .event import EventWord
 from .structures import (
     CircuitPurpose,
@@ -31,39 +31,73 @@ from .utils import Base32Bytes, Base64Bytes, CommandSerializer
 class CommandWord(StrEnum):
     """All handled command words."""
 
+    #: Implemented in :class:`CommandSetConf`.
     SETCONF = 'SETCONF'
+    #: Implemented in :class:`CommandResetConf`.
     RESETCONF = 'RESETCONF'
+    #: Implemented in :class:`CommandGetConf`.
     GETCONF = 'GETCONF'
+    #: Implemented in :class:`CommandSetEvents`.
     SETEVENTS = 'SETEVENTS'
+    #: Implemented in :class:`CommandAuthenticate`.
     AUTHENTICATE = 'AUTHENTICATE'
+    #: Implemented in :class:`CommandSaveConf`.
     SAVECONF = 'SAVECONF'
+    #: Implemented in :class:`CommandSignal`.
     SIGNAL = 'SIGNAL'
+    #: Implemented in :class:`CommandMapAddress`.
     MAPADDRESS = 'MAPADDRESS'
+    #: Implemented in :class:`CommandGetInfo`.
     GETINFO = 'GETINFO'
+    #: Implemented in :class:`CommandExtendCircuit`.
     EXTENDCIRCUIT = 'EXTENDCIRCUIT'
+    #: Implemented in :class:`CommandSetCircuitPurpose`.
     SETCIRCUITPURPOSE = 'SETCIRCUITPURPOSE'
-    SETROUTERPURPOSE = 'SETROUTERPURPOSE'  # obsolete as of Tor v0.2.0.8
+    #: Not implemented because it was marked as obsolete as of ``Tor v0.2.0.8``.
+    SETROUTERPURPOSE = 'SETROUTERPURPOSE'
+    #: Implemented in :class:`CommandAttachStream`.
     ATTACHSTREAM = 'ATTACHSTREAM'
+    #: Implemented in :class:`CommandPostDescriptor`.
     POSTDESCRIPTOR = 'POSTDESCRIPTOR'
+    #: Implemented in :class:`CommandRedirectStream`.
     REDIRECTSTREAM = 'REDIRECTSTREAM'
+    #: Implemented in :class:`CommandCloseStream`.
     CLOSESTREAM = 'CLOSESTREAM'
+    #: Implemented in :class:`CommandCloseCircuit`.
     CLOSECIRCUIT = 'CLOSECIRCUIT'
+    #: Implemented in :class:`CommandQuit`.
     QUIT = 'QUIT'
+    #: Implemented in :class:`CommandUseFeature`.
     USEFEATURE = 'USEFEATURE'
+    #: Implemented in :class:`CommandResolve`.
     RESOLVE = 'RESOLVE'
+    #: Implemented in :class:`CommandProtocolInfo`.
     PROTOCOLINFO = 'PROTOCOLINFO'
+    #: Implemented in :class:`CommandLoadConf`.
     LOADCONF = 'LOADCONF'
+    #: Implemented in :class:`CommandTakeOwnership`.
     TAKEOWNERSHIP = 'TAKEOWNERSHIP'
+    #: Implemented in :class:`CommandAuthChallenge`.
     AUTHCHALLENGE = 'AUTHCHALLENGE'
+    #: Implemented in :class:`CommandDropGuards`.
     DROPGUARDS = 'DROPGUARDS'
+    #: Implemented in :class:`CommandHsFetch`.
     HSFETCH = 'HSFETCH'
+    #: Implemented in :class:`CommandAddOnion`.
     ADD_ONION = 'ADD_ONION'
+    #: Implemented in :class:`CommandDelOnion`.
     DEL_ONION = 'DEL_ONION'
+    #: Implemented in :class:`CommandHsPost`.
     HSPOST = 'HSPOST'
+    #: Implemented in :class:`CommandOnionClientAuthAdd`.
     ONION_CLIENT_AUTH_ADD = 'ONION_CLIENT_AUTH_ADD'
+    #: Implemented in :class:`CommandOnionClientAuthRemove`.
     ONION_CLIENT_AUTH_REMOVE = 'ONION_CLIENT_AUTH_REMOVE'
+    #: Implemented in :class:`CommandOnionClientAuthView`.
     ONION_CLIENT_AUTH_VIEW = 'ONION_CLIENT_AUTH_VIEW'
+    #: Implemented in :class:`CommandDropOwnership`.
     DROPOWNERSHIP = 'DROPOWNERSHIP'
+    #: Implemented in :class:`CommandDropTimeouts`.
     DROPTIMEOUTS = 'DROPTIMEOUTS'
 
 
@@ -114,13 +148,13 @@ class CommandSetConf(Command):
     values: MutableMapping[str, int | str | None] = field(default_factory=dict)
 
     def _serialize(self) -> CommandSerializer:
-        """Append 'SETCONF' specific arguments."""
+        """Append ``SETCONF`` specific arguments."""
         if len(self.values) == 0:
             msg = "No value provided for command 'SETCONF'"
             raise CommandError(msg)
 
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         for key, value in self.values.items():
             args.append(ArgumentKeyword(key, value))
         ser.arguments.extend(args)
@@ -146,13 +180,13 @@ class CommandResetConf(Command):
     values: MutableMapping[str, int | str | None] = field(default_factory=dict)
 
     def _serialize(self) -> CommandSerializer:
-        """Append `RESETCONF` specific arguments."""
+        """Append ``RESETCONF`` specific arguments."""
         if len(self.values) == 0:
             msg = "No value provided for command 'RESETCONF'"
             raise CommandError(msg)
 
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         for key, value in self.values.items():
             args.append(ArgumentKeyword(key, value))
         ser.arguments.extend(args)
@@ -162,7 +196,7 @@ class CommandResetConf(Command):
 @dataclass(kw_only=True)
 class CommandGetConf(Command):
     """
-    Command implementation for ``GETCONF``.
+    Command implementation for :attr:`~CommandWord.GETCONF`.
 
     Request the value of zero or more configuration variable(s).
 
@@ -177,9 +211,9 @@ class CommandGetConf(Command):
     keywords: MutableSequence[str] = field(default_factory=list)
 
     def _serialize(self) -> CommandSerializer:
-        """Append `GETCONF` specific arguments."""
+        """Append ``GETCONF`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         for keyword in self.keywords:
             args.append(ArgumentString(keyword))
         ser.arguments.extend(args)
@@ -189,22 +223,25 @@ class CommandGetConf(Command):
 @dataclass(kw_only=True)
 class CommandSetEvents(Command):
     """
-    Command implementation for ``SETEVENTS``.
+    Command implementation for :attr:`~CommandWord.SETEVENTS`.
 
     Request the server to inform the client about interesting events.
 
     See Also:
-        https://spec.torproject.org/control-spec/commands.html#setevents
+        - https://spec.torproject.org/control-spec/commands.html#setevents
+        - :meth:`.Controller.add_event_handler`
 
     """
 
     command: ClassVar[CommandWord] = CommandWord.SETEVENTS
+
+    #: Set of event names to receive the corresponding events.
     events: set[EventWord] = field(default_factory=set)
 
     def _serialize(self) -> CommandSerializer:
-        """Append `SETEVENTS` specific arguments."""
+        """Append ``SETEVENTS`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         for evt in self.events:
             args.append(ArgumentString(evt, safe=True))
         ser.arguments.extend(args)
@@ -214,22 +251,25 @@ class CommandSetEvents(Command):
 @dataclass(kw_only=True)
 class CommandAuthenticate(Command):
     """
-    Command implementation for ``AUTHENTICATE``.
+    Command implementation for :attr:`~CommandWord.AUTHENTICATE`.
 
     This command is used to authenticate to the server.
 
     See Also:
-        https://spec.torproject.org/control-spec/commands.html#authenticate
+        - https://spec.torproject.org/control-spec/commands.html#authenticate
+        - :meth:`.Controller.authenticate` and :attr:`.Controller.authenticated`.
 
     """
 
     command: ClassVar[CommandWord] = CommandWord.AUTHENTICATE
+
+    #: Password or token used to authenticate with the server.
     token: bytes | str | None
 
     def _serialize(self) -> CommandSerializer:
-        """Append `AUTHENTICATE` specific arguments."""
+        """Append ``AUTHENTICATE`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         match self.token:
             case bytes():
                 args.append(ArgumentKeyword(None, self.token.hex(), quotes=QuoteStyle.NEVER))
@@ -242,9 +282,9 @@ class CommandAuthenticate(Command):
 @dataclass(kw_only=True)
 class CommandSaveConf(Command):
     """
-    Command implementation for ``SAVECONF``.
+    Command implementation for :attr:`~CommandWord.SAVECONF`.
 
-    Instructs the server to write out its config options into its torrc.
+    Instructs the server to write out its configuration options into ``torrc``.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#saveconf
@@ -252,12 +292,17 @@ class CommandSaveConf(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.SAVECONF
+
+    #: If ``%include`` is used on ``torrc``, ``SAVECONF`` will not write the configuration
+    #: to disk.  When set, the configuration will be overwritten even if %include is used.
+    #: You can find out whether this flag is needed using ``config-can-saveconf`` on
+    #: :class:`CommandGetInfo`.
     force: bool = False
 
     def _serialize(self) -> CommandSerializer:
-        """Append `SAVECONF` specific arguments."""
+        """Append ``SAVECONF`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         if self.force:
             # Flags are treated as keywords with no value.
             args.append(ArgumentKeyword('FORCE', None))
@@ -268,7 +313,7 @@ class CommandSaveConf(Command):
 @dataclass(kw_only=True)
 class CommandSignal(Command):
     """
-    Command implementation for `SIGNAL`.
+    Command implementation for :attr:`~CommandWord.SIGNAL`.
 
     Send a signal to Tor.
 
@@ -278,12 +323,14 @@ class CommandSignal(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.SIGNAL
+
+    #: The signal to send to Tor.
     signal: Signal
 
     def _serialize(self) -> CommandSerializer:
-        """Append `SIGNAL` specific arguments."""
+        """Append ``SIGNAL`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         args.append(ArgumentString(self.signal, safe=True))
         ser.arguments.extend(args)
         return ser
@@ -292,7 +339,7 @@ class CommandSignal(Command):
 @dataclass(kw_only=True)
 class CommandMapAddress(Command):
     """
-    Command implementation for `MAPADDRESS`.
+    Command implementation for :attr:`~CommandWord.MAPADDRESS`.
 
     The client sends this message to the server in order to tell it that future
     SOCKS requests for connections to the original address should be replaced
@@ -304,16 +351,18 @@ class CommandMapAddress(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.MAPADDRESS
+
+    #: Map of addresses to remap on socks requests.
     addresses: MutableMapping[str, str] = field(default_factory=dict)
 
     def _serialize(self) -> CommandSerializer:
-        """Append `MAPADDRESS` specific arguments."""
+        """Append ``MAPADDRESS`` specific arguments."""
         if len(self.addresses) == 0:
             msg = "No address provided for command 'MAPADDRESS'"
             raise CommandError(msg)
 
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
         for key, value in self.addresses.items():
             args.append(ArgumentKeyword(key, value, quotes=QuoteStyle.NEVER_ENSURE))
@@ -325,10 +374,10 @@ class CommandMapAddress(Command):
 @dataclass(kw_only=True)
 class CommandGetInfo(Command):
     """
-    Command implementation for `GETINFO`.
+    Command implementation for :attr:`~CommandWord.GETINFO`.
 
-    Unlike `GETCONF`, this message is used for data that are not stored in the Tor
-    configuration file, and that may be longer than a single line.
+    Unlike :attr:`~CommandWord.GETCONF` this message is used for data that are not stored
+    in the Tor configuration file, and that may be longer than a single line.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#getinfo
@@ -336,16 +385,18 @@ class CommandGetInfo(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.GETINFO
+
+    #: List of keywords to request the value from. One or more must be provided.
     keywords: MutableSequence[str] = field(default_factory=list)
 
     def _serialize(self) -> CommandSerializer:
-        """Append `GETINFO` specific arguments."""
+        """Append ``GETINFO`` specific arguments."""
         if len(self.keywords) == 0:
             msg = "No keyword provided for command 'GETINFO'"
             raise CommandError(msg)
 
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
         for keyword in self.keywords:
             args.append(ArgumentString(keyword))
@@ -357,12 +408,12 @@ class CommandGetInfo(Command):
 @dataclass(kw_only=True)
 class CommandExtendCircuit(Command):
     """
-    Command implementation for `EXTENDCIRCUIT`.
+    Command implementation for :attr:`~CommandWord.EXTENDCIRCUIT`.
 
-    This request takes one of two forms: either `cicuit` is zero, in which case it is
-    a request for the server to build a new circuit, or `circuit` is nonzero, in which
+    This request takes one of two forms: either :attr:`circuit` is zero, in which case it is
+    a request for the server to build a new circuit, or :attr:`circuit` is nonzero, in which
     case it is a request for the server to extend an existing circuit with that ID
-    according to the specified path.
+    according to the specified path provided in :attr:`server_spec`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#extendcircuit
@@ -370,14 +421,18 @@ class CommandExtendCircuit(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.EXTENDCIRCUIT
+
+    #: Circuit identifier to extend, ``0`` to create a new circuit.
     circuit: int
+    #: Optional list of servers to extend the circuit onto.
     server_spec: MutableSequence[str] = field(default_factory=list)
+    #: Circuit purpose or :obj:`None` to use a default purpose.
     purpose: CircuitPurpose | None = None
 
     def _serialize(self) -> CommandSerializer:
-        """Append `EXTENDCIRCUIT` specific arguments."""
+        """Append ``EXTENDCIRCUIT`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
         args.append(ArgumentString(self.circuit, safe=True))
         if len(self.server_spec):
@@ -393,12 +448,12 @@ class CommandExtendCircuit(Command):
 @dataclass(kw_only=True)
 class CommandSetCircuitPurpose(Command):
     """
-    Command implementation for `SETCIRCUITPURPOSE`.
+    Command implementation for :attr:`~CommandWord.SETCIRCUITPURPOSE`.
 
     This changes the descriptor's purpose.
 
     Hints:
-        See :class:`CommandPostDescriptor` for more details on `purpose`.
+        See :class:`CommandPostDescriptor` for more details on :attr:`purpose`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#setcircuitpurpose
@@ -406,13 +461,16 @@ class CommandSetCircuitPurpose(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.SETCIRCUITPURPOSE
+
+    #: Circuit ID to set the purpose on.
     circuit: int
+    #: Set purpose of the provided circuit.
     purpose: CircuitPurpose
 
     def _serialize(self) -> CommandSerializer:
-        """Append `SETCIRCUITPURPOSE` specific arguments."""
+        """Append ``SETCIRCUITPURPOSE`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
         args.append(ArgumentString(self.circuit, safe=True))
         args.append(ArgumentKeyword('purpose', self.purpose, quotes=QuoteStyle.NEVER))
@@ -424,10 +482,10 @@ class CommandSetCircuitPurpose(Command):
 @dataclass(kw_only=True)
 class CommandAttachStream(Command):
     """
-    Command implementation for `ATTACHSTREAM`.
+    Command implementation for :attr:`~CommandWord.ATTACHSTREAM`.
 
-    This message informs the server that the specified stream should be associated
-    with the specified circuit.
+    This message informs the server that the specified :attr:`stream` should
+    be associated with the :attr:`circuit`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#attachstream
@@ -435,14 +493,22 @@ class CommandAttachStream(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.ATTACHSTREAM
+
+    #: Stream to associate to the provided circuit.
     stream: int
+
+    #: Circuit identifier to attach the stream onto.
     circuit: int
+
+    #: When set, Tor will choose the HopNumth hop in the circuit as the exit node,
+    #: rather that the last node in the circuit. Hops are 1-indexed; generally,
+    #: it is not permitted to attach to hop 1.
     hop: int | None = None
 
     def _serialize(self) -> CommandSerializer:
-        """Append `ATTACHSTREAM` specific arguments."""
+        """Append ``ATTACHSTREAM`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
         args.append(ArgumentString(self.stream, safe=True))
         args.append(ArgumentString(self.circuit, safe=True))
@@ -456,12 +522,7 @@ class CommandAttachStream(Command):
 @dataclass(kw_only=True)
 class CommandPostDescriptor(Command):
     """
-    Command implementation for `POSTDESCRIPTOR`.
-
-    This message informs the server about a new descriptor.
-    If `purpose` is specified, it must be either `GENERAL`, `CONTROLLER`, or `BRIDGE`,
-    else we return a 552 error.
-    The default is `GENERAL`.
+    Command implementation for :attr:`~CommandWord.POSTDESCRIPTOR`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#postdescriptor
@@ -469,14 +530,20 @@ class CommandPostDescriptor(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.POSTDESCRIPTOR
+
+    #: If specified must be :attr:`~.CircuitPurpose.GENERAL`,
+    #: :attr:`~.CircuitPurpose.CONTROLLER`, :attr:`~.CircuitPurpose.BRIDGE`,
+    #: default is :attr:`~.CircuitPurpose.GENERAL`.
     purpose: CircuitPurpose | None = None
+    #: Cache the provided descriptor internally.
     cache: bool | None = None
+    #: Descriptor content.
     descriptor: str
 
     def _serialize(self) -> CommandSerializer:
-        """Append 'POSTDESCRIPTOR' specific arguments."""
+        """Append ``POSTDESCRIPTOR`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
         if self.purpose is not None:
             args.append(ArgumentKeyword('purpose', self.purpose, quotes=QuoteStyle.NEVER))
@@ -492,10 +559,11 @@ class CommandPostDescriptor(Command):
 @dataclass(kw_only=True)
 class CommandRedirectStream(Command):
     """
-    Command implementation for `REDIRECTSTREAM`.
+    Command implementation for :attr:`~CommandWord.REDIRECTSTREAM`.
 
     Tells the server to change the exit address on the specified stream.
-    If Port is specified, changes the destination port as well.
+    If :attr:`port` is specified, changes the destination port as well.
+
     No remapping is performed on the new provided address.
 
     See Also:
@@ -504,14 +572,18 @@ class CommandRedirectStream(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.REDIRECTSTREAM
+
+    #: Stream identifier to redirect.
     stream: int
+    #: Destination address to redirect it to.
     address: str
+    #: Optional port to redirect the stream to.
     port: int | None = None
 
     def _serialize(self) -> CommandSerializer:
-        """Append `REDIRECTSTREAM` specific arguments."""
+        """Append ``REDIRECTSTREAM`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
         args.append(ArgumentString(self.stream, safe=True))
         args.append(ArgumentString(self.address))
@@ -525,9 +597,9 @@ class CommandRedirectStream(Command):
 @dataclass(kw_only=True)
 class CommandCloseStream(Command):
     """
-    Command implementation for `CLOSESTREAM`.
+    Command implementation for :attr:`~CommandWord.CLOSESTREAM`.
 
-    Tells the server to close the specified stream.
+    Tells the server to close the specified :attr:`stream`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#closestream
@@ -535,13 +607,16 @@ class CommandCloseStream(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.CLOSESTREAM
+
+    #: Identifier to the stream to close.
     stream: int
+    #: Provide a reason for the stream to be closed.
     reason: CloseStreamReason
 
     def _serialize(self) -> CommandSerializer:
-        """Append `CLOSESTREAM` specific arguments."""
+        """Append ``CLOSESTREAM`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         args.append(ArgumentString(self.stream, safe=True))
         args.append(ArgumentString(self.reason, safe=True))
         ser.arguments.extend(args)
@@ -551,10 +626,11 @@ class CommandCloseStream(Command):
 @dataclass(kw_only=True)
 class CommandCloseCircuit(Command):
     """
-    Command implementation for `CLOSECIRCUIT`.
+    Command implementation for :attr:`~CommandWord.CLOSECIRCUIT`.
 
     Tells the server to close the specified circuit.
-    If `if_unused` is provided, do not close the circuit unless it is unused.
+
+    When :attr:`if_unused` is :obj:`True`, do not close the circuit unless it is unused.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#closecircuit
@@ -562,6 +638,8 @@ class CommandCloseCircuit(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.CLOSECIRCUIT
+
+    #: Circuit identifier to close.
     circuit: int
 
     #: Do not close the circuit unless it is unused.
@@ -570,7 +648,7 @@ class CommandCloseCircuit(Command):
     def _serialize(self) -> CommandSerializer:
         """Append `CLOSECIRCUIT` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
         args.append(ArgumentString(self.circuit, safe=True))
         if self.if_unused:
@@ -583,12 +661,9 @@ class CommandCloseCircuit(Command):
 @dataclass(kw_only=True)
 class CommandQuit(Command):
     """
-    Command implementation for `QUIT`.
+    Command implementation for :attr:`~CommandWord.QUIT`.
 
     Tells the server to hang up on this controller connection.
-
-    Note:
-        This command can be used before authenticating.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#quit
@@ -599,7 +674,7 @@ class CommandQuit(Command):
 
     def _serialize(self) -> CommandSerializer:
         """
-        Serialize a `QUIT` command.
+        Serialize a ``QUIT`` command.
 
         This command has no additional arguments.
         """
@@ -609,14 +684,15 @@ class CommandQuit(Command):
 @dataclass(kw_only=True)
 class CommandUseFeature(Command):
     """
-    Command implementation for `USEFEATURE`.
+    Command implementation for :attr:`~CommandWord.USEFEATURE`.
 
     Adding additional features to the control protocol sometimes will break backwards
     compatibility. Initially such features are added into Tor and disabled by default.
-    `USEFEATURE` can enable these additional features.
+    :attr:`~CommandWord.USEFEATURE` can enable these additional features.
 
     Note:
-        To get a list of available features please use `GETINFO features/names`.
+        To get a list of available features please use ``features/names``
+        with :class:`CommandGetInfo`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#usefeature
@@ -624,12 +700,14 @@ class CommandUseFeature(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.USEFEATURE
+
+    #: Set of features to enable.
     features: set[Feature | str] = field(default_factory=set)
 
     def _serialize(self) -> CommandSerializer:
         """Append `USEFEATURE` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         for feature in self.features:
             args.append(ArgumentString(feature))
         ser.arguments.extend(args)
@@ -639,12 +717,12 @@ class CommandUseFeature(Command):
 @dataclass(kw_only=True)
 class CommandResolve(Command):
     """
-    Command implementation for `RESOLVE`.
+    Command implementation for :attr:`~CommandWord.RESOLVE`.
 
     This command launches a remote hostname lookup request for every specified
-    request (or reverse lookup if `reverse` is specified). Note that the request
-    is done in the background: to see the answers, your controller will need to
-    listen for `ADDRMAP` events.
+    request (or reverse lookup if :attr:`reverse` is specified).
+    Note that the request is done in the background: to see the answers, your controller
+    will need to listen for :attr:`.EventWord.ADDRMAP` events.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#resolve
@@ -652,13 +730,16 @@ class CommandResolve(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.RESOLVE
+
+    #: List of addresses get a resolution for.
     addresses: MutableSequence[str] = field(default_factory=list)
+    #: Whether we should perform a reverse lookup resolution.
     reverse: bool = False
 
     def _serialize(self) -> CommandSerializer:
-        """Append `RESOLVE` specific arguments."""
+        """Append ``RESOLVE`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
         if self.reverse:
             args.append(ArgumentKeyword('mode', 'reverse', quotes=QuoteStyle.NEVER))
@@ -673,7 +754,7 @@ class CommandResolve(Command):
 @dataclass(kw_only=True)
 class CommandProtocolInfo(Command):
     """
-    Command implementation for `PROTOCOLINFO`.
+    Command implementation for :attr:`~CommandWord.PROTOCOLINFO`.
 
     This command tells the controller what kinds of authentication are supported.
 
@@ -683,12 +764,14 @@ class CommandProtocolInfo(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.PROTOCOLINFO
+
+    #: Optional version to request information for (ignored by Tor at the moment).
     version: int | None = None
 
     def _serialize(self) -> CommandSerializer:
-        """Append `PROTOCOLINFO` specific arguments."""
+        """Append ``PROTOCOLINFO`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
         if self.version is not None:
             args.append(ArgumentString(self.version, safe=True))
@@ -700,7 +783,7 @@ class CommandProtocolInfo(Command):
 @dataclass(kw_only=True)
 class CommandLoadConf(Command):
     """
-    Command implementation for `LOADCONF`.
+    Command implementation for :attr:`~CommandWord.LOADCONF`.
 
     This command allows a controller to upload the text of a config file to Tor over
     the control port. This config file is then loaded as if it had been read from disk.
@@ -711,10 +794,12 @@ class CommandLoadConf(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.LOADCONF
+
+    #: Raw configuration text to load.
     text: str
 
     def _serialize(self) -> CommandSerializer:
-        """Append `LOADCONF` specific arguments."""
+        """Append ``LOADCONF`` specific arguments."""
         ser = super()._serialize()
         ser.body = self.text
         return ser
@@ -723,11 +808,11 @@ class CommandLoadConf(Command):
 @dataclass(kw_only=True)
 class CommandTakeOwnership(Command):
     """
-    Command implementation for `TAKEOWNERSHIP`.
+    Command implementation for :attr:`~CommandWord.TAKEOWNERSHIP`.
 
     This command instructs Tor to shut down when this control connection is closed.
-    This command affects each control connection that sends it independently;
-    if multiple control connections send the `TAKEOWNERSHIP` command to a Tor instance,
+    It affects each control connection that sends it independently; if multiple control
+    connections send the :attr:`~CommandWord.TAKEOWNERSHIP` command to a Tor instance,
     Tor will shut down when any of those connections closes.
 
     See Also:
@@ -738,40 +823,44 @@ class CommandTakeOwnership(Command):
     command: ClassVar[CommandWord] = CommandWord.TAKEOWNERSHIP
 
     def _serialize(self) -> CommandSerializer:
-        """Serialize a `TAKEOWNERSHIP` command."""
+        """Serialize a ``TAKEOWNERSHIP`` command."""
         return super()._serialize()
 
 
 @dataclass(kw_only=True)
 class CommandAuthChallenge(Command):
     """
-    Command implementation for `AUTHCHALLENGE`.
+    Command implementation for :attr:`~CommandWord.AUTHCHALLENGE`.
 
-    This command is used to begin the authentication routine for the `SAFECOOKIE`
-    method of authentication.
+    This command is used to begin the authentication routine for the
+    :attr:`~.AuthMethod.SAFECOOKIE` authentication method.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#authchallenge
 
     """
 
+    #: Length of the nonce we expect to receive (when :class:`bytes`).
     NONCE_LENGTH: ClassVar[int] = 32
+
     command: ClassVar[CommandWord] = CommandWord.AUTHCHALLENGE
+
+    #: Nonce value, a new one is generated when none is provided.
     nonce: bytes | str | None
 
     @classmethod
     def generate_nonce(cls) -> bytes:
-        """Generate a nonce value."""
+        """Generate a nonce value of 32 bytes."""
         return secrets.token_bytes(cls.NONCE_LENGTH)
 
     def _serialize(self) -> CommandSerializer:
-        """Append `AUTHCHALLENGE` specific arguments."""
+        """Append ``AUTHCHALLENGE`` specific arguments."""
         # Generate a nonce while serializing as we need one!
         if self.nonce is None:
             self.nonce = self.generate_nonce()
 
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         args.append(ArgumentString('SAFECOOKIE', safe=True))
 
         match self.nonce:
@@ -786,10 +875,13 @@ class CommandAuthChallenge(Command):
 @dataclass(kw_only=True)
 class CommandDropGuards(Command):
     """
-    Command implementation for `DROPGUARDS`.
+    Command implementation for :attr:`~CommandWord.DROPGUARDS`.
 
-    Tells the server to drop all guard nodes. Do not invoke this command lightly;
-    it can increase vulnerability to tracking attacks over time.
+    Tells the server to drop all guard nodes.
+
+    Warning:
+        Do not invoke this command lightly; it can increase vulnerability to
+        tracking attacks over time.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#dropguards
@@ -799,16 +891,16 @@ class CommandDropGuards(Command):
     command: ClassVar[CommandWord] = CommandWord.DROPGUARDS
 
     def _serialize(self) -> CommandSerializer:
-        """Serialize a `DROPGUARDS` command."""
+        """Serialize a ``DROPGUARDS`` command."""
         return super()._serialize()
 
 
 @dataclass(kw_only=True)
 class CommandHsFetch(Command):
     """
-    Command implementation for `HSFETCH`.
+    Command implementation for :attr:`~CommandWord.HSFETCH`.
 
-    This command launches hidden service descriptor fetch(es) for the given `address`.
+    This command launches hidden service descriptor fetch(es) for the given :attr:`address`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#hsfetch
@@ -816,13 +908,17 @@ class CommandHsFetch(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.HSFETCH
+
+    #: Optional list of servers to contact for a hidden service descriptor.
     servers: MutableSequence[str] = field(default_factory=list)
+
+    #: Onion address (v2 or v3) to request a descriptor for, without the ``.onion`` suffix.
     address: str
 
     def _serialize(self) -> CommandSerializer:
-        """Append `HSFETCH` specific arguments."""
+        """Append ``HSFETCH`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         args.append(ArgumentString(self.address, safe=True))
         for server in self.servers:
             args.append(ArgumentKeyword('SERVER', server, quotes=QuoteStyle.NEVER_ENSURE))
@@ -833,10 +929,10 @@ class CommandHsFetch(Command):
 @dataclass(kw_only=True)
 class CommandAddOnion(Command):
     """
-    Command implementation for `ADD_ONION`.
+    Command implementation for :attr:`~CommandWord.ADD_ONION`.
 
-    Tells the server to create a new Onion ("Hidden") Service, with the specified
-    private key and algorithm.
+    Tells Tor to create a new onion "hidden" Service, with the specified private key
+    and algorithm.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#add_onion
@@ -844,15 +940,28 @@ class CommandAddOnion(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.ADD_ONION
+
+    #: Type of service key to use (or ``NEW``).
     key_type: OnionServiceKeyType | Literal['NEW']
+
+    #: The key as :class:`bytes` or :class:`str`, or the type of key to generate.
     key: OnionServiceKeyType | Literal['BEST'] | bytes | str  # noqa: PYI051
+
+    #: Set of boolean options to attach to this service.
     flags: set[OnionServiceFlags] = field(default_factory=set)
+
+    #: Optional number between 0 and 65535 which is the maximum streams that can be
+    #: attached on a rendezvous circuit. Setting it to 0 means unlimited which is
+    #: also the default behavior.
     max_streams: int | None = None
-    #: As in arguments to HiddenServicePort ("port,target")
+
+    #: As in an arguments to config ``HiddenServicePort``, ``port,target``.
     ports: MutableSequence[str] = field(default_factory=list)
-    #: Syntax: `ClientName:ClientBlob`
+
+    #: Syntax is ``ClientName:ClientBlob``.
     client_auth: MutableSequence[str] = field(default_factory=list)
-    #: Syntax: base32-encoded x25519 public key with only the key part.
+
+    #: String syntax is a base32-encoded x25519 public key with only the key part.
     client_auth_v3: MutableSequence[Base32Bytes | str] = field(default_factory=list)
 
     def _serialize_client_auth_v3_key(self, client: Base32Bytes | str) -> str:
@@ -882,9 +991,9 @@ class CommandAddOnion(Command):
         return f'{key_type}:{key_data}'
 
     def _serialize(self) -> CommandSerializer:
-        """Append `ADD_ONION` specific arguments."""
+        """Append ``ADD_ONION`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
         do_generate = bool(self.key_type == 'NEW')
         has_keyblob = bool(
@@ -928,12 +1037,13 @@ class CommandAddOnion(Command):
 @dataclass(kw_only=True)
 class CommandDelOnion(Command):
     """
-    Command implementation for `DEL_ONION`.
+    Command implementation for :attr:`~CommandWord.DEL_ONION`.
 
-    Tells the server to remove an Onion ("Hidden") Service, that was previously created
-    via an `ADD_ONION` command. It is only possible to remove Onion Services that were
-    created on the same control connection as the `DEL_ONION` command, and those that belong
-    to no control connection in particular (The `DETACH` flag was specified at creation).
+    Tells the server to remove an Onion "hidden" Service, that was previously created
+    trough :class:`CommandAddOnion`. It is only possible to remove onion services that were
+    created on the same control connection as the :attr:`~CommandWord.DEL_ONION` command, and
+    those that belong to no control connection in particular
+    (the :attr:`~.OnionServiceFlags.DETACH` flag was specified upon creation).
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#del_onion
@@ -941,13 +1051,14 @@ class CommandDelOnion(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.DEL_ONION
-    #: This is the v2 or v3 address without the `.onion` suffix.
+
+    #: This is the v2 or v3 address without the ``.onion`` suffix.
     address: str
 
     def _serialize(self) -> CommandSerializer:
-        """Append `DEL_ONION` specific arguments."""
+        """Append ``DEL_ONION`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         args.append(ArgumentString(self.address))
         ser.arguments.extend(args)
         return ser
@@ -956,7 +1067,7 @@ class CommandDelOnion(Command):
 @dataclass(kw_only=True)
 class CommandHsPost(Command):
     """
-    Command implementation for `HSPOST`.
+    Command implementation for :attr:`~CommandWord.HSPOST`.
 
     This command launches a hidden service descriptor upload to the specified HSDirs.
     If one or more Server arguments are provided, an upload is triggered on each of
@@ -969,14 +1080,18 @@ class CommandHsPost(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.HSPOST
+
+    #: List of servers to upload the descriptor to (if any is provided).
     servers: MutableSequence[str] = field(default_factory=list)
+    #: This is the optional v2 or v3 address without the ``.onion`` suffix.
     address: str | None = None
+    #: Descriptor content as raw text.
     descriptor: str
 
     def _serialize(self) -> CommandSerializer:
-        """Append `HSPOST` specific arguments."""
+        """Append ``HSPOST`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         for server in self.servers:
             args.append(ArgumentKeyword('SERVER', server, quotes=QuoteStyle.NEVER_ENSURE))
         if self.address is not None:
@@ -990,11 +1105,11 @@ class CommandHsPost(Command):
 @dataclass(kw_only=True)
 class CommandOnionClientAuthAdd(Command):
     """
-    Command implementation for `ONION_CLIENT_AUTH_ADD`.
+    Command implementation for :attr:`~CommandWord.ONION_CLIENT_AUTH_ADD`.
 
     Tells the connected Tor to add client-side v3 client auth credentials for the onion
-    service with `address`. The `key` is the x25519 private key that should be used for
-    this client, and `nickname` is an optional nickname for the client.
+    service with :attr:`address`. The :attr:`key` is the x25519 private key that should
+    be used for this client, and :attr:`nickname` is an optional nickname for the client.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#onion_client_auth_add
@@ -1002,20 +1117,23 @@ class CommandOnionClientAuthAdd(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.ONION_CLIENT_AUTH_ADD
-    #: V3 onion address without the `.onion` suffix.
+
+    #: V3 onion address without the ``.onion`` suffix.
     address: str
-    #: Base64 encoding of x25519 key.
+
+    #: Key type is currently set to :attr:`~.OnionClientAuthKeyType.X25519`.
     key_type: OnionClientAuthKeyType = OnionClientAuthKeyType.X25519
+    #: The private ``x25519`` key as bytes or as a string of base64 encoded bytes.
     key: Base64Bytes | str
     #: An optional nickname for the client.
     nickname: str | None = None
-    #: This client's credentials should be stored in the filesystem.
+    #: Whether this client's credentials should be stored on the file system.
     flags: AbstractSet[OnionClientAuthFlags] = field(default_factory=set)
 
     def _serialize(self) -> CommandSerializer:
-        """Append `ONION_CLIENT_AUTH_ADD` specific arguments."""
+        """Append ``ONION_CLIENT_AUTH_ADD`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
         args.append(ArgumentString(self.address))
 
@@ -1044,10 +1162,10 @@ class CommandOnionClientAuthAdd(Command):
 @dataclass(kw_only=True)
 class CommandOnionClientAuthRemove(Command):
     """
-    Command implementation for `ONION_CLIENT_AUTH_REMOVE`.
+    Command implementation for :attr:`~CommandWord.ONION_CLIENT_AUTH_REMOVE`.
 
     Tells the connected Tor to remove the client-side v3 client auth credentials
-    for the onion service with `address`.
+    for the onion service with :attr:`address`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#onion_client_auth_remove
@@ -1055,13 +1173,14 @@ class CommandOnionClientAuthRemove(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.ONION_CLIENT_AUTH_REMOVE
-    #: V3 onion address without the `.onion` suffix.
+
+    #: V3 onion address without the ``.onion`` suffix.
     address: str
 
     def _serialize(self) -> CommandSerializer:
-        """Append `ONION_CLIENT_AUTH_REMOVE` specific arguments."""
+        """Append ``ONION_CLIENT_AUTH_REMOVE`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         args.append(ArgumentString(self.address))
         ser.arguments.extend(args)
         return ser
@@ -1070,11 +1189,11 @@ class CommandOnionClientAuthRemove(Command):
 @dataclass(kw_only=True)
 class CommandOnionClientAuthView(Command):
     """
-    Command implementation for `ONION_CLIENT_AUTH_VIEW`.
+    Command implementation for :attr:`~CommandWord.ONION_CLIENT_AUTH_VIEW`.
 
     Tells the connected Tor to list all the stored client-side v3 client auth credentials
-    for `address`. If no `address` is provided, list all the stored client-side v3 client
-    auth credentials.
+    for :attr:`address`. If no :attr:`address` is provided, list all the stored client-side
+    v3 client auth credentials.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#onion_client_auth_view
@@ -1082,13 +1201,14 @@ class CommandOnionClientAuthView(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.ONION_CLIENT_AUTH_VIEW
-    #: V3 onion address without the `.onion` suffix.
+
+    #: V3 onion address without the ``.onion`` suffix.
     address: str | None = None
 
     def _serialize(self) -> CommandSerializer:
-        """Append `ONION_CLIENT_AUTH_VIEW` specific arguments."""
+        """Append ``ONION_CLIENT_AUTH_VIEW`` specific arguments."""
         ser = super()._serialize()
-        args = []  # type: MutableSequence[Argument]
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         if self.address is not None:
             args.append(ArgumentString(self.address))
         ser.arguments.extend(args)
@@ -1098,7 +1218,7 @@ class CommandOnionClientAuthView(Command):
 @dataclass(kw_only=True)
 class CommandDropOwnership(Command):
     """
-    Command implementation for `DROPOWNERSHIP`.
+    Command implementation for :attr:`~CommandWord.DROPOWNERSHIP`.
 
     This command instructs Tor to relinquish ownership of its control connection.
     As such tor will not shut down when this control connection is closed.
@@ -1111,17 +1231,20 @@ class CommandDropOwnership(Command):
     command: ClassVar[CommandWord] = CommandWord.DROPOWNERSHIP
 
     def _serialize(self) -> CommandSerializer:
-        """Serialize a `DROPOWNERSHIP` command."""
+        """Serialize a ``DROPOWNERSHIP`` command."""
         return super()._serialize()
 
 
 @dataclass(kw_only=True)
 class CommandDropTimeouts(Command):
     """
-    Command implementation for `DROPTIMEOUTS`.
+    Command implementation for :attr:`~CommandWord.DROPTIMEOUTS`.
 
-    Tells the server to drop all circuit build times. Do not invoke this command lightly;
-    it can increase vulnerability to tracking attacks over time.
+    Tells the server to drop all circuit build times.
+
+    Warning:
+        Do not invoke this command lightly; it can increase vulnerability
+        to tracking attacks over time.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#droptimeouts
@@ -1131,5 +1254,5 @@ class CommandDropTimeouts(Command):
     command: ClassVar[CommandWord] = CommandWord.DROPTIMEOUTS
 
     def _serialize(self) -> CommandSerializer:
-        """Serialize a `DROPTIMEOUTS` command."""
+        """Serialize a ``DROPTIMEOUTS`` command."""
         return super()._serialize()

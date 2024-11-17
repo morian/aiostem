@@ -54,7 +54,7 @@ class QuoteStyle(IntEnum):
     #: No quote are added around the value, check input to ensure that.
     NEVER_ENSURE = 1
 
-    #: Value is always encloded with quotes.
+    #: Value is always enclosed with quotes.
     ALWAYS = 2
 
     #: Automatically determine the quoting style.
@@ -66,7 +66,7 @@ class QuoteStyle(IntEnum):
         Tell whether the provided `text` should have quotes.
 
         Args:
-            text: input text to check for quotes.
+            text: Input text to check for quotes.
 
         Returns:
             Whether the input text should be enclosed with quotes.
@@ -124,17 +124,20 @@ class ArgumentKeyword(BaseArgument):
         Create a new keyword argument.
 
         Important:
-            Both `key` and `value` cannot be None at the same time.
-
-        Args:
-            key: key part of the keyword, if any.
-            value: value part of the keyword, if any.
-
-        Keyword Args:
-            quotes: tell how to quote the value part when serialized.
+            Both ``key`` and ``value`` cannot be :obj:`None` at the same time.
 
         Note:
-            When value is :obj:`None`, quotes is enforced to :obj:`QuoteStyle.NEVER`.
+            When value is :obj:`None`, quotes is enforced to :data:`QuoteStyle.NEVER`.
+
+        Args:
+            key: Key part of the keyword, if any.
+            value: Value part of the keyword, if any.
+
+        Raises:
+            CommandError: when ``key`` and ``value`` are both :obj:`None`.
+
+        Keyword Args:
+            quotes: Tell how to quote the value part when serialized.
 
         """
         # When value is None, we are treated as a flag and never need to have quotes.
@@ -149,7 +152,7 @@ class ArgumentKeyword(BaseArgument):
         self._quotes = quotes
 
     def __str__(self) -> str:
-        """Serialize the argument to string."""
+        """Serialize the argument to a string."""
         if self._value is None:
             # This check was already performed during __init__.
             return self._key  # type: ignore[return-value]
@@ -172,7 +175,7 @@ class ArgumentKeyword(BaseArgument):
 
     @property
     def quotes(self) -> QuoteStyle:
-        """Get the applied quote style."""
+        """Get the applied quoting style."""
         return self._quotes
 
 
@@ -184,10 +187,10 @@ class ArgumentString(BaseArgument):
         Create a new string argument.
 
         Args:
-            value: raw string value
+            value: Raw string value.
 
         Keyword Args:
-            safe: whether the caller ensures that the value contains no space.
+            safe: Whether the caller ensures that the value contains no space.
 
         Note:
             This value cannot contain spaces.
@@ -201,13 +204,10 @@ class ArgumentString(BaseArgument):
         self._value = value_str
 
     def __str__(self) -> str:
-        """Serialize the argument to string."""
+        """Serialize the argument to a string."""
         return self._value
 
     @property
     def value(self) -> str:
         """Get the value of the string argument."""
         return self._value
-
-
-Argument: TypeAlias = ArgumentKeyword | ArgumentString

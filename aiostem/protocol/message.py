@@ -14,19 +14,25 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True, kw_only=True)
 class BaseMessage(ABC):
-    """Base class for the whole message and message items."""
+    """
+    Base class for any kind of message items.
+
+    A received message (like a reply) can contain sub-messages that also inherit
+    from this base class.
+
+    """
 
     #: The end of line applied while serializing messages.
     END_OF_LINE: Final[str] = '\r\n'
 
-    #: Status code of the whole message.
+    #: Status code of this message or message item.
     status: int
-    #: Text that comes along with the status.
+    #: Text that comes along the status in this (sub-)message.
     header: str
 
     @property
     def is_error(self) -> bool:
-        """Whether our status is an error status (greater than 400)."""
+        """Whether our status is an error (greater or equal to 400)."""
         return bool(self.status >= 400 and self.status != 650)
 
     @property
@@ -34,7 +40,7 @@ class BaseMessage(ABC):
         """
         Tell whether this message is an event.
 
-        This property is a simple helper to tell whether our status is 650.
+        This property is a simple helper to tell whether our status equals to 650.
 
         """
         return bool(self.status == 650)
@@ -62,7 +68,7 @@ class BaseMessage(ABC):
 
 @dataclass(frozen=True, kw_only=True)
 class MessageData(BaseMessage):
-    """A sub-message with only a single line."""
+    """A sub-message with a body part attached."""
 
     #: Additional data (body of the message).
     data: str = ''
@@ -84,7 +90,7 @@ class MessageLine(BaseMessage):
 
     def serialize(self) -> str:
         """Serialize this line sub-message to a string."""
-        return f'{self.status:03d}-{self.header}\r\n'
+        return f'{self.status:03d}-{self.header}{self.END_OF_LINE}'
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -112,7 +118,7 @@ class Message(BaseMessage):
         text = ''
         for item in self.items:
             text += item.serialize()
-        text += f'{self.status:03d} {self.header}\r\n'
+        text += f'{self.status:03d} {self.header}{self.END_OF_LINE}'
         return text
 
 
@@ -135,7 +141,7 @@ async def messages_from_stream(stream: StreamReader) -> AsyncIterator[Message]:
     data = None  # type: MessageData | None
 
     while line_bytes := await stream.readline():
-        line = line_bytes.decode('ascii').removesuffix('\r\n')
+        line = line_bytes.decode('ascii').removesuffix(BaseMessage.END_OF_LINE)
 
         # Continuation of a data sub-message parser.
         if isinstance(data, MessageData):

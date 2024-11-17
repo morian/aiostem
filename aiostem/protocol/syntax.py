@@ -49,7 +49,7 @@ def _string_unescape(string: str) -> tuple[str, str]:
         string: The string to unescape, starting with `"`.
 
     Raises:
-        ReplySyntaxError: EOF was reached before the closing quote.
+        ReplySyntaxError: ``EOF`` was reached before the closing quote.
 
     Returns:
         A tuple with the parsed value and the remaining string.
@@ -94,7 +94,7 @@ class ReplySyntaxFlag(IntFlag):
     KW_OMIT_KEYS = 128
     #: Keyword arguments can omit their value.
     KW_OMIT_VALS = 256
-    #: Use data from :class:`MessageData` as a potential KW value.
+    #: Use data from :class:`.MessageData` as a potential KW value.
     KW_USE_DATA = 512
     #: No quoting or escape is performed (whole line is a value).
     KW_RAW = 1024
@@ -106,19 +106,21 @@ class ReplySyntax:
     Describe the syntax of a single reply item.
 
     Important:
-        - `args_max` is set to `max(args_max, len(args_map))`.
-        - `args_min` cannot be greater than `args_max`.
-        - `kwargs_map` must be empty when `KW_ENABLE` is not set.
-        - `POS_REMAIN` is mutually exclusive with `KW_ENABLE`.
-        - `KW_QUOTED` is mutually exclusive with `KW_RAW`.
+        - ``args_max`` is set to ``max(args_max, len(args_map))``.
+        - ``args_min`` cannot be greater than ``args_max``.
+        - ``kwargs_map`` must be empty when :data:`~ReplySyntaxFlag.KW_ENABLE` is not set.
+        - :data:`~ReplySyntaxFlag.POS_REMAIN` is mutually exclusive with
+          :data:`~ReplySyntaxFlag.KW_ENABLE`.
+        - :data:`~ReplySyntaxFlag.KW_QUOTED` is mutually exclusive with
+          :data:`~ReplySyntaxFlag.KW_RAW`.
 
     """
 
-    #: Minimum number of required positionaol arguments.
+    #: Minimum number of required positional arguments.
     args_min: int = 0
     #: Maximum number of positional arguments.
     args_max: int = 0
-    #: List of names for the positional arguments (`obj:`None` to ignore it).
+    #: List of names for the positional arguments (:obj:`None` to ignore it).
     args_map: Sequence[str | None] = field(default_factory=list)
     #: Correspondance map for keyword arguments.
     kwargs_map: Mapping[str | None, str] = field(default_factory=dict)
@@ -232,7 +234,7 @@ class ReplySyntax:
         Parse the provided message.
 
         Args:
-            message: a message or sub-message to parse with this syntax.
+            message: A message or sub-message to parse with this syntax.
 
         Returns:
             A map of parsed values.
@@ -288,7 +290,7 @@ class ReplySyntax:
         Parse the provided string.
 
         Args:
-            string: a plain header to parse as if it was a message header.
+            string: A plain header to parse as if it was a message header.
 
         Returns:
             A map of parsed values.

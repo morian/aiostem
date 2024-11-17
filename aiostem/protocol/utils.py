@@ -17,26 +17,29 @@ if TYPE_CHECKING:
     from pydantic.json_schema import JsonSchemaValue
     from pydantic_core.core_schema import ValidationInfo, ValidatorFunctionWrapHandler
 
-    from .argument import Argument
+    from .argument import ArgumentKeyword, ArgumentString
     from .command import CommandWord
 
 
 class CommandSerializer:
     """Helper class used to serialize an existing command."""
 
+    #: End of line to use while serializing a command.
     END_OF_LINE: ClassVar[str] = '\r\n'
 
     def __init__(self, name: CommandWord) -> None:
         """
         Create a new command serializer.
 
+        This is used internally by :meth:`.Command.serialize`.
+
         Args:
-            name: the command name.
+            name: The command name.
 
         """
         self._body = None  # type: str | None
         self._command = name
-        self._arguments = []  # type: MutableSequence[Argument]
+        self._arguments = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
     def serialize(self) -> str:
         """
@@ -76,13 +79,13 @@ class CommandSerializer:
         return self._command
 
     @property
-    def arguments(self) -> MutableSequence[Argument]:
+    def arguments(self) -> MutableSequence[ArgumentKeyword | ArgumentString]:
         """Get the list of command arguments."""
         return self._arguments
 
     @property
     def body(self) -> str | None:
-        """Get the command body, is any."""
+        """Get the command body, if any."""
         return self._body
 
     @body.setter
@@ -91,7 +94,7 @@ class CommandSerializer:
         Set the command body.
 
         Args:
-            body: the new body content for the command
+            body: The new body content for the command.
 
         """
         self._body = body
@@ -109,7 +112,7 @@ class EncoderProtocol(Protocol, Generic[T]):
         Decode the data using the encoder.
 
         Args:
-            data: a string that can be decoded to type `T`.
+            data: A string that can be decoded to type ``T``.
 
         Returns:
             The newly decoded type.
@@ -122,7 +125,7 @@ class EncoderProtocol(Protocol, Generic[T]):
         Encode the provided value using the encoder.
 
         Args:
-            value: a generic value of type `T`
+            value: A generic value of type ``T``.
 
         Returns:
             The exact value encoded to a string.

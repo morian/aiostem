@@ -46,7 +46,7 @@ class BaseReply(ABC):
 
     @property
     def is_error(self) -> bool:
-        """Whether our status is an error status (greater than 400)."""
+        """Whether our status is an error status (greater or equal to 400)."""
         return bool(self.status >= 400)
 
     @property
@@ -59,7 +59,7 @@ class BaseReply(ABC):
         Raise when the reply status is an error.
 
         Raises:
-            ReplyStatusError: when :meth:`is_error` is :obj:`True`.
+            ReplyStatusError: When :meth:`is_error` is :obj:`True`.
 
         """
         if self.is_error:
@@ -103,12 +103,12 @@ class ReplyGetMap(Reply):
     A base reply class for commands returning maps of values.
 
     These are replies for commands such as:
-        - :attr:`~.command.CommandWord.GETCONF`
-        - :attr:`~.command.CommandWord.GETINFO`
+        - :class:`~.CommandGetConf`
+        - :class:`~.CommandGetInfo`
 
     """
 
-    #: Needs to be completed by the sub-class.
+    #: Syntax to use, needs to be defined by sub-classes.
     SYNTAX: ClassVar[ReplySyntax]
 
     @classmethod
@@ -135,17 +135,17 @@ class ReplyGetMap(Reply):
 
 @dataclass(kw_only=True, slots=True)
 class ReplySetConf(ReplySimple):
-    """A reply for a `SETCONF` command."""
+    """A reply for a :attr:`~.CommandWord.SETCONF` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyResetConf(ReplySimple):
-    """A reply for a `RESETCONF` command."""
+    """A reply for a :attr:`~.CommandWord.RESETCONF` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyGetConf(ReplyGetMap):
-    """A reply for a `GETCONF` command."""
+    """A reply for a :attr:`~.CommandWord.GETCONF` command."""
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         flags=(
@@ -156,6 +156,7 @@ class ReplyGetConf(ReplyGetMap):
         )
     )
 
+    #: Values read from the current Tor configuration.
     values: Mapping[str, Sequence[str | None] | str | None] = field(default_factory=dict)
 
     @classmethod
@@ -176,27 +177,27 @@ class ReplyGetConf(ReplyGetMap):
 
 @dataclass(kw_only=True, slots=True)
 class ReplySetEvents(ReplySimple):
-    """A reply for a `SETEVENTS` command."""
+    """A reply for a :attr:`~.CommandWord.SETEVENTS` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyAuthenticate(ReplySimple):
-    """A reply for a `AUTHENTICATE` command."""
+    """A reply for a :attr:`~.CommandWord.AUTHENTICATE` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplySaveConf(ReplySimple):
-    """A reply for a `SAVECONF` command."""
+    """A reply for a :attr:`~.CommandWord.SAVECONF` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplySignal(ReplySimple):
-    """A reply for a `SIGNAL` command."""
+    """A reply for a :attr:`~.CommandWord.SIGNAL` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyMapAddressItem(BaseReply):
-    """A single item from a reply for `MAPADDRESS`."""
+    """Part of a reply for a :attr:`~.CommandWord.MAPADDRESS` command."""
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_EXTRA,
@@ -205,12 +206,12 @@ class ReplyMapAddressItem(BaseReply):
     #: Original address to replace with another one.
     original: str | None = None
 
-    #: Replacement item for the corresponding `original` address.
+    #: Replacement item for the corresponding :attr:`original` address.
     replacement: str | None = None
 
     @classmethod
     def from_message_item(cls, message: BaseMessage) -> Self:
-        """Build a sub-reply for a `MAPADDRESS` reply item."""
+        """Build a sub-reply for a :attr:`~.CommandWord.MAPADDRESS` reply item."""
         result = {'status': message.status}  # type: dict[str, Any]
         if message.is_success:
             values = cls.SYNTAX.parse(message)
@@ -224,7 +225,7 @@ class ReplyMapAddressItem(BaseReply):
 @dataclass(kw_only=True, slots=True)
 class ReplyMapAddress(Reply):
     """
-    A reply for a `MAPADDRESS` command.
+    A reply for a :attr:`~.CommandWord.MAPADDRESS` command.
 
     Note:
         This reply has sub-replies since each mapping request is handled
@@ -258,7 +259,7 @@ class ReplyMapAddress(Reply):
 
 @dataclass(kw_only=True, slots=True)
 class ReplyGetInfo(ReplyGetMap):
-    """A reply for a `GETINFO` command."""
+    """A reply for a :attr:`~.CommandWord.GETINFO` command."""
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         flags=(
@@ -270,6 +271,7 @@ class ReplyGetInfo(ReplyGetMap):
         )
     )
 
+    #: Values received for the provides keywords.
     values: Mapping[str, Sequence[str | None] | str | None] = field(default_factory=dict)
 
     @classmethod
@@ -286,11 +288,11 @@ class ReplyGetInfo(ReplyGetMap):
 
 @dataclass(kw_only=True, slots=True)
 class ReplyExtendCircuit(ReplyGetMap):
-    """A reply for a `GETINFO` command."""
+    """A reply for a :attr:`~.CommandWord.EXTENDCIRCUIT` command."""
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(args_min=2, args_map=(None, 'circuit'))
 
-    #: Built or extended circuit (None on error).
+    #: Built or extended circuit (:obj:`None` on error).
     circuit: int | None = None
 
     @classmethod
@@ -310,47 +312,47 @@ class ReplyExtendCircuit(ReplyGetMap):
 
 @dataclass(kw_only=True, slots=True)
 class ReplySetCircuitPurpose(ReplySimple):
-    """A reply for a `SETCIRCUITPURPOSE` command."""
+    """A reply for a :attr:`~.CommandWord.SETCIRCUITPURPOSE` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyAttachStream(ReplySimple):
-    """A reply for a `ATTACHSTREAM` command."""
+    """A reply for a :attr:`~.CommandWord.ATTACHSTREAM` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyPostDescriptor(ReplySimple):
-    """A reply for a `POSTDESCRIPTOR` command."""
+    """A reply for a :attr:`~.CommandWord.POSTDESCRIPTOR` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyRedirectStream(ReplySimple):
-    """A reply for a `REDIRECTSTREAM` command."""
+    """A reply for a :attr:`~.CommandWord.REDIRECTSTREAM` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyCloseStream(ReplySimple):
-    """A reply for a `CLOSESTREAM` command."""
+    """A reply for a :attr:`~.CommandWord.CLOSESTREAM` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyCloseCircuit(ReplySimple):
-    """A reply for a `CLOSECIRCUIT` command."""
+    """A reply for a :attr:`~.CommandWord.CLOSECIRCUIT` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyQuit(ReplySimple):
-    """A reply for a `QUIT` command."""
+    """A reply for a :attr:`~.CommandWord.QUIT` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyUseFeature(ReplySimple):
-    """A reply for a `USEFEATURE` command."""
+    """A reply for a :attr:`~.CommandWord.USEFEATURE` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyResolve(ReplySimple):
-    """A reply for a `RESOLVE` command."""
+    """A reply for a :attr:`~.CommandWord.RESOLVE` command."""
 
 
 def _read_auth_cookie_file(path: str) -> bytes:
@@ -370,7 +372,7 @@ def _read_auth_cookie_file(path: str) -> bytes:
 
 @dataclass(kw_only=True, slots=True)
 class ReplyProtocolInfo(Reply):
-    """A reply for a `PROTOCOLINFO` command."""
+    """A reply for a :attr:`~.CommandWord.PROTOCOLINFO` command."""
 
     SYNTAXES: ClassVar[Mapping[str, ReplySyntax]] = {
         'AUTH': ReplySyntax(
@@ -405,7 +407,7 @@ class ReplyProtocolInfo(Reply):
         Read the content of our the cookie file.
 
         Raises:
-            FileNotFoundError: when there is no cookie file.
+            FileNotFoundError: When there is no cookie file.
 
         Returns:
             The content of the cookie file.
@@ -439,17 +441,17 @@ class ReplyProtocolInfo(Reply):
 
 @dataclass(kw_only=True, slots=True)
 class ReplyLoadConf(ReplySimple):
-    """A reply for a `LOADCONF` command."""
+    """A reply for a :attr:`~.CommandWord.LOADCONF` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyTakeOwnership(ReplySimple):
-    """A reply for a `TAKEOWNERSHIP` command."""
+    """A reply for a :attr:`~.CommandWord.TAKEOWNERSHIP` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyAuthChallenge(Reply):
-    """A reply for a `AUTHCHALLENGE` command."""
+    """A reply for a :attr:`~.CommandWord.AUTHCHALLENGE` command."""
 
     CLIENT_HASH_CONSTANT: ClassVar[bytes] = (
         b'Tor safe cookie authentication controller-to-server hash'
@@ -468,8 +470,9 @@ class ReplyAuthChallenge(Reply):
 
     #: Not part of the real response, but very handy to have it here.
     client_nonce: HexBytes | str | None = None
-
+    #: Server hash as computed by the server.
     server_hash: HexBytes | None = None
+    #: Server nonce as provided by the server.
     server_nonce: HexBytes | None = None
 
     @classmethod
@@ -495,8 +498,11 @@ class ReplyAuthChallenge(Reply):
         Build a token suitable for authentication.
 
         Args:
-            client_nonce: The client nonce used in :class:`CommandAuthChallenge`.
+            client_nonce: The client nonce used in :class:`.CommandAuthChallenge`.
             cookie: The cookie value read from the cookie file.
+
+        Raises:
+            ReplyError: When our client or server nonce is :obj:`None`.
 
         Returns:
             A value that you can authenticate with.
@@ -525,11 +531,11 @@ class ReplyAuthChallenge(Reply):
         Recompute the server hash.
 
         Args:
-            client_nonce: The client nonce used in :class:`CommandAuthChallenge`.
+            client_nonce: The client nonce used in :class:`.CommandAuthChallenge`.
             cookie: The cookie value read from the cookie file.
 
         Raises:
-            ReplyError: when our server nonce is :obj:`None`.
+            ReplyError: When our client or server nonce is :obj:`None`.
 
         Returns:
             The same value as in `server_hash` if everything went well.
@@ -558,11 +564,11 @@ class ReplyAuthChallenge(Reply):
         Check that our server hash is consistent with what we compute.
 
         Args:
-            client_nonce: The client nonce used in :class:`CommandAuthChallenge`.
+            client_nonce: The client nonce used in :class:`.CommandAuthChallenge`.
             cookie: The cookie value read from the cookie file.
 
         Raises:
-            ReplyError: when our server nonce does not match the one we computed.
+            ReplyError: When our server nonce does not match the one we computed.
 
         """
         computed = self.build_server_hash(cookie, client_nonce)
@@ -573,17 +579,17 @@ class ReplyAuthChallenge(Reply):
 
 @dataclass(kw_only=True, slots=True)
 class ReplyDropGuards(ReplySimple):
-    """A reply for a `DROPGUARDS` command."""
+    """A reply for a :attr:`~.CommandWord.DROPGUARDS` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyHsFetch(ReplySimple):
-    """A reply for a `HSFETCH` command."""
+    """A reply for a :attr:`~.CommandWord.HSFETCH` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyAddOnion(Reply):
-    """A reply for a `ADD_ONION` command."""
+    """A reply for a :attr:`~.CommandWord.ADD_ONION` command."""
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         kwargs_map={
@@ -598,9 +604,13 @@ class ReplyAddOnion(Reply):
 
     #: Called `ServiceID` in the documentation, this is the onion address minus its TLD.
     address: str | None = None
+    #: List of client authentication for a v2 address.
     client_auth: Sequence[str] = field(default_factory=list)
+    #: List of client authentication for a v3 address.
     client_auth_v3: Sequence[Base32Bytes] = field(default_factory=list)
+    #: Onion service key type.
     key_type: OnionServiceKeyType | None = None
+    #: Onion service key bytes.
     key: Base64Bytes | None = None
 
     @classmethod
@@ -636,27 +646,27 @@ class ReplyAddOnion(Reply):
 
 @dataclass(kw_only=True, slots=True)
 class ReplyDelOnion(ReplySimple):
-    """A reply for a `DEL_ONION` command."""
+    """A reply for a :attr:`~.CommandWord.DEL_ONION` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyHsPost(ReplySimple):
-    """A reply for a `HSPOST` command."""
+    """A reply for a :attr:`~.CommandWord.HSPOST` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyOnionClientAuthAdd(ReplySimple):
-    """A reply for a `ONION_CLIENT_AUTH_ADD` command."""
+    """A reply for a :attr:`~.CommandWord.ONION_CLIENT_AUTH_ADD` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyOnionClientAuthRemove(ReplySimple):
-    """A reply for a `ONION_CLIENT_AUTH_REMOVE` command."""
+    """A reply for a :attr:`~.CommandWord.ONION_CLIENT_AUTH_REMOVE` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyOnionClientAuthView(Reply):
-    """A reply for a `ONION_CLIENT_AUTH_VIEW` command."""
+    """A reply for a :attr:`~.CommandWord.ONION_CLIENT_AUTH_VIEW` command."""
 
     SYNTAXES: ClassVar[Mapping[str, ReplySyntax]] = {
         'ONION_CLIENT_AUTH_VIEW': ReplySyntax(args_map=('address',)),
@@ -671,7 +681,9 @@ class ReplyOnionClientAuthView(Reply):
         ),
     }
 
+    #: Onion address minus the ``.onion`` suffix.
     address: str | None = None
+    #: List of client private keys.
     clients: Sequence[OnionClientAuthKey] = field(default_factory=list)
 
     @classmethod
@@ -709,9 +721,9 @@ class ReplyOnionClientAuthView(Reply):
 
 @dataclass(kw_only=True, slots=True)
 class ReplyDropOwnership(ReplySimple):
-    """A reply for a `DROPOWNERSHIP` command."""
+    """A reply for a :attr:`~.CommandWord.DROPOWNERSHIP` command."""
 
 
 @dataclass(kw_only=True, slots=True)
 class ReplyDropTimeouts(ReplySimple):
-    """A reply for a `DROPTIMEOUTS` command."""
+    """A reply for a :attr:`~.CommandWord.DROPTIMEOUTS` command."""

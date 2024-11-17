@@ -4,8 +4,8 @@ Connector
 .. currentmodule:: aiostem.connector
 
 These helper classes are either used directly or indirectly to help with connecting to the
-control port. They simply provide a ``connect`` method returning a full-duplex link as a
-:class:`tuple` of :class:`~asyncio.StreamReader` and :class:`~asyncio.StreamWriter`.
+control port. They simply provide a :meth:`~ControlConnector.connect` method returning a full-duplex
+link as a :class:`tuple` of :class:`~asyncio.StreamReader` and :class:`~asyncio.StreamWriter`.
 
 You can easily create your own and then provide it to the :class:`.Controller`, for instance
 this can be handy to pass through a socks proxy or establish a TLS connection.
