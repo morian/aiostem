@@ -29,7 +29,7 @@ from .structures import (
     StatusGeneralBug,
     StatusGeneralClockJumped,
     StatusGeneralClockSkew,
-    StatusGeneralDangerousVersionReason,
+    StatusGeneralDangerousVersion,
     StatusGeneralTooManyConnections,
     StatusServerAcceptedServerDescriptor,
     StatusServerBadServerDescriptor,
@@ -50,7 +50,9 @@ class EventWordInternal(StrEnum):
     """All events handled internally in this library."""
 
     #: The controller has been disconnected from Tor.
-    #: Implemented by :class:`EventDisconnect`.
+    #:
+    #: See Also:
+    #:     :class:`EventDisconnect`
     DISCONNECT = 'DISCONNECT'
 
 
@@ -59,82 +61,152 @@ class EventWord(StrEnum):
 
     #: Circuit status changed.
     CIRC = 'CIRC'
+
     #: Stream status changed.
     STREAM = 'STREAM'
+
     #: OR Connection status changed.
     ORCONN = 'ORCONN'
+
     #: Bandwidth used in the last second.
     BW = 'BW'
+
     #: Debug log message.
-    #: Implemented by :class:`EventLogDebug`.
+    #:
+    #: See Also:
+    #:     :class:`EventLogDebug`
     DEBUG = 'DEBUG'
+
     #: Info log message.
-    #: Implemented by :class:`EventLogInfo`.
+    #:
+    #: See Also:
+    #:     :class:`EventLogInfo`
     INFO = 'INFO'
+
     #: Notice log message.
-    #: Implemented by :class:`EventLogNotice`.
+    #:
+    #: See Also:
+    #:     :class:`EventLogNotice`
     NOTICE = 'NOTICE'
+
     #: Warning log message.
-    #: Implemented by :class:`EventLogWarn`.
+    #:
+    #: See Also:
+    #:     :class:`EventLogWarn`
     WARN = 'WARN'
+
     #: Error log message.
-    #: Implemented by :class:`EventLogErr`.
+    #:
+    #: See Also:
+    #:     :class:`EventLogErr`
     ERR = 'ERR'
+
     #: New descriptors available.
     NEWDESC = 'NEWDESC'
+
     #: New Address mapping.
     ADDRMAP = 'ADDRMAP'
+
     #: Descriptors uploaded to us in our role as authoritative dirserver.
     AUTHDIR_NEWDESCS = 'AUTHDIR_NEWDESCS'
+
     #: Our descriptor changed.
     DESCCHANGED = 'DESCCHANGED'
+
     #: General status event.
+    #:
+    #: See Also:
+    #:     :class:`EventStatusGeneral`
     STATUS_GENERAL = 'STATUS_GENERAL'
+
     #: Client status event.
+    #:
+    #: See Also:
+    #:     :class:`EventStatusClient`
     STATUS_CLIENT = 'STATUS_CLIENT'
+
     #: Server status event.
+    #:
+    #: See Also:
+    #:     :class:`EventStatusServer`
     STATUS_SERVER = 'STATUS_SERVER'
+
     #: Our set of guard nodes has changed.
     GUARD = 'GUARD'
+
     #: Network status has changed.
     NS = 'NS'
+
     #: Bandwidth used on an application stream.
     STREAM_BW = 'STREAM_BW'
+
     #: Per-country client stats.
     CLIENTS_SEEN = 'CLIENTS_SEEN'
+
     #: New consensus networkstatus has arrived.
     NEWCONSENSUS = 'NEWCONSENSUS'
+
     #: New circuit buildtime has been set.
     BUILDTIMEOUT_SET = 'BUILDTIMEOUT_SET'
+
     #: Signal received.
-    #: Implemented in :class:`EventSignal`.
+    #:
+    #: See Also:
+    #:     :class:`EventSignal`
     SIGNAL = 'SIGNAL'
+
     #: Configuration changed.
     CONF_CHANGED = 'CONF_CHANGED'
+
     #: Circuit status changed slightly.
     CIRC_MINOR = 'CIRC_MINOR'
+
     #: Pluggable transport launched.
+    #:
+    #: See Also:
+    #:     :class:`EventTransportLaunched`
     TRANSPORT_LAUNCHED = 'TRANSPORT_LAUNCHED'
+
     #: Bandwidth used on an OR or DIR or EXIT connection.
     CONN_BW = 'CONN_BW'
+
     #: Bandwidth used by all streams attached to a circuit.
     CIRC_BW = 'CIRC_BW'
+
     #: Per-circuit cell stats.
     CELL_STATS = 'CELL_STATS'
+
     #: Token buckets refilled.
     TB_EMPTY = 'TB_EMPTY'
+
     #: HiddenService descriptors.
-    #: Implemented in :class:`EventHsDesc`.
+    #:
+    #: See Also:
+    #:     :class:`EventHsDesc`
     HS_DESC = 'HS_DESC'
+
     #: HiddenService descriptors content.
-    #: Implemented in :class:`EventHsDescContent`.
+    #:
+    #: See Also:
+    #:     :class:`EventHsDescContent`
     HS_DESC_CONTENT = 'HS_DESC_CONTENT'
+
     #: Network liveness has changed.
-    #: Implemented in :class:`EventNetworkLiveness`.
+    #:
+    #: See Also:
+    #:     :class:`EventNetworkLiveness`
     NETWORK_LIVENESS = 'NETWORK_LIVENESS'
+
     #: Pluggable Transport Logs.
+    #:
+    #: See Also:
+    #:     :class:`EventPtLog`
     PT_LOG = 'PT_LOG'
+
     #: Pluggable Transport Status.
+    #:
+    #: See Also:
+    #:     :class:`EventPtStatus`
     PT_STATUS = 'PT_STATUS'
 
 
@@ -236,7 +308,7 @@ class EventHsDesc(EventSimple):
     action: HsDescAction
     #: Onion address the report status is for (without the ``.onion`` suffix).
     address: str | Literal['UNKNOWN']  # noqa: PYI051
-    #: Client authentication is not yet implemented and is always :attr:`~.HsDescAuthType.NO_AUTH`.
+    #: Client authentication is not implemented and is always :attr:`~.HsDescAuthType.NO_AUTH`.
     auth_type: HsDescAuthType
     #: The descriptor blinded key used for the index value at the "HsDir".
     descriptor_id: Base32Bytes | Base64Bytes | None = None
@@ -244,10 +316,10 @@ class EventHsDesc(EventSimple):
     hs_dir: str | Literal['UNKNOWN']  # noqa: PYI051
     #: Contains the computed index of the HsDir the descriptor was uploaded to or fetched from.
     hs_dir_index: HexBytes | None = None
-    #: If :attr:`action` is :attr:`~.HsDescAction.FAILED`, Tor SHOULD send Reason field as well.
+    #: If :attr:`action` is :attr:`~.HsDescAction.FAILED`, Tor SHOULD send a reason field.
     reason: HsDescFailReason | None = None
-    #: Field is not used for the :attr:`~.HsDescAction.CREATED` event because v3 doesn't use the
-    #: replica number in the descriptor ID computation.
+    #: Field is not used for the :attr:`~.HsDescAction.CREATED` event because v3 doesn't use
+    #: the replica number in the descriptor ID computation.
     replica: int | None = None
 
 
@@ -474,7 +546,13 @@ class EventStatus(Event):
 
 @dataclass(kw_only=True, slots=True)
 class EventStatusGeneral(EventStatus):
-    """Parser for a `STATUS_GENERAL` event."""
+    """
+    Event parser for :attr:`~EventWord.STATUS_GENERAL` events.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#STATUS
+
+    """
 
     SUBSYNTAXES: ClassVar[Mapping[str, ReplySyntax | None]] = {
         'BUG': ReplySyntax(
@@ -508,13 +586,16 @@ class EventStatusGeneral(EventStatus):
     }
     TYPE = EventWord.STATUS_GENERAL
 
+    #: Which action this general status event is for.
     action: StatusActionGeneral
+
+    #: Arguments associated with the :attr:`action`.
     arguments: Annotated[
         Union[  # noqa: UP007
             Annotated[StatusGeneralBug, Tag('BUG')],
             Annotated[StatusGeneralClockJumped, Tag('CLOCK_JUMPED')],
             Annotated[StatusGeneralClockSkew, Tag('CLOCK_SKEW')],
-            Annotated[StatusGeneralDangerousVersionReason, Tag('DANGEROUS_VERSION')],
+            Annotated[StatusGeneralDangerousVersion, Tag('DANGEROUS_VERSION')],
             Annotated[StatusGeneralTooManyConnections, Tag('TOO_MANY_CONNECTIONS')],
             Annotated[None, Tag('__NONE__')],
         ],
@@ -524,7 +605,13 @@ class EventStatusGeneral(EventStatus):
 
 @dataclass(kw_only=True, slots=True)
 class EventStatusClient(EventStatus):
-    """Parser for a `STATUS_CLIENT` event."""
+    """
+    Event parser for :attr:`~EventWord.STATUS_CLIENT` events.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#STATUS
+
+    """
 
     SUBSYNTAXES: ClassVar[Mapping[str, ReplySyntax | None]] = {
         'BOOTSTRAP': ReplySyntax(
@@ -571,7 +658,10 @@ class EventStatusClient(EventStatus):
     }
     TYPE = EventWord.STATUS_CLIENT
 
+    #: Which action this client status event is for.
     action: StatusActionClient
+
+    #: Arguments associated with the :attr:`action`.
     arguments: Annotated[
         Union[  # noqa: UP007
             Annotated[StatusClientBootstrap, Tag('BOOTSTRAP')],
@@ -587,7 +677,13 @@ class EventStatusClient(EventStatus):
 
 @dataclass(kw_only=True, slots=True)
 class EventStatusServer(EventStatus):
-    """Parser for a `STATUS_SERVER` event."""
+    """
+    Event parser for :attr:`~EventWord.STATUS_SERVER` events.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#STATUS
+
+    """
 
     SUBSYNTAXES: ClassVar[Mapping[str, ReplySyntax | None]] = {
         'EXTERNAL_ADDRESS': ReplySyntax(
@@ -649,7 +745,10 @@ class EventStatusServer(EventStatus):
     }
     TYPE = EventWord.STATUS_SERVER
 
+    #: Which action this server status event is for.
     action: StatusActionServer
+
+    #: Arguments associated with the :attr:`action`.
     arguments: Annotated[
         Union[  # noqa: UP007
             Annotated[StatusServerExternalAddress, Tag('EXTERNAL_ADDRESS')],
@@ -668,7 +767,13 @@ class EventStatusServer(EventStatus):
 
 @dataclass(kw_only=True, slots=True)
 class EventTransportLaunched(EventSimple):
-    """Structure for a `TRANSPORT_LAUNCHED` event."""
+    """
+    Event parser for :attr:`~EventWord.TRANSPORT_LAUNCHED` events.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#TRANSPORT_LAUNCHED
+
+    """
 
     SYNTAX = ReplySyntax(
         args_min=5,
@@ -676,15 +781,26 @@ class EventTransportLaunched(EventSimple):
     )
     TYPE = EventWord.TRANSPORT_LAUNCHED
 
+    #: Which side the transport was launched for.
     side: Literal['client', 'server']
+    #: Name of the pluggable transport.
     name: str
+    #: Host hosting the pluggable transport.
     host: str
+    #: Associated TCP port.
     port: int
 
 
 @dataclass(kw_only=True, slots=True)
 class EventPtLog(EventSimple):
-    """Structure for a `PT_LOG` event."""
+    """
+    Event parser for :attr:`~EventWord.PT_LOG` events.
+
+    See Also:
+        - https://spec.torproject.org/control-spec/replies.html#PT_LOG
+        - https://spec.torproject.org/pt-spec/ipc.html#log-messages
+
+    """
 
     SYNTAX = ReplySyntax(
         args_min=1,
@@ -698,14 +814,25 @@ class EventPtLog(EventSimple):
     )
     TYPE = EventWord.PT_LOG
 
+    #: Program path as defined in the ``TransportPlugin`` configuration option.
     program: str
+    #: The status message that the PT sends back to the tor parent minus
+    #: the ``STATUS`` string prefix.
     message: str
+    #: Log severity.
     severity: Annotated[LogSeverity, LogSeverityTransformer()]
 
 
 @dataclass(kw_only=True, slots=True)
 class EventPtStatus(Event):
-    """Structure for a `PT_STATUS` event."""
+    """
+    Event parser for :attr:`~EventWord.PT_STATUS` events.
+
+    See Also:
+        - https://spec.torproject.org/control-spec/replies.html#PT_STATUS
+        - https://spec.torproject.org/pt-spec/ipc.html#status-messages
+
+    """
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=1,
@@ -718,9 +845,12 @@ class EventPtStatus(Event):
     )
     TYPE = EventWord.PT_STATUS
 
-    values: Mapping[str, str] = field(default_factory=dict)
-    transport: str
+    #: Program path as defined in the ``TransportPlugin`` configuration option.
     program: str
+    #: This value indicates a hint on what the PT is such as the name or the protocol used.
+    transport: str
+    #: All keywords reported by the underlying PT plugin, such as messages, etc...
+    values: Mapping[str, str] = field(default_factory=dict)
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
@@ -735,7 +865,13 @@ class EventPtStatus(Event):
 
 @dataclass(kw_only=True, slots=True)
 class EventUnknown(Event):
-    """Structure for an unknown event."""
+    """
+    Structure for an unknown event.
+
+    This structure is the default fallback when no event class suits the event type
+    the user subscribed to.
+
+    """
 
     TYPE = None
 

@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from typing import Annotated, Literal
 
-from .utils import Base64Bytes, StringSequence, TimedeltaSeconds
+from .utils import Base64Bytes, HexBytes, StringSequence, TimedeltaSeconds
 
 
 class AuthMethod(StrEnum):
@@ -236,48 +236,87 @@ class Signal(StrEnum):
 
 
 class StatusActionClient(StrEnum):
-    """Possible actions for a client status event."""
+    """
+    Possible actions for a :attr:`~.EventWord.STATUS_CLIENT` event.
+
+    See Also:
+        :class:`.EventStatusClient`
+
+    """
 
     #: Tor has made some progress at establishing a connection to the Tor network.
+    #:
+    #: See Also:
+    #:    :class:`StatusClientBootstrap`
     BOOTSTRAP = 'BOOTSTRAP'
     #: Tor is able to establish circuits for client use.
     CIRCUIT_ESTABLISHED = 'CIRCUIT_ESTABLISHED'
     #: We are no longer confident that we can build circuits.
+    #:
+    #: See Also:
+    #:    :class:`StatusClientCircuitNotEstablished`
     CIRCUIT_NOT_ESTABLISHED = 'CIRCUIT_NOT_ESTABLISHED'
     #: Tor has received and validated a new consensus networkstatus.
     CONSENSUS_ARRIVED = 'CONSENSUS_ARRIVED'
     #: A stream was initiated to a port that's commonly used for vuln-plaintext protocols.
+    #:
+    #: See Also:
+    #:    :class:`StatusClientDangerousPort`
     DANGEROUS_PORT = 'DANGEROUS_PORT'
     #: A connection was made to Tor's SOCKS port without support for hostnames.
+    #:
+    #: See Also:
+    #:    :class:`StatusClientDangerousSocks`
     DANGEROUS_SOCKS = 'DANGEROUS_SOCKS'
     #: Tor now knows enough network-status documents and enough server descriptors.
     ENOUGH_DIR_INFO = 'ENOUGH_DIR_INFO'
     #: We fell below the desired threshold directory information.
     NOT_ENOUGH_DIR_INFO = 'NOT_ENOUGH_DIR_INFO'
     #: Some application gave us a funny-looking hostname.
+    #:
+    #: See Also:
+    #:    :class:`StatusClientSocksBadHostname`
     SOCKS_BAD_HOSTNAME = 'SOCKS_BAD_HOSTNAME'
     #: A connection was made to Tor's SOCKS port and did not speak the SOCKS protocol.
+    #:
+    #: See Also:
+    #:    :class:`StatusClientSocksUnknownProtocol`
     SOCKS_UNKNOWN_PROTOCOL = 'SOCKS_UNKNOWN_PROTOCOL'
 
 
 class StatusActionServer(StrEnum):
     """
-    Possible actions for a server status event.
+    Possible actions for a :attr:`~.EventWord.STATUS_SERVER` event.
+
+    See Also:
+        :class:`.EventStatusServer`
 
     Note:
-       `SERVER_DESCRIPTOR_STATUS` was never implemented.
+       ``SERVER_DESCRIPTOR_STATUS`` was never implemented.
 
     """
 
     #: Our best idea for our externally visible IP has changed to 'IP'.
+    #:
+    #: See Also:
+    #:    :class:`StatusServerExternalAddress`
     EXTERNAL_ADDRESS = 'EXTERNAL_ADDRESS'
     #: We're going to start testing the reachability of our external OR port or directory port.
+    #:
+    #: See Also:
+    #:    :class:`StatusServerCheckingReachability`
     CHECKING_REACHABILITY = 'CHECKING_REACHABILITY'
     #: We successfully verified the reachability of our external OR port or directory port.
+    #:
+    #: See Also:
+    #:    :class:`StatusServerReachabilitySucceeded`
     REACHABILITY_SUCCEEDED = 'REACHABILITY_SUCCEEDED'
     #: We successfully uploaded our server descriptor to one of the directory authorities.
     GOOD_SERVER_DESCRIPTOR = 'GOOD_SERVER_DESCRIPTOR'
     #: One of our nameservers has changed status.
+    #:
+    #: See Also:
+    #:    :class:`StatusServerNameserverStatus`
     NAMESERVER_STATUS = 'NAMESERVER_STATUS'
     #: All of our nameservers have gone down.
     NAMESERVER_ALL_DOWN = 'NAMESERVER_ALL_DOWN'
@@ -286,83 +325,127 @@ class StatusActionServer(StrEnum):
     #: Our DNS provider is giving a hijacked address instead of well-known websites.
     DNS_USELESS = 'DNS_USELESS'
     #: A directory authority rejected our descriptor.
+    #:
+    #: See Also:
+    #:    :class:`StatusServerBadServerDescriptor`
     BAD_SERVER_DESCRIPTOR = 'BAD_SERVER_DESCRIPTOR'
     #: A single directory authority accepted our descriptor.
+    #:
+    #: See Also:
+    #:    :class:`StatusServerAcceptedServerDescriptor`
     ACCEPTED_SERVER_DESCRIPTOR = 'ACCEPTED_SERVER_DESCRIPTOR'
     #: We failed to connect to our external OR port or directory port successfully.
+    #:
+    #: See Also:
+    #:    :class:`StatusServerReachabilityFailed`
     REACHABILITY_FAILED = 'REACHABILITY_FAILED'
     #: Our bandwidth based accounting status has changed.
+    #:
+    #: See Also:
+    #:    :class:`StatusServerHibernationStatus`
     HIBERNATION_STATUS = 'HIBERNATION_STATUS'
 
 
 class StatusActionGeneral(StrEnum):
     """
-    Possible actions for a general status event.
+    Possible actions for a :attr:`~.EventWord.STATUS_GENERAL` event.
 
     Note:
-       `BAD_LIBEVENT` has been removed since Tor 0.2.7.1.
+       ``BAD_LIBEVENT`` has been removed since ``Tor 0.2.7.1``.
+
+    See Also:
+        :class:`.EventStatusGeneral`
 
     """
 
     #: Tor has encountered a situation that its developers never expected.
+    #:
+    #: See Also:
+    #:    :class:`StatusGeneralBug`
     BUG = 'BUG'
     #: Tor believes that none of the known directory servers are reachable.
     DIR_ALL_UNREACHABLE = 'DIR_ALL_UNREACHABLE'
     #: Tor spent enough time without CPU cycles that it has closed all its circuits.
+    #:
+    #: See Also:
+    #:    :class:`StatusGeneralClockJumped`
     CLOCK_JUMPED = 'CLOCK_JUMPED'
     #: A lock skew has been detected by Tor.
+    #:
+    #: See Also:
+    #:    :class:`StatusGeneralClockSkew`
     CLOCK_SKEW = 'CLOCK_SKEW'
     #: Tor has found that directory servers don't recommend its version of the Tor software.
+    #:
+    #: See Also:
+    #:    :class:`StatusGeneralDangerousVersion`
     DANGEROUS_VERSION = 'DANGEROUS_VERSION'
     #: Tor has reached its ulimit -n on file descriptors or sockets.
+    #:
+    #: See Also:
+    #:    :class:`StatusGeneralTooManyConnections`
     TOO_MANY_CONNECTIONS = 'TOO_MANY_CONNECTIONS'
 
 
 @dataclass(kw_only=True, slots=True)
 class StatusClientBootstrap:
-    """Arguments for a `STATUS_CLIENT` event with action `BOOTSTRAP`."""
+    """Arguments for action :attr:`StatusActionClient.BOOTSTRAP`."""
 
+    #: A number between 0 and 100 for how far through the bootstrapping process we are.
     progress: int
+    #: Describe the *next* task that Tor will tackle.
     summary: str
+    #: A string that controllers can use to recognize bootstrap phases.
     tag: str
+    #: Tells how many bootstrap problems there have been so far at this phase.
     count: int | None = None
-    host: str | None = None
+    #: The identity digest of the node we're trying to connect to.
+    host: HexBytes | None = None
+    #: An ``address:port`` combination, where 'address' is an ipv4 or ipv6 address.
     hostaddr: str | None = None
+    #: Lists one of the reasons allowed in the :attr:`~.EventWord.ORCONN` event.
     reason: str | None = None
-    recommendation: str | None = None
+    #: Either "ignore" or "warn" as a recommendation.
+    recommendation: Literal['ignore', 'warn'] | None = None
+    #: Any hints Tor has to offer about why it's having troubles bootstrapping.
     warning: str | None = None
 
 
 @dataclass(kw_only=True, slots=True)
 class StatusClientCircuitNotEstablished:
-    """Arguments for a `STATUS_CLIENT` event with action `CIRCUIT_NOT_ESTABLISHED`."""
+    """Arguments for action :attr:`StatusActionClient.CIRCUIT_ESTABLISHED`."""
 
+    #: Which other status event type caused our lack of confidence.
     reason: Literal['CLOCK_JUMPED', 'DIR_ALL_UNREACHABLE', 'EXTERNAL_ADDRESS']
 
 
 @dataclass(kw_only=True, slots=True)
 class StatusClientDangerousPort:
-    """Arguments for a `STATUS_CLIENT` event with action `DANGEROUS_PORT`."""
+    """Arguments for action :attr:`StatusActionClient.DANGEROUS_PORT`."""
 
+    #: A stream was initiated and this port is commonly used for vulnerable protocols.
     port: int
+    #: When "reject", we refused the connection; whereas if it's "warn", we allowed it.
     reason: Literal['REJECT', 'WARN']
 
 
 @dataclass(kw_only=True, slots=True)
 class StatusClientDangerousSocks:
-    """Arguments for a `STATUS_CLIENT` event with action `DANGEROUS_SOCKS`."""
+    """Arguments for action :attr:`StatusActionClient.DANGEROUS_SOCKS`."""
 
-    address: str
+    #: The protocol implied in this dangerous connection.
     protocol: Literal['SOCKS4', 'SOCKS5']
+    #: The ``address:port`` implied in this connection.
+    address: str
 
 
 @dataclass(kw_only=True, slots=True)
 class StatusClientSocksUnknownProtocol:
     """
-    Arguments for a `STATUS_CLIENT` event with action `SOCKS_UNKNOWN_PROTOCOL`.
+    Arguments for action :attr:`StatusActionClient.SOCKS_UNKNOWN_PROTOCOL`.
 
     This class is currently unused as the quotes are buggy.
-    Additionally the escaping is performed as CSTRING, which we do not handle.
+    Additionally the escaping is performed as ``CSTRING``, which we do not handle.
 
     """
 
@@ -372,15 +455,17 @@ class StatusClientSocksUnknownProtocol:
 
 @dataclass(kw_only=True, slots=True)
 class StatusClientSocksBadHostname:
-    """Arguments for a `STATUS_CLIENT` event with action `SOCKS_BAD_HOSTNAME`."""
+    """Arguments for action :attr:`StatusActionClient.SOCKS_BAD_HOSTNAME`."""
 
+    #: The host name that triggered this event.
     hostname: str
 
 
 @dataclass(kw_only=True, slots=True)
 class StatusGeneralClockJumped:
-    """Arguments for a `STATUS_GENERAL` event with action `CLOCK_JUMPED`."""
+    """Arguments for action :attr:`StatusActionGeneral.CLOCK_JUMPED`."""
 
+    #: Duration Tor thinks it was unconscious for (or went back in time).
     time: TimedeltaSeconds
 
 
@@ -394,16 +479,19 @@ class StatusGeneralDangerousVersionReason(StrEnum):
 
 @dataclass(kw_only=True, slots=True)
 class StatusGeneralDangerousVersion:
-    """Arguments for a `STATUS_GENERAL` event with action `DANGEROUS_VERSION`."""
+    """Arguments for action :attr:`StatusActionGeneral.DANGEROUS_VERSION`."""
 
+    #: Current running version.
     current: str
+    #: Tell why is this a dangerous version.
     reason: StatusGeneralDangerousVersionReason
+    #: List of recommended versions to use instead.
     recommended: Annotated[set[str], StringSequence()]
 
 
 @dataclass(kw_only=True, slots=True)
 class StatusGeneralTooManyConnections:
-    """Arguments for a `STATUS_GENERAL` event with action `TOO_MANY_CONNECTIONS`."""
+    """Arguments for action :attr:`StatusActionGeneral.TOO_MANY_CONNECTIONS`."""
 
     #: Number of currently opened file descriptors.
     current: int
@@ -411,21 +499,25 @@ class StatusGeneralTooManyConnections:
 
 @dataclass(kw_only=True, slots=True)
 class StatusGeneralBug:
-    """Arguments for a `STATUS_GENERAL` event with action `BUG`."""
+    """Arguments for action :attr:`StatusActionGeneral.BUG`."""
 
+    #: Tell why we got a general status report for a bug.
     reason: str
 
 
 @dataclass(kw_only=True, slots=True)
 class StatusGeneralClockSkew:
-    """Arguments for a `STATUS_GENERAL` event with action `CLOCK_SKEW`."""
+    """Arguments for action :attr:`StatusActionGeneral.CLOCK_SKEW`."""
 
     #: Estimate of how far we are from the time declared in the source.
     skew: TimedeltaSeconds
-    #: "DIRSERV:" IP ":" Port
-    #: "NETWORKSTATUS:" IP ":" Port
-    #: "OR:" IP ":" Port
-    #: "CONSENSUS"
+
+    #: The following values are accepted and not parsed (yet):
+    #:
+    #:    - ``"DIRSERV:" IP ":" Port``
+    #:    - ``"NETWORKSTATUS:" IP ":" Port``
+    #:    - ``"OR:" IP ":" Port``
+    #:    - ``"CONSENSUS"``
     source: str
 
 
@@ -442,64 +534,78 @@ class ExternalAddressResolveMethod(StrEnum):
 
 @dataclass(kw_only=True, slots=True)
 class StatusServerExternalAddress:
-    """Arguments for a `STATUS_SERVER` event with action `EXTERNAL_ADDRESS`."""
+    """Arguments for action :attr:`StatusActionServer.EXTERNAL_ADDRESS`."""
 
     #: Our external IP address.
     address: str
+    #: When set, we got our new IP by resolving this host name.
     hostname: str | None = None
+    #: How we found out our external IP address.
     method: ExternalAddressResolveMethod
 
 
 @dataclass(kw_only=True, slots=True)
 class StatusServerCheckingReachability:
-    """Arguments for a `STATUS_SERVER` event with action `CHECKING_REACHABILITY`."""
+    """Arguments for action :attr:`StatusActionServer.CHECKING_REACHABILITY`."""
 
+    #: Checking reachability to this directory address that is our own.
     dir_address: str | None = None
-    or_address: str
+    #: Checking reachability to this onion routing address that is our own.
+    or_address: str | None = None
 
 
 @dataclass(kw_only=True, slots=True)
 class StatusServerReachabilitySucceeded:
-    """Arguments for a `STATUS_SERVER` event with action `REACHABILITY_SUCCEEDED`."""
+    """Arguments for action :attr:`StatusActionServer.REACHABILITY_SUCCEEDED`."""
 
+    #: Reachability succeeded to our directory address.
     dir_address: str | None = None
-    or_address: str
+    #: Reachability succeeded to our onion routing address.
+    or_address: str | None = None
 
 
 @dataclass(kw_only=True, slots=True)
 class StatusServerNameserverStatus:
-    """Arguments for a `STATUS_SERVER` event with action `NAMESERVER_STATUS`."""
+    """Arguments for action :attr:`StatusActionServer.NAMESERVER_STATUS`."""
 
+    #: This is our name server.
     ns: str
+    #: This is its status.
     status: LivenessStatus
+    #: Error message when :attr:`status` is ``DOWN``.
     err: str | None = None
 
 
 @dataclass(kw_only=True, slots=True)
 class StatusServerBadServerDescriptor:
-    """Arguments for a `STATUS_SERVER` event with action `BAD_SERVER_DESCRIPTOR`."""
+    """Arguments for action :attr:`StatusActionServer.BAD_SERVER_DESCRIPTOR`."""
 
+    #: Directory that rejected our descriptor, ``address:port``.
     dir_auth: str
+    #: Include malformed descriptors, incorrect keys, highly skewed clocks, and so on.
     reason: str
 
 
 @dataclass(kw_only=True, slots=True)
 class StatusServerAcceptedServerDescriptor:
-    """Arguments for a `STATUS_SERVER` event with action `ACCEPTED_SERVER_DESCRIPTOR`."""
+    """Arguments for action :attr:`StatusActionServer.ACCEPTED_SERVER_DESCRIPTOR`."""
 
+    #: Directory that accepted our server descriptor ``address:port``.
     dir_auth: str
 
 
 @dataclass(kw_only=True, slots=True)
 class StatusServerReachabilityFailed:
-    """Arguments for a `STATUS_SERVER` event with action `REACHABILITY_FAILED`."""
+    """Arguments for action :attr:`StatusActionServer.REACHABILITY_FAILED`."""
 
+    #: Reachability failed to our directory address.
     dir_address: str | None = None
-    or_address: str
+    #: Reachability failed to our onion routing address.
+    or_address: str | None = None
 
 
 @dataclass(kw_only=True, slots=True)
 class StatusServerHibernationStatus:
-    """Arguments for a `STATUS_SERVER` event with action `HIBERNATION_STATUS`."""
+    """Arguments for action :attr:`StatusActionServer.HIBERNATION_STATUS`."""
 
     status: Literal['AWAKE', 'SOFT', 'HARD']

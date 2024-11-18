@@ -5,6 +5,11 @@ Events
 
 .. currentmodule:: aiostem.protocol.event
 
+This page describes all the possible events and their parser implementation, received though
+the callbacks registered by :meth:`.Controller.add_event_handler`. Note that all events are
+not implemented yet, in which case you will receive an :class:`EventUnknown`, containing the
+raw :class:`.Message` received.
+
 
 Base classes
 ------------
@@ -61,7 +66,7 @@ Event classes
    :members:
 
 
-Event logs
+Log events
 ----------
 
 .. autoclass:: EventLogDebug
@@ -80,8 +85,41 @@ Event logs
    :members:
 
 
+Status events
+-------------
+
+.. autoclass:: EventStatusGeneral
+   :members: TYPE, action, arguments
+
+.. autoclass:: EventStatusClient
+   :members: TYPE, action, arguments
+
+.. autoclass:: EventStatusServer
+   :members: TYPE, action, arguments
+
+
+Pluggable transport events
+--------------------------
+
+.. autoclass:: EventPtLog
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
+.. autoclass:: EventPtStatus
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
+.. autoclass:: EventTransportLaunched
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
+
 Helpers
 -------
+
+.. autoclass:: EventUnknown
+   :exclude-members: __init__, from_message
+   :members:
 
 .. autofunction:: event_from_message
 
