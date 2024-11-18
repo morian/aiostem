@@ -1,3 +1,5 @@
+:tocdepth: 2
+
 Structures
 ==========
 
@@ -23,11 +25,34 @@ This package provides many common structures generally used in :class:`.Command`
    :undoc-members:
    :members:
 
+.. autoclass:: HsDescAction
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescAuthType
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescFailReason
+   :undoc-members:
+   :members:
+
+.. autoclass:: LivenessStatus
+   :undoc-members:
+   :members:
+
+   .. automethod:: __bool__
+
+.. autoclass:: LogSeverity
+   :undoc-members:
+   :members:
+
 .. autoclass:: OnionClientAuthFlags
    :undoc-members:
    :members:
 
 .. autoclass:: OnionClientAuthKey
+   :no-show-inheritance:
    :undoc-members:
    :members:
 

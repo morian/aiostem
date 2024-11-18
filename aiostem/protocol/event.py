@@ -50,6 +50,7 @@ class EventWordInternal(StrEnum):
     """All events handled internally in this library."""
 
     #: The controller has been disconnected from Tor.
+    #: Implemented by :class:`EventDisconnect`.
     DISCONNECT = 'DISCONNECT'
 
 
@@ -65,14 +66,19 @@ class EventWord(StrEnum):
     #: Bandwidth used in the last second.
     BW = 'BW'
     #: Debug log message.
+    #: Implemented by :class:`EventLogDebug`.
     DEBUG = 'DEBUG'
     #: Info log message.
+    #: Implemented by :class:`EventLogInfo`.
     INFO = 'INFO'
     #: Notice log message.
+    #: Implemented by :class:`EventLogNotice`.
     NOTICE = 'NOTICE'
     #: Warning log message.
+    #: Implemented by :class:`EventLogWarn`.
     WARN = 'WARN'
     #: Error log message.
+    #: Implemented by :class:`EventLogErr`.
     ERR = 'ERR'
     #: New descriptors available.
     NEWDESC = 'NEWDESC'
@@ -101,6 +107,7 @@ class EventWord(StrEnum):
     #: New circuit buildtime has been set.
     BUILDTIMEOUT_SET = 'BUILDTIMEOUT_SET'
     #: Signal received.
+    #: Implemented in :class:`EventSignal`.
     SIGNAL = 'SIGNAL'
     #: Configuration changed.
     CONF_CHANGED = 'CONF_CHANGED'
@@ -117,10 +124,13 @@ class EventWord(StrEnum):
     #: Token buckets refilled.
     TB_EMPTY = 'TB_EMPTY'
     #: HiddenService descriptors.
+    #: Implemented in :class:`EventHsDesc`.
     HS_DESC = 'HS_DESC'
     #: HiddenService descriptors content.
+    #: Implemented in :class:`EventHsDescContent`.
     HS_DESC_CONTENT = 'HS_DESC_CONTENT'
     #: Network liveness has changed.
+    #: Implemented in :class:`EventNetworkLiveness`.
     NETWORK_LIVENESS = 'NETWORK_LIVENESS'
     #: Pluggable Transport Logs.
     PT_LOG = 'PT_LOG'
@@ -135,7 +145,7 @@ class Event(ABC):
     #: Cached adapter used while deserializing the message.
     ADAPTER: ClassVar[TypeAdapter[Self] | None] = None
 
-    #: Type of event this class is for.
+    #: Type of event this class is a parser for.
     TYPE: ClassVar[EventWordInternal | EventWord | None]
 
     @classmethod
@@ -168,10 +178,10 @@ class EventSimple(Event):
 @dataclass(kw_only=True, slots=True)
 class EventDisconnect(Event):
     """
-    Structure for a `DISCONNECT` event.
+    Structure for a :attr:`~EventWordInternal.DISCONNECT` event.
 
     Note:
-        This event is internal to :mod:`aiostem`.
+        This event is internal to ``aiostem``.
 
     """
 
@@ -185,16 +195,30 @@ class EventDisconnect(Event):
 
 @dataclass(kw_only=True, slots=True)
 class EventSignal(EventSimple):
-    """Structure for a `SIGNAL` event."""
+    """
+    Structure for a :attr:`~EventWord.SIGNAL` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#SIGNAL
+
+    """
 
     SYNTAX = ReplySyntax(args_min=2, args_map=(None, 'signal'))
     TYPE = EventWord.SIGNAL
+
+    #: The signal received by Tor.
     signal: Signal
 
 
 @dataclass(kw_only=True, slots=True)
 class EventHsDesc(EventSimple):
-    """Structure for a `HS_DESC` event."""
+    """
+    Structure for a :attr:`~EventWord.HS_DESC` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#HS_DESC
+
+    """
 
     SYNTAX = ReplySyntax(
         args_min=5,
@@ -208,19 +232,34 @@ class EventHsDesc(EventSimple):
     )
     TYPE = EventWord.HS_DESC
 
+    #: Kind of action reported in this status update.
     action: HsDescAction
+    #: Onion address the report status is for (without the ``.onion`` suffix).
     address: str | Literal['UNKNOWN']  # noqa: PYI051
+    #: Client authentication is not yet implemented and is always :attr:`~.HsDescAuthType.NO_AUTH`.
     auth_type: HsDescAuthType
+    #: The descriptor blinded key used for the index value at the "HsDir".
     descriptor_id: Base32Bytes | Base64Bytes | None = None
+    #: Hidden service directory answering this request.
     hs_dir: str | Literal['UNKNOWN']  # noqa: PYI051
+    #: Contains the computed index of the HsDir the descriptor was uploaded to or fetched from.
     hs_dir_index: HexBytes | None = None
+    #: If :attr:`action` is :attr:`~.HsDescAction.FAILED`, Tor SHOULD send Reason field as well.
     reason: HsDescFailReason | None = None
+    #: Field is not used for the :attr:`~.HsDescAction.CREATED` event because v3 doesn't use the
+    #: replica number in the descriptor ID computation.
     replica: int | None = None
 
 
 @dataclass(kw_only=True, slots=True)
 class EventHsDescContent(Event):
-    """Structure for a `HS_DESC_CONTENT` event."""
+    """
+    Structure for a :attr:`~EventWord.HS_DESC_CONTENT` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#HS_DESC_CONTENT
+
+    """
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=4,
@@ -228,9 +267,13 @@ class EventHsDescContent(Event):
     )
     TYPE = EventWord.HS_DESC_CONTENT
 
+    #: Onion address the report status is for (without the ``.onion`` suffix).
     address: str | Literal['UNKNOWN']  # noqa: PYI051
+    #: Hidden service directory answering this request.
     hs_dir: str | Literal['UNKNOWN']  # noqa: PYI051
+    #: Unique identifier for the descriptor.
     descriptor_id: Base32Bytes | Base64Bytes | None = None
+    #: Text content of the hidden service descriptor.
     descriptor_text: str
 
     @classmethod
@@ -247,7 +290,13 @@ class EventHsDescContent(Event):
 
 @dataclass(kw_only=True, slots=True)
 class EventNetworkLiveness(EventSimple):
-    """Structure for a `NETWORK_LIVENESS` event."""
+    """
+    Structure for a :attr:`~EventWord.NETWORK_LIVENESS` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#NETWORK_LIVENESS
+
+    """
 
     SYNTAX = ReplySyntax(
         args_min=2,
@@ -255,12 +304,19 @@ class EventNetworkLiveness(EventSimple):
     )
     TYPE = EventWord.NETWORK_LIVENESS
 
+    #: Current network status.
     status: LivenessStatus
 
 
 @dataclass(kw_only=True, slots=True)
 class EventLog(Event):
-    """Base class for any event log."""
+    """
+    Base class for any event log.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#LOG
+
+    """
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=1,
@@ -268,7 +324,9 @@ class EventLog(Event):
         flags=ReplySyntaxFlag.POS_REMAIN,
     )
 
+    #: Log severity.
     severity: Annotated[LogSeverity, LogSeverityTransformer()]
+    #: Log message.
     message: str
 
     @classmethod
@@ -286,35 +344,65 @@ class EventLog(Event):
 
 @dataclass(kw_only=True, slots=True)
 class EventLogDebug(EventLog):
-    """Event parser for `DEBUG` events."""
+    """
+    Event parser for :attr:`~EventWord.DEBUG` events.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#LOG
+
+    """
 
     TYPE = EventWord.DEBUG
 
 
 @dataclass(kw_only=True, slots=True)
 class EventLogInfo(EventLog):
-    """Event parser for `INFO` events."""
+    """
+    Event parser for :attr:`~EventWord.INFO` events.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#LOG
+
+    """
 
     TYPE = EventWord.INFO
 
 
 @dataclass(kw_only=True, slots=True)
 class EventLogNotice(EventLog):
-    """Event parser for `NOTICE` events."""
+    """
+    Event parser for :attr:`~EventWord.NOTICE` events.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#LOG
+
+    """
 
     TYPE = EventWord.NOTICE
 
 
 @dataclass(kw_only=True, slots=True)
 class EventLogWarn(EventLog):
-    """Event parser for `WARN` events."""
+    """
+    Event parser for :attr:`~EventWord.WARN` events.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#LOG
+
+    """
 
     TYPE = EventWord.WARN
 
 
 @dataclass(kw_only=True, slots=True)
 class EventLogErr(EventLog):
-    """Event parser for `ERR` events."""
+    """
+    Event parser for :attr:`~EventWord.ERR` events.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#LOG
+
+    """
 
     TYPE = EventWord.ERR
 
@@ -341,7 +429,13 @@ def _discriminate_status_by_action(v: Any) -> str:
 
 @dataclass(kw_only=True, slots=True)
 class EventStatus(Event):
-    """Base class for all `STATUS_*` events."""
+    """
+    Base class for all ``STATUS_*`` events.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#STATUS
+
+    """
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=3,
@@ -350,10 +444,12 @@ class EventStatus(Event):
     )
     SUBSYNTAXES: ClassVar[Mapping[str, ReplySyntax | None]]
 
+    #: Severity of the reported status.
     severity: Annotated[
         Literal[LogSeverity.NOTICE, LogSeverity.WARNING, LogSeverity.ERROR],
         LogSeverityTransformer(),
     ]
+    #: Status action reported by this event (sub-classed).
     action: StrEnum
 
     @classmethod

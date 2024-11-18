@@ -81,7 +81,7 @@ class Feature(StrEnum):
 
 
 class HsDescAction(StrEnum):
-    """Possible actions in a ``HD_DESC`` event."""
+    """Possible actions in a :attr:`~.EventWord.HS_DESC` event."""
 
     CREATED = 'CREATED'
     FAILED = 'FAILED'
@@ -93,7 +93,7 @@ class HsDescAction(StrEnum):
 
 
 class HsDescAuthType(StrEnum):
-    """Possible values for AuthType in ``HS_DESC`` event."""
+    """Possible values for AuthType in a :attr:`~.EventWord.HS_DESC` event."""
 
     BASIC_AUTH = 'BASIC_AUTH'
     NO_AUTH = 'NO_AUTH'
@@ -102,7 +102,7 @@ class HsDescAuthType(StrEnum):
 
 
 class HsDescFailReason(StrEnum):
-    """Possible values for ``REASON`` in a ``HS_DESC`` event."""
+    """Possible values for ``REASON`` in a :attr:`~.EventWord.HS_DESC` event."""
 
     #: Descriptor was retrieved, but found to be unparsable.
     BAD_DESC = 'BAD_DESC'
@@ -121,9 +121,11 @@ class HsDescFailReason(StrEnum):
 
 
 class LivenessStatus(StrEnum):
-    """Possible values for ``Status`` in a ``NETWORK_LIVENESS`` event."""
+    """Possible values for :attr:`.EventNetworkLiveness.status`."""
 
+    #: Network or service is down.
     DOWN = 'DOWN'
+    #: Network or service is up and running.
     UP = 'UP'
 
     def __bool__(self) -> bool:
@@ -131,7 +133,7 @@ class LivenessStatus(StrEnum):
         Whether the network is up as a boolean.
 
         Returns:
-            :obj:`True` when this value is `UP`.
+            :obj:`True` when this value is ``UP``.
 
         """
         return bool(self.value == self.UP)
