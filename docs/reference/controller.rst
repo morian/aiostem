@@ -71,6 +71,7 @@ Common commands
    .. automethod:: get_conf
    .. automethod:: get_info
    .. automethod:: set_conf
+   .. automethod:: hs_fetch
    .. automethod:: signal
 
 

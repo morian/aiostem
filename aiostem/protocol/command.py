@@ -31,73 +31,249 @@ from .utils import Base32Bytes, Base64Bytes, CommandSerializer
 class CommandWord(StrEnum):
     """All handled command words."""
 
-    #: Implemented in :class:`CommandSetConf`.
+    #: Change the value of one or more configuration variables.
+    #:
+    #: See Also:
+    #:     - Controller method: :meth:`.Controller.set_conf`
+    #:     - Command implementation: :class:`CommandSetConf`
+    #:     - Reply implementation: :class:`.ReplySetConf`
     SETCONF = 'SETCONF'
-    #: Implemented in :class:`CommandResetConf`.
+
+    #: Remove all settings for a given configuration option entirely.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandResetConf`
+    #:     - Reply implementation: :class:`.ReplyResetConf`
     RESETCONF = 'RESETCONF'
-    #: Implemented in :class:`CommandGetConf`.
+
+    #: Request the value of zero or more configuration variable(s).
+    #:
+    #: See Also:
+    #:     - Controller method: :meth:`.Controller.get_conf`
+    #:     - Command implementation: :class:`CommandGetConf`
+    #:     - Reply implementation: :class:`.ReplyGetConf`
     GETCONF = 'GETCONF'
-    #: Implemented in :class:`CommandSetEvents`.
+
+    #: Request the server to inform the client about interesting events.
+    #:
+    #: See Also:
+    #:     - Controller method: :meth:`.Controller.set_events`
+    #:     - Command implementation: :class:`CommandSetEvents`
+    #:     - Reply implementation: :class:`.ReplySetEvents`
     SETEVENTS = 'SETEVENTS'
-    #: Implemented in :class:`CommandAuthenticate`.
+
+    #: Used to authenticate to the server.
+    #:
+    #: See Also:
+    #:     - Controller method: :meth:`.Controller.authenticate`
+    #:     - Command implementation: :class:`CommandAuthenticate`
+    #:     - Reply implementation: :class:`.ReplyAuthenticate`
     AUTHENTICATE = 'AUTHENTICATE'
-    #: Implemented in :class:`CommandSaveConf`.
+
+    #: Instructs the server to write out its config options into its ``torrc``.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandSaveConf`
+    #:     - Reply implementation: :class:`.ReplySaveConf`
     SAVECONF = 'SAVECONF'
-    #: Implemented in :class:`CommandSignal`.
+
+    #: Send a signal to the server.
+    #:
+    #: See Also:
+    #:     - Controller method: :meth:`.Controller.signal`
+    #:     - Command implementation: :class:`CommandSignal`
+    #:     - Reply implementation: :class:`.ReplySignal`
     SIGNAL = 'SIGNAL'
-    #: Implemented in :class:`CommandMapAddress`.
+
+    #: Tell the server to replace addresses on future SOCKS requests.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandMapAddress`
+    #:     - Reply implementation: :class:`.ReplyMapAddress`
     MAPADDRESS = 'MAPADDRESS'
-    #: Implemented in :class:`CommandGetInfo`.
+
+    #: Get server information.
+    #:
+    #: See Also:
+    #:     - Controller method: :meth:`.Controller.get_info`
+    #:     - Command implementation: :class:`CommandGetInfo`
+    #:     - Reply implementation: :class:`.ReplyGetInfo`
     GETINFO = 'GETINFO'
-    #: Implemented in :class:`CommandExtendCircuit`.
+
+    #: Build a new or extend an existing circuit.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandExtendCircuit`
+    #:     - Reply implementation: :class:`.ReplyExtendCircuit`
     EXTENDCIRCUIT = 'EXTENDCIRCUIT'
-    #: Implemented in :class:`CommandSetCircuitPurpose`.
+
+    #: Change the purpose of a circuit.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandSetCircuitPurpose`
+    #:     - Reply implementation: :class:`.ReplySetCircuitPurpose`
     SETCIRCUITPURPOSE = 'SETCIRCUITPURPOSE'
+
     #: Not implemented because it was marked as obsolete as of ``Tor v0.2.0.8``.
     SETROUTERPURPOSE = 'SETROUTERPURPOSE'
-    #: Implemented in :class:`CommandAttachStream`.
+
+    #: Request that the specified stream should be associated with the specified circuit.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandAttachStream`
+    #:     - Reply implementation: :class:`.ReplyAttachStream`
     ATTACHSTREAM = 'ATTACHSTREAM'
-    #: Implemented in :class:`CommandPostDescriptor`.
+
+    #: This message informs the server about a new descriptor.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandPostDescriptor`
+    #:     - Reply implementation: :class:`.ReplyPostDescriptor`
     POSTDESCRIPTOR = 'POSTDESCRIPTOR'
-    #: Implemented in :class:`CommandRedirectStream`.
+
+    #: Tells the server to change the exit address on the specified stream.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandRedirectStream`
+    #:     - Reply implementation: :class:`.ReplyRedirectStream`
     REDIRECTSTREAM = 'REDIRECTSTREAM'
-    #: Implemented in :class:`CommandCloseStream`.
+
+    #: Tells the server to close the specified stream.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandCloseStream`
+    #:     - Reply implementation: :class:`.ReplyCloseStream`
     CLOSESTREAM = 'CLOSESTREAM'
-    #: Implemented in :class:`CommandCloseCircuit`.
+
+    #: Tells the server to close the specified circuit.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandCloseCircuit`
+    #:     - Reply implementation: :class:`.ReplyCloseCircuit`
     CLOSECIRCUIT = 'CLOSECIRCUIT'
-    #: Implemented in :class:`CommandQuit`.
+
+    #: Tells the server to hang up on this controller connection.
+    #:
+    #: See Also:
+    #:     - Controller method: :meth:`.Controller.quit`
+    #:     - Command implementation: :class:`CommandQuit`
+    #:     - Reply implementation: :class:`.ReplyQuit`
     QUIT = 'QUIT'
-    #: Implemented in :class:`CommandUseFeature`.
+
+    #: Enable additional features.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandUseFeature`
+    #:     - Reply implementation: :class:`.ReplyUseFeature`
     USEFEATURE = 'USEFEATURE'
-    #: Implemented in :class:`CommandResolve`.
+
+    #: This command launches a remote hostname lookup request for every specified request.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandResolve`
+    #:     - Reply implementation: :class:`.ReplyResolve`
     RESOLVE = 'RESOLVE'
-    #: Implemented in :class:`CommandProtocolInfo`.
+
+    #: This command tells the controller what kinds of authentication are supported.
+    #:
+    #: See Also:
+    #:     - Controller method: :meth:`.Controller.protocol_info`
+    #:     - Command implementation: :class:`CommandProtocolInfo`
+    #:     - Reply implementation: :class:`.ReplyProtocolInfo`
     PROTOCOLINFO = 'PROTOCOLINFO'
-    #: Implemented in :class:`CommandLoadConf`.
+
+    #: This command allows to upload the text of a config file to Tor over the control port.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandLoadConf`
+    #:     - Reply implementation: :class:`.ReplyLoadConf`
     LOADCONF = 'LOADCONF'
-    #: Implemented in :class:`CommandTakeOwnership`.
+
+    #: Instructs Tor to shut down when this control connection is closed.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandTakeOwnership`
+    #:     - Reply implementation: :class:`.ReplyTakeOwnership`
     TAKEOWNERSHIP = 'TAKEOWNERSHIP'
-    #: Implemented in :class:`CommandAuthChallenge`.
+
+    #: Begin the authentication routine for the SAFECOOKIE method.
+    #:
+    #: See Also:
+    #:     - Controller method: :meth:`.Controller.auth_challenge`
+    #:     - Command implementation: :class:`CommandAuthChallenge`
+    #:     - Reply implementation: :class:`.ReplyAuthChallenge`
     AUTHCHALLENGE = 'AUTHCHALLENGE'
-    #: Implemented in :class:`CommandDropGuards`.
+
+    #: Tells the server to drop all guard nodes.
+    #:
+    #: See Also:
+    #:     - Controller method: :meth:`.Controller.drop_guards`
+    #:     - Command implementation: :class:`CommandDropGuards`
+    #:     - Reply implementation: :class:`.ReplyDropGuards`
     DROPGUARDS = 'DROPGUARDS'
-    #: Implemented in :class:`CommandHsFetch`.
+
+    #: Launches hidden service descriptor fetch(es).
+    #:
+    #: See Also:
+    #:     - Controller method: :meth:`.Controller.hs_fetch`
+    #:     - Command implementation: :class:`CommandHsFetch`
+    #:     - Reply implementation: :class:`.ReplyHsFetch`
     HSFETCH = 'HSFETCH'
-    #: Implemented in :class:`CommandAddOnion`.
+
+    #: Tells the server to create a new onion "hidden" service.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandAddOnion`
+    #:     - Reply implementation: :class:`.ReplyAddOnion`
     ADD_ONION = 'ADD_ONION'
-    #: Implemented in :class:`CommandDelOnion`.
+
+    #: Tells the server to remove an onion "hidden" service.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandDelOnion`
+    #:     - Reply implementation: :class:`.ReplyDelOnion`
     DEL_ONION = 'DEL_ONION'
-    #: Implemented in :class:`CommandHsPost`.
+
+    #: This command launches a hidden service descriptor upload to the specified HSDirs.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandHsPost`
+    #:     - Reply implementation: :class:`.ReplyHsPost`
     HSPOST = 'HSPOST'
-    #: Implemented in :class:`CommandOnionClientAuthAdd`.
+
+    #: Add client-side v3 client auth credentials for a onion service.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandOnionClientAuthAdd`
+    #:     - Reply implementation: :class:`.ReplyOnionClientAuthAdd`
     ONION_CLIENT_AUTH_ADD = 'ONION_CLIENT_AUTH_ADD'
-    #: Implemented in :class:`CommandOnionClientAuthRemove`.
+
+    #: Remove client-side v3 client auth credentials for a onion service.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandOnionClientAuthRemove`
+    #:     - Reply implementation: :class:`.ReplyOnionClientAuthRemove`
     ONION_CLIENT_AUTH_REMOVE = 'ONION_CLIENT_AUTH_REMOVE'
-    #: Implemented in :class:`CommandOnionClientAuthView`.
+
+    #: List client-side v3 client auth credentials for a onion service.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandOnionClientAuthView`
+    #:     - Reply implementation: :class:`.ReplyOnionClientAuthView`
     ONION_CLIENT_AUTH_VIEW = 'ONION_CLIENT_AUTH_VIEW'
-    #: Implemented in :class:`CommandDropOwnership`.
+
+    #: This command instructs Tor to relinquish ownership of its control connection.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandDropOwnership`
+    #:     - Reply implementation: :class:`.ReplyDropOwnership`
     DROPOWNERSHIP = 'DROPOWNERSHIP'
-    #: Implemented in :class:`CommandDropTimeouts`.
+
+    #: Tells the server to drop all circuit build times.
+    #:
+    #: See Also:
+    #:     - Command implementation: :class:`CommandDropTimeouts`
+    #:     - Reply implementation: :class:`.ReplyDropTimeouts`
     DROPTIMEOUTS = 'DROPTIMEOUTS'
 
 

@@ -25,7 +25,7 @@ Base classes
 
 .. autoclass:: ReplySimple
    :undoc-members:
-   :members:
+   :members: status, status_text
 
 .. autoclass:: ReplyGetMap
    :undoc-members:

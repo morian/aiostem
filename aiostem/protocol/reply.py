@@ -31,7 +31,9 @@ class BaseReply(ABC):
     ADAPTER: ClassVar[TypeAdapter[Self] | None] = None
 
     #: Reply status received.
-    #: See https://spec.torproject.org/control-spec/replies.html#replies
+    #:
+    #: See Also:
+    #:     https://spec.torproject.org/control-spec/replies.html#replies
     status: int
 
     #: Text associated with the reply status (if any).
@@ -88,7 +90,7 @@ class Reply(BaseReply):
 
 @dataclass(kw_only=True, slots=True)
 class ReplySimple(Reply):
-    """Any simple reply with only a status and status_text."""
+    """Any simple reply with only a :attr:`status` and :attr:`status_text`."""
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
