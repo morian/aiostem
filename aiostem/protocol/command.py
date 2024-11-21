@@ -321,7 +321,9 @@ class CommandSetConf(Command):
     command: ClassVar[CommandWord] = CommandWord.SETCONF
 
     #: All the configuration values you want to set.
-    values: MutableMapping[str, int | str | None] = field(default_factory=dict)
+    values: MutableMapping[str, MutableSequence[int | str] | int | str | None] = field(
+        default_factory=dict,
+    )
 
     def _serialize(self) -> CommandSerializer:
         """Append ``SETCONF`` specific arguments."""
@@ -332,7 +334,11 @@ class CommandSetConf(Command):
         ser = super()._serialize()
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         for key, value in self.values.items():
-            args.append(ArgumentKeyword(key, value))
+            if isinstance(value, MutableSequence):
+                for item in value:
+                    args.append(ArgumentKeyword(key, item))
+            else:
+                args.append(ArgumentKeyword(key, value))
         ser.arguments.extend(args)
         return ser
 

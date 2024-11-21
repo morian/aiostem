@@ -57,6 +57,10 @@ class TestCommands:
         cmd = CommandSetConf(values={'ControlPort': 9872})
         assert cmd.serialize() == 'SETCONF ControlPort=9872\r\n'
 
+    def test_set_conf_with_list(self):
+        cmd = CommandSetConf(values={'ControlPort': [9872, 1234]})
+        assert cmd.serialize() == 'SETCONF ControlPort=9872 ControlPort=1234\r\n'
+
     def test_set_conf_with_null(self):
         cmd = CommandSetConf(values={'ControlPort': None})
         assert cmd.serialize() == 'SETCONF ControlPort\r\n'
