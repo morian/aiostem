@@ -5,8 +5,10 @@ import typing
 from collections.abc import Collection, MutableSequence
 from dataclasses import dataclass
 from datetime import timedelta
+from functools import partial
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Generic, Literal, Protocol, TypeVar
 
+from pydantic import ConfigDict, TypeAdapter
 from pydantic_core import PydanticCustomError, core_schema
 from pydantic_core.core_schema import CoreSchema, WhenUsed
 
@@ -15,7 +17,11 @@ from ..exceptions import CommandError
 if TYPE_CHECKING:
     from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
     from pydantic.json_schema import JsonSchemaValue
-    from pydantic_core.core_schema import ValidationInfo, ValidatorFunctionWrapHandler
+    from pydantic_core.core_schema import (
+        SerializationInfo,
+        ValidationInfo,
+        ValidatorFunctionWrapHandler,
+    )
 
     from .argument import ArgumentKeyword, ArgumentString
     from .command import CommandWord
@@ -146,7 +152,9 @@ class EncoderProtocol(Protocol, Generic[T]):
 class Base32Encoder(EncoderProtocol[bytes]):
     """Encoder for base32 bytes."""
 
+    #: Whether we are case insensitive when decoding.
     casefold: ClassVar[bool] = True
+    #: Whether to remove the padding characters when serializing.
     trim_padding: ClassVar[bool] = True
 
     @classmethod
@@ -167,7 +175,7 @@ class Base32Encoder(EncoderProtocol[bytes]):
 
     @classmethod
     def encode(cls, value: bytes) -> str:
-        """Encode the data to a base32 encoded string."""
+        """Encode :attr:`value` to a base32 encoded string."""
         encoded = base64.b32encode(value)
         if cls.trim_padding:
             encoded = encoded.rstrip(b'=')
@@ -182,6 +190,7 @@ class Base32Encoder(EncoderProtocol[bytes]):
 class Base64Encoder(EncoderProtocol[bytes]):
     """Encoder for base64 bytes."""
 
+    #: Whether to remove the padding characters when serializing.
     trim_padding: ClassVar[bool] = True
 
     @classmethod
@@ -203,7 +212,7 @@ class Base64Encoder(EncoderProtocol[bytes]):
 
     @classmethod
     def encode(cls, value: bytes) -> str:
-        """Encode the data to a base64 encoded string."""
+        """Encode the :attr:`value` to a base64 encoded string."""
         encoded = base64.standard_b64encode(value)
         if cls.trim_padding:
             encoded = encoded.rstrip(b'=')
@@ -232,7 +241,7 @@ class HexEncoder(EncoderProtocol[bytes]):
 
     @classmethod
     def encode(cls, value: bytes) -> str:
-        """Encode the data to a hex encoded string."""
+        """Encode the :attr:`value` to a hex encoded string."""
         return value.hex()
 
     @classmethod
@@ -247,7 +256,9 @@ class EncodedBase(Generic[T]):
 
     CORE_SCHEMA: ClassVar[CoreSchema]
 
+    #: The encoder protocol to use.
     encoder: type[EncoderProtocol[T]]
+    #: When to use the encoder.
     when_used: WhenUsed = 'always'
 
     def __get_pydantic_core_schema__(
@@ -293,8 +304,9 @@ class EncodedBase(Generic[T]):
 
 @dataclass(slots=True)
 class EncodedBytes(EncodedBase[bytes]):
-    """Bytes that can be encoded and decoded from a string using a specified encoder."""
+    """Bytes that can be encoded and decoded from a string using an external encoder."""
 
+    #: Our core schema is for :class:`bytes`.
     CORE_SCHEMA = core_schema.bytes_schema()
 
     def __hash__(self) -> int:
@@ -308,50 +320,8 @@ class EncodedBytes(EncodedBase[bytes]):
         return hash(self.encoder)
 
 
-@dataclass(frozen=True, slots=True)
-class StringSequence:
-    """Serialized and deserialize sequences from/to strings."""
-
-    separator: str = ','
-
-    def __get_pydantic_core_schema__(
-        self,
-        source: type[Collection[Any]],
-        handler: GetCoreSchemaHandler,
-    ) -> CoreSchema:
-        """Tell the core schema and how to validate the whole thing."""
-        # Check that we have a valid collection of something like a str, int, float, bool.
-        origin = typing.get_origin(source)
-        if not isinstance(origin, type) or not issubclass(origin, Collection):
-            msg = f"source type is not a collection, got '{source.__name__}'"
-            raise TypeError(msg)
-
-        return core_schema.no_info_before_validator_function(
-            function=self.parse_value,
-            schema=handler(source),
-        )
-
-    def __get_pydantic_json_schema__(
-        self,
-        core_schema: CoreSchema,
-        handler: GetJsonSchemaHandler,
-    ) -> JsonSchemaValue:
-        """Update JSON schema to tell about plain text and separator."""
-        field_schema = handler(core_schema)
-        field_schema.update(type='string', separator=self.separator)
-        return field_schema
-
-    def parse_value(self, value: Any) -> Any:
-        """Parse the input value, split it when it is a string."""
-        if isinstance(value, bytes | bytearray):
-            value = value.decode()
-        if isinstance(value, str):
-            return value.split(self.separator)
-        return value
-
-
 class LogSeverityTransformer:
-    """Pre-validator for strings to build a valid `LogSeverity`."""
+    """Pre-validator for strings to build a valid :class:`.LogSeverity`."""
 
     def __get_pydantic_core_schema__(
         self,
@@ -373,8 +343,88 @@ class LogSeverityTransformer:
         return value
 
 
+@dataclass(frozen=True, slots=True)
+class StringSequence:
+    """Deserialize sequences from/to strings."""
+
+    #: Base pydantic configuration to apply when serializing.
+    model_config: ClassVar[ConfigDict | None] = None
+
+    #: Maximum number of string split.
+    maxsplit: int = -1
+
+    #: How to split this string sequence.
+    separator: str = ','
+
+    #: When serialization is supposed to be used.
+    when_used: WhenUsed = 'json'
+
+    def __get_pydantic_core_schema__(
+        self,
+        source: type[Collection[Any]],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Tell the core schema and how to validate the whole thing."""
+        # Check that we have a valid collection of something like a str, int, float, bool.
+        origin = typing.get_origin(source)
+        if not isinstance(origin, type) or not issubclass(origin, Collection):
+            msg = f"source type is not a collection, got '{source.__name__}'"
+            raise TypeError(msg)
+
+        adapter = TypeAdapter(source, config=self.model_config)
+        return core_schema.no_info_before_validator_function(
+            function=self.parse_value,
+            schema=handler(source),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                function=partial(self.serialize, adapter),
+                info_arg=True,
+                return_schema=core_schema.str_schema(),
+                when_used=self.when_used,
+            ),
+        )
+
+    def __get_pydantic_json_schema__(
+        self,
+        core_schema: CoreSchema,
+        handler: GetJsonSchemaHandler,
+    ) -> JsonSchemaValue:
+        """Update JSON schema to tell about plain text and separator."""
+        field_schema = handler(core_schema)
+        field_schema.update(
+            type='string',
+            maxSplit=self.maxsplit,
+            separator=self.separator,
+        )
+        return field_schema
+
+    def parse_value(self, value: Any) -> Any:
+        """Parse the input value, split it when it is a string."""
+        if isinstance(value, bytes | bytearray):
+            value = value.decode()
+        if isinstance(value, str):
+            return value.split(self.separator, maxsplit=self.maxsplit)
+        return value
+
+    def serialize(
+        self,
+        adapter: TypeAdapter[Collection[Any]],
+        values: Collection[Any],
+        info: SerializationInfo,
+    ) -> str:
+        """Tells how we serialize this collection for JSON."""
+        mode = 'json' if info.mode_is_json() else 'python'  # type: Literal['json', 'python']
+        serialized = adapter.dump_python(
+            values,
+            exclude_defaults=info.exclude_defaults,
+            exclude_none=info.exclude_none,
+            exclude_unset=info.exclude_unset,
+            mode=mode,
+        )
+        return self.separator.join(map(str, serialized))
+
+
 class TimedeltaTransformer:
-    """Pre-validator that gets a timdelta from an int or float."""
+    """Pre-validator that gets a timedelta from an int or float."""
 
     def __get_pydantic_core_schema__(
         self,
@@ -400,7 +450,7 @@ class TimedeltaTransformer:
         return value
 
 
-HexBytes = Annotated[bytes, EncodedBytes(encoder=HexEncoder)]
 Base32Bytes = Annotated[bytes, EncodedBytes(encoder=Base32Encoder)]
 Base64Bytes = Annotated[bytes, EncodedBytes(encoder=Base64Encoder)]
+HexBytes = Annotated[bytes, EncodedBytes(encoder=HexEncoder)]
 TimedeltaSeconds = Annotated[timedelta, TimedeltaTransformer()]

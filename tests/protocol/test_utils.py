@@ -245,6 +245,8 @@ class TestStringSequence:
         assert res == [1, 2, 3, 4]
 
         assert adapter.dump_python(res) == [1, 2, 3, 4]
+        assert adapter.dump_python(res, mode='json') == '1,2,3,4'
+        assert adapter.dump_json(res) == b'"1,2,3,4"'
 
     @pytest.mark.parametrize(
         ('entry', 'output'),
@@ -258,11 +260,19 @@ class TestStringSequence:
         for item in (entry, output):
             assert adapter.validate_python(item) == output
 
+    def test_with_max_split(self):
+        value = 'A,B,C,D'
+        adapter = TypeAdapter(Annotated[list[str], StringSequence(maxsplit=1)])
+        result = adapter.validate_python(value)
+        assert len(result) == 2
+        assert result[1] == 'B,C,D'
+
     def test_json_schema(self):
         adapter = TypeAdapter(Annotated[tuple[str, int], StringSequence()])
         schema = adapter.json_schema()
         assert schema == {
             'maxItems': 2,
+            'maxSplit': -1,
             'minItems': 2,
             'prefixItems': [
                 {'type': 'string'},
