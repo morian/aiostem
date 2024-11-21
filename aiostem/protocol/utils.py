@@ -325,7 +325,7 @@ class LogSeverityTransformer:
 
     def __get_pydantic_core_schema__(
         self,
-        source: type[Any],
+        source: type[str],
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Set a custom validator used to transform the input string."""

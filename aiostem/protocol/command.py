@@ -326,7 +326,7 @@ class CommandSetConf(Command):
     def _serialize(self) -> CommandSerializer:
         """Append ``SETCONF`` specific arguments."""
         if len(self.values) == 0:
-            msg = "No value provided for command 'SETCONF'"
+            msg = f"No value provided for command '{self.command.value}'"
             raise CommandError(msg)
 
         ser = super()._serialize()
@@ -338,7 +338,7 @@ class CommandSetConf(Command):
 
 
 @dataclass(kw_only=True)
-class CommandResetConf(Command):
+class CommandResetConf(CommandSetConf):
     """
     Command implementation for :attr:`~CommandWord.RESETCONF`.
 
@@ -351,22 +351,6 @@ class CommandResetConf(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.RESETCONF
-
-    #: All the configuration values you want to reset.
-    values: MutableMapping[str, int | str | None] = field(default_factory=dict)
-
-    def _serialize(self) -> CommandSerializer:
-        """Append ``RESETCONF`` specific arguments."""
-        if len(self.values) == 0:
-            msg = "No value provided for command 'RESETCONF'"
-            raise CommandError(msg)
-
-        ser = super()._serialize()
-        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-        for key, value in self.values.items():
-            args.append(ArgumentKeyword(key, value))
-        ser.arguments.extend(args)
-        return ser
 
 
 @dataclass(kw_only=True)
