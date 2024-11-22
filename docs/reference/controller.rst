@@ -70,6 +70,7 @@ Common commands
    .. automethod:: drop_guards
    .. automethod:: get_conf
    .. automethod:: get_info
+   .. automethod:: reset_conf
    .. automethod:: set_conf
    .. automethod:: hs_fetch
    .. automethod:: signal

@@ -42,6 +42,7 @@ class CommandWord(StrEnum):
     #: Remove all settings for a given configuration option entirely.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.reset_conf`
     #:     - Command implementation: :class:`CommandResetConf`
     #:     - Reply implementation: :class:`.ReplyResetConf`
     RESETCONF = 'RESETCONF'

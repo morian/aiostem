@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, MutableSequence
 from contextlib import AsyncExitStack, suppress
-from typing import TYPE_CHECKING, Any, TypeAlias, cast
+from typing import TYPE_CHECKING, TypeAlias, cast
 
 from .connector import (
     DEFAULT_CONTROL_HOST,
@@ -25,6 +25,7 @@ from .protocol import (
     CommandHsFetch,
     CommandProtocolInfo,
     CommandQuit,
+    CommandResetConf,
     CommandSetConf,
     CommandSetEvents,
     CommandSignal,
@@ -40,6 +41,7 @@ from .protocol import (
     ReplyHsFetch,
     ReplyProtocolInfo,
     ReplyQuit,
+    ReplyResetConf,
     ReplySetConf,
     ReplySetEvents,
     ReplySignal,
@@ -654,8 +656,8 @@ class Controller:
         """
         Request a hidden service descriptor fetch.
 
-        The result does not contain the descriptor, which is provided asynchronously
-        through events such as `HS_DESC` and `HS_DESC_CONTENT`.
+        The result does not contain the descriptor, which is provided asynchronously through
+        events such as :attr:`~.EventWord.HS_DESC` or :attr:`~.EventWord.HS_DESC_CONTENT`.
 
         Args:
             address: the hidden service address to request.
@@ -672,15 +674,48 @@ class Controller:
         message = await self.request(command)
         return ReplyHsFetch.from_message(message)
 
-    async def set_conf(self, items: Mapping[str, Any]) -> ReplySetConf:
+    async def reset_conf(
+        self,
+        items: Mapping[str, MutableSequence[int | str] | int | str | None],
+    ) -> ReplyResetConf:
+        """
+        Change or reset configuration entries on the remote server.
+
+        Notes:
+            - When :obj:`None` is provided, all values are reset to their default.
+            - When :class:`list`, multiple values are assigned.
+
+        See Also:
+            https://spec.torproject.org/control-spec/commands.html#resetconf
+
+        Args:
+            items: a map of configuration entries to apply or reset.
+
+        Returns:
+            A simple resetconf reply where only the status is relevant.
+
+        """
+        command = CommandResetConf()
+        command.values.update(items)
+        message = await self.request(command)
+        return ReplyResetConf.from_message(message)
+
+    async def set_conf(
+        self,
+        items: Mapping[str, MutableSequence[int | str] | int | str | None],
+    ) -> ReplySetConf:
         """
         Change configuration entries on the remote server.
+
+        Notes:
+            - When :obj:`None` is provided, all values are removed.
+            - When :class:`list`, multiple values are assigned.
 
         See Also:
             https://spec.torproject.org/control-spec/commands.html#setconf
 
         Args:
-            items: a map of new configuration entries to apply.
+            items: a map of new configuration entries to apply or clear.
 
         Returns:
             A simple setconf reply where only the status is relevant.

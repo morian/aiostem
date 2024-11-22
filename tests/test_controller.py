@@ -156,6 +156,14 @@ class TestController:
         info = await controller.get_conf('DormantClientTimeout')
         assert info.values == {'DormantClientTimeout': '86400'}
 
+    async def test_cmd_reset_conf(self, controller):
+        conf = {'MaxClientCircuitsPending': '64'}
+        result = await controller.reset_conf(conf)
+        assert result.status == 250
+
+        info = await controller.get_conf('MaxClientCircuitsPending')
+        assert info.values == conf
+
     async def test_cmd_set_conf(self, controller):
         conf = {'MaxClientCircuitsPending': '64'}
         result = await controller.set_conf(conf)
