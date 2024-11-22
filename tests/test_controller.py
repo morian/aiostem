@@ -156,6 +156,13 @@ class TestController:
         info = await controller.get_conf('DormantClientTimeout')
         assert info.values == {'DormantClientTimeout': '86400'}
 
+    async def test_cmd_load_conf(self, controller):
+        info = await controller.get_info('config-text')
+        info.raise_for_status()
+
+        resp = await controller.load_conf(info.values['config-text'])
+        resp.raise_for_status()
+
     async def test_cmd_reset_conf(self, controller):
         conf = {'MaxClientCircuitsPending': '64'}
         result = await controller.reset_conf(conf)
@@ -163,6 +170,11 @@ class TestController:
 
         info = await controller.get_conf('MaxClientCircuitsPending')
         assert info.values == conf
+
+    async def test_cmd_save_conf(self, controller):
+        result = await controller.save_conf()
+        with pytest.raises(ReplyStatusError, match='Unable to write configuration to disk'):
+            assert result.raise_for_status()
 
     async def test_cmd_set_conf(self, controller):
         conf = {'MaxClientCircuitsPending': '64'}

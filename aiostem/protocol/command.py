@@ -74,6 +74,7 @@ class CommandWord(StrEnum):
     #: Instructs the server to write out its config options into its ``torrc``.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.save_conf`
     #:     - Command implementation: :class:`CommandSaveConf`
     #:     - Reply implementation: :class:`.ReplySaveConf`
     SAVECONF = 'SAVECONF'
@@ -186,6 +187,7 @@ class CommandWord(StrEnum):
     #: This command allows to upload the text of a config file to Tor over the control port.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.load_conf`
     #:     - Command implementation: :class:`CommandLoadConf`
     #:     - Reply implementation: :class:`.ReplyLoadConf`
     LOADCONF = 'LOADCONF'

@@ -23,9 +23,11 @@ from .protocol import (
     CommandGetConf,
     CommandGetInfo,
     CommandHsFetch,
+    CommandLoadConf,
     CommandProtocolInfo,
     CommandQuit,
     CommandResetConf,
+    CommandSaveConf,
     CommandSetConf,
     CommandSetEvents,
     CommandSignal,
@@ -39,9 +41,11 @@ from .protocol import (
     ReplyGetConf,
     ReplyGetInfo,
     ReplyHsFetch,
+    ReplyLoadConf,
     ReplyProtocolInfo,
     ReplyQuit,
     ReplyResetConf,
+    ReplySaveConf,
     ReplySetConf,
     ReplySetEvents,
     ReplySignal,
@@ -674,6 +678,24 @@ class Controller:
         message = await self.request(command)
         return ReplyHsFetch.from_message(message)
 
+    async def load_conf(self, text: str) -> ReplyLoadConf:
+        """
+        Upload and replace the content of a config file.
+
+        This command allows a controller to upload the text of a config file to Tor over
+        the control port. This config file is then loaded as if it had been read from disk.
+
+        See Also:
+            https://spec.torproject.org/control-spec/commands.html#loadconf
+
+        Returns:
+            A simple reply with only a status.
+
+        """
+        command = CommandLoadConf(text=text)
+        message = await self.request(command)
+        return ReplyLoadConf.from_message(message)
+
     async def reset_conf(
         self,
         items: Mapping[str, MutableSequence[int | str] | int | str | None],
@@ -699,6 +721,29 @@ class Controller:
         command.values.update(items)
         message = await self.request(command)
         return ReplyResetConf.from_message(message)
+
+    async def save_conf(self, *, force: bool = False) -> ReplySaveConf:
+        """
+        Instructs the server to write out its configuration options into ``torrc``.
+
+        If ``%include`` is used on ``torrc``, ``SAVECONF`` will not write the configuration
+        to disk.  When set, the configuration will be overwritten even if %include is used.
+        You can find out whether this flag is needed using ``config-can-saveconf`` on
+        :class:`.CommandGetInfo`.
+
+        Keyword Arguments:
+            force: force write the configuration to disk.
+
+        See Also:
+            https://spec.torproject.org/control-spec/commands.html#saveconf
+
+        Returns:
+            A simple reply with only a status.
+
+        """
+        command = CommandSaveConf(force=force)
+        message = await self.request(command)
+        return ReplySaveConf.from_message(message)
 
     async def set_conf(
         self,

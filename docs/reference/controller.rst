@@ -61,18 +61,44 @@ Event management
    .. automethod:: set_events
 
 
-Common commands
----------------
+Configuration commands
+----------------------
+
+.. class:: Controller
+   :no-index:
+
+   .. automethod:: get_conf
+   .. automethod:: load_conf
+   .. automethod:: reset_conf
+   .. automethod:: save_conf
+   .. automethod:: set_conf
+
+
+Hidden services commands
+------------------------
+
+.. class:: Controller
+   :no-index:
+
+   .. automethod:: hs_fetch
+
+
+Streams and circuits
+--------------------
 
 .. class:: Controller
    :no-index:
 
    .. automethod:: drop_guards
-   .. automethod:: get_conf
+
+
+Control commands
+----------------
+
+.. class:: Controller
+   :no-index:
+
    .. automethod:: get_info
-   .. automethod:: reset_conf
-   .. automethod:: set_conf
-   .. automethod:: hs_fetch
    .. automethod:: signal
 
 
