@@ -213,7 +213,7 @@ class Base64Encoder(EncoderProtocol[bytes]):
 
     @classmethod
     def encode(cls, value: bytes) -> str:
-        """Encode ``value`` to a base34 encoded string."""
+        """Encode ``value`` to a base64 encoded string."""
         encoded = base64.standard_b64encode(value)
         if cls.trim_padding:
             encoded = encoded.rstrip(b'=')
@@ -443,7 +443,7 @@ class TimedeltaTransformer:
         )
 
     def parse_value(self, value: Any) -> Any:
-        """Parse the input value, split it when it is a string."""
+        """Parse the input value as an integer or float timedelta."""
         if isinstance(value, int | str):
             value = float(value)
         if isinstance(value, float):
