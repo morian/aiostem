@@ -451,6 +451,7 @@ class HiddenServiceAddressV3(BaseHiddenServiceAddress):
             {'address': address},
         )
 
+
 #: Any kind of onion service address.
 HiddenServiceAddress: TypeAlias = HiddenServiceAddressV2 | HiddenServiceAddressV3
 
