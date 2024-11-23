@@ -139,6 +139,7 @@ from .structures import (
     StatusServerReachabilityFailed,
     StatusServerReachabilitySucceeded,
 )
+from .utils import HiddenServiceAddress, HiddenServiceAddressV2, HiddenServiceAddressV3
 
 __all__ = [
     'ArgumentKeyword',
@@ -204,6 +205,9 @@ __all__ = [
     'EventWordInternal',
     'ExternalAddressResolveMethod',
     'Feature',
+    'HiddenServiceAddress',
+    'HiddenServiceAddressV2',
+    'HiddenServiceAddressV3',
     'HsDescAction',
     'HsDescAuthType',
     'HsDescFailReason',

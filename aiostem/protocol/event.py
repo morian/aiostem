@@ -41,7 +41,13 @@ from .structures import (
     StatusServerReachabilitySucceeded,
 )
 from .syntax import ReplySyntax, ReplySyntaxFlag
-from .utils import Base32Bytes, Base64Bytes, HexBytes, LogSeverityTransformer
+from .utils import (
+    Base32Bytes,
+    Base64Bytes,
+    HexBytes,
+    HiddenServiceAddress,
+    LogSeverityTransformer,
+)
 
 logger = logging.getLogger(__package__)
 
@@ -307,7 +313,7 @@ class EventHsDesc(EventSimple):
     #: Kind of action reported in this status update.
     action: HsDescAction
     #: Onion address the report status is for (without the ``.onion`` suffix).
-    address: str | Literal['UNKNOWN']  # noqa: PYI051
+    address: HiddenServiceAddress | Literal['UNKNOWN']
     #: Client authentication is not implemented and is always :attr:`~.HsDescAuthType.NO_AUTH`.
     auth_type: HsDescAuthType
     #: The descriptor blinded key used for the index value at the "HsDir".
@@ -340,7 +346,7 @@ class EventHsDescContent(Event):
     TYPE = EventWord.HS_DESC_CONTENT
 
     #: Onion address the report status is for (without the ``.onion`` suffix).
-    address: str | Literal['UNKNOWN']  # noqa: PYI051
+    address: HiddenServiceAddress | Literal['UNKNOWN']
     #: Hidden service directory answering this request.
     hs_dir: str | Literal['UNKNOWN']  # noqa: PYI051
     #: Unique identifier for the descriptor.

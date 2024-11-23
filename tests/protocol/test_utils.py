@@ -23,6 +23,8 @@ from aiostem.protocol.utils import (
     CommandSerializer,
     EncodedBytes,
     HexBytes,
+    HiddenServiceAddressV2,
+    HiddenServiceAddressV3,
     LogSeverityTransformer,
     StringSequence,
     TimedeltaSeconds,
@@ -228,6 +230,97 @@ class TestHexBytes(BaseHexEncoderTest):
         ],
         'fail': ['546' '54T6'],
     }
+
+
+HiddenServiceAdapterV2 = TypeAdapter(HiddenServiceAddressV2)
+HiddenServiceAdapterV3 = TypeAdapter(HiddenServiceAddressV3)
+
+
+class TestHiddenServiceV2:
+    @pytest.mark.parametrize(
+        'address',
+        [
+            HiddenServiceAdapterV2.validate_python('facebookcorewwwi.onion'),
+            'facebookcorewwwi.onion',
+            'facebookcorewwwi',
+        ],
+    )
+    def test_valid_domains(self, address):
+        class Model(BaseModel):
+            v: HiddenServiceAddressV2
+
+        model = Model(v=address)
+        assert model.v == 'facebookcorewwwi'
+
+    @pytest.mark.parametrize(
+        ('address', 'errtype'),
+        [
+            ('facebookcorewww1', 'string_pattern_mismatch'),
+            ('facebookcorewww.onion', 'string_pattern_mismatch'),
+            ('facebookcorewww', 'string_too_short'),
+        ],
+    )
+    def test_invalid_domains(self, address, errtype):
+        class Model(BaseModel):
+            v: HiddenServiceAddressV2
+
+        with pytest.raises(ValidationError, match=f'type={errtype}') as exc:
+            Model(v=address)
+
+        assert len(exc.value.errors()) == 1, exc.value.errors()
+        error = exc.value.errors()[0]
+        assert error['type'] == errtype, address
+
+
+class TestHiddenServiceV3:
+    @pytest.mark.parametrize(
+        'address',
+        [
+            HiddenServiceAdapterV3.validate_python(
+                'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid.onion',
+            ),
+            'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid.onion',
+            'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid',
+        ],
+    )
+    def test_valid_domains(self, address):
+        class Model(BaseModel):
+            v: HiddenServiceAddressV3
+
+        model = Model(v=address)
+        assert model.v == 'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid'
+
+    @pytest.mark.parametrize(
+        ('address', 'errtype'),
+        [
+            (
+                'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixw1d',
+                'string_pattern_mismatch',
+            ),
+            (
+                'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqol',
+                'string_too_short',
+            ),
+            (
+                'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwib',
+                'invalid_onion_v3',
+            ),
+            (
+                'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixsad',
+                'invalid_onion_v3',
+            ),
+        ],
+    )
+    def test_invalid_domains(self, address, errtype):
+        class Model(BaseModel):
+            v: HiddenServiceAddressV3
+
+        with pytest.raises(ValidationError, match=f'type={errtype}') as exc:
+            Model(v=address)
+
+        assert len(exc.value.errors()) == 1, exc.value.errors()
+        error = exc.value.errors()[0]
+        assert error['type'] == errtype, address
 
 
 class TestStringSequence:

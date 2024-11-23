@@ -35,6 +35,23 @@ These are helpers used to encode/decode encoded strings to something else like :
    :members:
 
 
+Hidden services
+---------------
+
+.. autoclass:: HiddenServiceVersion
+   :undoc-members:
+   :members:
+
+.. autoclass:: BaseHiddenServiceAddress
+   :members:
+.. autoclass:: HiddenServiceAddressV2
+   :members:
+.. autoclass:: HiddenServiceAddressV3
+   :members:
+
+.. autodata:: HiddenServiceAddress
+
+
 Data transformers
 -----------------
 

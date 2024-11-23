@@ -105,6 +105,7 @@ _reftarget_fixmap = {
 _reftype_fixmap = {
     'aiostem.controller.EventCallbackType': 'data',
     'aiostem.protocol.argument.Argument': 'data',
+    'aiostem.protocol.utils.HiddenServiceAddress': 'data',
     'aiostem.protocol.utils.T': 'data',
     # Sometimes it is looked up as a class.
     'typing.Annotated': 'obj',

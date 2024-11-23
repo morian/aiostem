@@ -25,7 +25,13 @@ from .structures import (
     OnionServiceKeyType,
     Signal,
 )
-from .utils import Base32Bytes, Base64Bytes, CommandSerializer
+from .utils import (
+    Base32Bytes,
+    Base64Bytes,
+    CommandSerializer,
+    HiddenServiceAddress,
+    HiddenServiceAddressV3,
+)
 
 
 class CommandWord(StrEnum):
@@ -1082,7 +1088,7 @@ class CommandHsFetch(Command):
     servers: MutableSequence[str] = field(default_factory=list)
 
     #: Onion address (v2 or v3) to request a descriptor for, without the ``.onion`` suffix.
-    address: str
+    address: HiddenServiceAddress
 
     def _serialize(self) -> CommandSerializer:
         """Append ``HSFETCH`` specific arguments."""
@@ -1222,7 +1228,7 @@ class CommandDelOnion(Command):
     command: ClassVar[CommandWord] = CommandWord.DEL_ONION
 
     #: This is the v2 or v3 address without the ``.onion`` suffix.
-    address: str
+    address: HiddenServiceAddress
 
     def _serialize(self) -> CommandSerializer:
         """Append ``DEL_ONION`` specific arguments."""
@@ -1253,7 +1259,7 @@ class CommandHsPost(Command):
     #: List of servers to upload the descriptor to (if any is provided).
     servers: MutableSequence[str] = field(default_factory=list)
     #: This is the optional v2 or v3 address without the ``.onion`` suffix.
-    address: str | None = None
+    address: HiddenServiceAddress | None = None
     #: Descriptor content as raw text.
     descriptor: str
 
@@ -1288,7 +1294,7 @@ class CommandOnionClientAuthAdd(Command):
     command: ClassVar[CommandWord] = CommandWord.ONION_CLIENT_AUTH_ADD
 
     #: V3 onion address without the ``.onion`` suffix.
-    address: str
+    address: HiddenServiceAddressV3
 
     #: Key type is currently set to :attr:`~.OnionClientAuthKeyType.X25519`.
     key_type: OnionClientAuthKeyType = OnionClientAuthKeyType.X25519
@@ -1344,7 +1350,7 @@ class CommandOnionClientAuthRemove(Command):
     command: ClassVar[CommandWord] = CommandWord.ONION_CLIENT_AUTH_REMOVE
 
     #: V3 onion address without the ``.onion`` suffix.
-    address: str
+    address: HiddenServiceAddressV3
 
     def _serialize(self) -> CommandSerializer:
         """Append ``ONION_CLIENT_AUTH_REMOVE`` specific arguments."""
@@ -1372,7 +1378,7 @@ class CommandOnionClientAuthView(Command):
     command: ClassVar[CommandWord] = CommandWord.ONION_CLIENT_AUTH_VIEW
 
     #: V3 onion address without the ``.onion`` suffix.
-    address: str | None = None
+    address: HiddenServiceAddress | None = None
 
     def _serialize(self) -> CommandSerializer:
         """Append ``ONION_CLIENT_AUTH_VIEW`` specific arguments."""

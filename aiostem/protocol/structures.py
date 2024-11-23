@@ -5,7 +5,13 @@ from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from typing import Annotated, Literal
 
-from .utils import Base64Bytes, HexBytes, StringSequence, TimedeltaSeconds
+from .utils import (
+    Base64Bytes,
+    HexBytes,
+    HiddenServiceAddress,
+    StringSequence,
+    TimedeltaSeconds,
+)
 
 
 class AuthMethod(StrEnum):
@@ -167,7 +173,7 @@ class OnionClientAuthKey:
     """A client key attached to a single onion domain."""
 
     #: Hidden service address without the ``.onion`` suffix.
-    address: str
+    address: HiddenServiceAddress
 
     #: Client's private key type (currently only :attr:`~OnionClientAuthKeyType.X25519`).
     key_type: OnionClientAuthKeyType = OnionClientAuthKeyType.X25519

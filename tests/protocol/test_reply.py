@@ -366,7 +366,10 @@ class TestReplies:
 
     async def test_onion_client_auth_view(self):
         lines = [
-            '250-ONION_CLIENT_AUTH_VIEW',
+            (
+                '250-ONION_CLIENT_AUTH_VIEW '
+                'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
+            ),
             (
                 '250-CLIENT aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd '
                 'x25519:yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o= ClientName=Peter'

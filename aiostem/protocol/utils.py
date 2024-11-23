@@ -1,12 +1,25 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import typing
 from collections.abc import Collection, MutableSequence
 from dataclasses import dataclass
 from datetime import timedelta
+from enum import IntEnum
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Generic, Literal, Protocol, TypeVar
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    ClassVar,
+    Generic,
+    Literal,
+    Protocol,
+    Self,
+    TypeAlias,
+    TypeVar,
+)
 
 from pydantic import ConfigDict, TypeAdapter
 from pydantic_core import PydanticCustomError, core_schema
@@ -319,6 +332,127 @@ class EncodedBytes(EncodedBase[bytes]):
 
         """
         return hash(self.encoder)
+
+
+class HiddenServiceVersion(IntEnum):
+    """Any valid onion hidden service version."""
+
+    ONION_V2 = 2
+    ONION_V3 = 3
+
+
+class BaseHiddenServiceAddress(str):
+    """Base class for all hidden service addresses."""
+
+    #: Length of the address without the top-level domain.
+    ADDRESS_LENGTH: ClassVar[int]
+
+    #: Regular expression pattern used to match the address.
+    ADDRESS_PATTERN: ClassVar[str]
+
+    #: Suffix and top-level domain for onion addresses.
+    ADDRESS_SUFFIX: ClassVar[str] = '.onion'
+
+    #: Length of the onion suffix.
+    ADDRESS_SUFFIX_LENGTH: ClassVar[int] = len(ADDRESS_SUFFIX)
+
+    #: Hidden service version for the current address.
+    VERSION: ClassVar[HiddenServiceVersion]
+
+    @classmethod
+    def strip_suffix(cls, address: str) -> str:
+        """
+        Strip the domain suffix from the provided string.
+
+        Args:
+            address: a raw string encoding a hidden service address
+
+        Returns:
+            The address without its ``.onion`` suffix.
+
+        """
+        return address.removesuffix(cls.ADDRESS_SUFFIX)
+
+
+class HiddenServiceAddressV2(BaseHiddenServiceAddress):
+    """Represent a V2 hidden service."""
+
+    ADDRESS_LENGTH: ClassVar[int] = 16
+    ADDRESS_PATTERN: ClassVar[str] = '^[a-z2-7]{16}([.]onion)?$'
+    VERSION: ClassVar[HiddenServiceVersion] = HiddenServiceVersion.ONION_V2
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[str],
+        handler: GetCoreSchemaHandler,
+    ) -> core_schema.AfterValidatorFunctionSchema:
+        """Declare schema and validator for a v2 hidden service address."""
+        return core_schema.no_info_after_validator_function(
+            cls.validate,
+            core_schema.str_schema(
+                pattern=cls.ADDRESS_PATTERN,
+                min_length=cls.ADDRESS_LENGTH,
+                max_length=cls.ADDRESS_LENGTH + cls.ADDRESS_SUFFIX_LENGTH,
+                ref='onion_v2',
+                strict=True,
+            ),
+        )
+
+    @classmethod
+    def validate(cls, value: str) -> Self:
+        """Validate any input value provided by the user."""
+        return cls(cls.strip_suffix(value))
+
+
+class HiddenServiceAddressV3(BaseHiddenServiceAddress):
+    """Represent a V3 hidden service."""
+
+    ADDRESS_CHECKSUM: ClassVar[bytes] = b'.onion checksum'
+    ADDRESS_LENGTH: ClassVar[int] = 56
+    ADDRESS_PATTERN: ClassVar[str] = '^[a-z2-7]{56}([.]onion)?$'
+    VERSION: ClassVar[HiddenServiceVersion] = HiddenServiceVersion.ONION_V3
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[str],
+        handler: GetCoreSchemaHandler,
+    ) -> core_schema.AfterValidatorFunctionSchema:
+        """Declare schema and validator for a v3 hidden service address."""
+        return core_schema.no_info_after_validator_function(
+            cls.validate,
+            core_schema.str_schema(
+                pattern=cls.ADDRESS_PATTERN,
+                min_length=cls.ADDRESS_LENGTH,
+                max_length=cls.ADDRESS_LENGTH + cls.ADDRESS_SUFFIX_LENGTH,
+                ref='onion_v3',
+                strict=True,
+            ),
+        )
+
+    @classmethod
+    def validate(cls, value: str) -> Self:
+        """Validate any input value provided by the user."""
+        address = cls.strip_suffix(value)
+        data = base64.b32decode(address, casefold=True)
+        pkey = data[00:32]
+        csum = data[32:34]
+        version = data[34]
+        if version == cls.VERSION:
+            blob = cls.ADDRESS_CHECKSUM + pkey + bytes([cls.VERSION])
+            digest = hashlib.sha3_256(blob).digest()
+            if digest.startswith(csum):
+                return cls(address)
+
+        raise PydanticCustomError(
+            'invalid_onion_v3',
+            'Invalid v3 hidden service address: "{address}"',
+            {'address': address},
+        )
+
+#: Any kind of onion service address.
+HiddenServiceAddress: TypeAlias = HiddenServiceAddressV2 | HiddenServiceAddressV3
 
 
 class LogSeverityTransformer:

@@ -6,6 +6,8 @@ from collections.abc import Awaitable, Callable, MutableSequence
 from contextlib import AsyncExitStack, suppress
 from typing import TYPE_CHECKING, TypeAlias, cast
 
+from pydantic import RootModel
+
 from .connector import (
     DEFAULT_CONTROL_HOST,
     DEFAULT_CONTROL_PATH,
@@ -34,6 +36,7 @@ from .protocol import (
     Event,
     EventWord,
     EventWordInternal,
+    HiddenServiceAddress,
     Message,
     ReplyAuthChallenge,
     ReplyAuthenticate,
@@ -53,7 +56,6 @@ from .protocol import (
     event_from_message,
     messages_from_stream,
 )
-from .utils import hs_address_strip_tld
 
 if TYPE_CHECKING:
     from collections.abc import (  # noqa: F401
@@ -654,7 +656,7 @@ class Controller:
 
     async def hs_fetch(
         self,
-        address: str,
+        address: HiddenServiceAddress | str,
         servers: Iterable[str] | None = None,
     ) -> ReplyHsFetch:
         """
@@ -671,8 +673,9 @@ class Controller:
             A simple hsfetch reply where only the status is relevant.
 
         """
-        address = hs_address_strip_tld(address.lower())
-        command = CommandHsFetch(address=address)
+        # See https://github.com/pydantic/pydantic/discussions/7094#discussioncomment-8486007
+        addr = RootModel[HiddenServiceAddress].model_validate(address).root
+        command = CommandHsFetch(address=addr)
         if servers is not None:
             command.servers.extend(servers)
         message = await self.request(command)

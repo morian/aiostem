@@ -10,12 +10,12 @@ from dataclasses import dataclass, field
 from functools import partial
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Self
 
-from pydantic import TypeAdapter
+from pydantic import PositiveInt, TypeAdapter
 
 from ..exceptions import ReplyError, ReplyStatusError
 from .structures import AuthMethod, OnionClientAuthKey, OnionServiceKeyType
 from .syntax import ReplySyntax, ReplySyntaxFlag
-from .utils import Base32Bytes, Base64Bytes, HexBytes, StringSequence
+from .utils import Base32Bytes, Base64Bytes, HexBytes, HiddenServiceAddress, StringSequence
 
 if TYPE_CHECKING:
     from .message import BaseMessage, Message
@@ -34,7 +34,7 @@ class BaseReply(ABC):
     #:
     #: See Also:
     #:     https://spec.torproject.org/control-spec/replies.html#replies
-    status: int
+    status: PositiveInt
 
     #: Text associated with the reply status (if any).
     status_text: str | None = None
@@ -604,8 +604,8 @@ class ReplyAddOnion(Reply):
         flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_RAW,
     )
 
-    #: Called `ServiceID` in the documentation, this is the onion address minus its TLD.
-    address: str | None = None
+    #: Called `ServiceID` in the documentation, this is the onion address.
+    address: HiddenServiceAddress | None = None
     #: List of client authentication for a v2 address.
     client_auth: Sequence[str] = field(default_factory=list)
     #: List of client authentication for a v3 address.
@@ -671,7 +671,7 @@ class ReplyOnionClientAuthView(Reply):
     """A reply for a :attr:`~.CommandWord.ONION_CLIENT_AUTH_VIEW` command."""
 
     SYNTAXES: ClassVar[Mapping[str, ReplySyntax]] = {
-        'ONION_CLIENT_AUTH_VIEW': ReplySyntax(args_map=('address',)),
+        'ONION_CLIENT_AUTH_VIEW': ReplySyntax(args_map=(None, 'address')),
         'CLIENT': ReplySyntax(
             args_min=3,
             args_map=(None, 'address', 'key'),
@@ -684,7 +684,7 @@ class ReplyOnionClientAuthView(Reply):
     }
 
     #: Onion address minus the ``.onion`` suffix.
-    address: str | None = None
+    address: HiddenServiceAddress | None = None
     #: List of client private keys.
     clients: Sequence[OnionClientAuthKey] = field(default_factory=list)
 
