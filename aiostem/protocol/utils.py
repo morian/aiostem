@@ -106,6 +106,7 @@ class CommandSerializer:
         self._body = body
 
 
+#: Generic type used for our encoders.
 T = TypeVar('T', bound=bytes | int)
 
 
@@ -175,7 +176,7 @@ class Base32Encoder(EncoderProtocol[bytes]):
 
     @classmethod
     def encode(cls, value: bytes) -> str:
-        """Encode :attr:`value` to a base32 encoded string."""
+        """Encode ``value`` to a base32 encoded string."""
         encoded = base64.b32encode(value)
         if cls.trim_padding:
             encoded = encoded.rstrip(b'=')
@@ -212,7 +213,7 @@ class Base64Encoder(EncoderProtocol[bytes]):
 
     @classmethod
     def encode(cls, value: bytes) -> str:
-        """Encode the :attr:`value` to a base64 encoded string."""
+        """Encode ``value`` to a base34 encoded string."""
         encoded = base64.standard_b64encode(value)
         if cls.trim_padding:
             encoded = encoded.rstrip(b'=')
@@ -241,7 +242,7 @@ class HexEncoder(EncoderProtocol[bytes]):
 
     @classmethod
     def encode(cls, value: bytes) -> str:
-        """Encode the :attr:`value` to a hex encoded string."""
+        """Encode ``value`` to a hex encoded string."""
         return value.hex()
 
     @classmethod

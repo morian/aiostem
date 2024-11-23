@@ -42,6 +42,8 @@ extensions = [
     'sphinx_copybutton',
     'sphinx_inline_tabs',
     'sphinx_autodoc_typehints',
+    'sphinx_toolbox.more_autodoc.genericalias',
+    'sphinx_toolbox.more_autodoc.typevars',
 ]
 
 templates_path = ['_templates']
@@ -51,6 +53,12 @@ exclude_patterns = ['_build']
 # -- Extensions configuration ------------------------------------------------
 # Nitpick configuration
 nitpicky = True
+nitpick_ignore = {
+    ('py:class', 'pydantic_core.core_schema.ValidatorFunctionWrapHandler'),
+}
+nitpick_ignore_regex = {
+    ('py:class', r'pydantic_core[.]core_schema[.][^.]*Schema'),
+}
 
 # Autodoc
 autodoc_default_options = {
@@ -97,6 +105,7 @@ _reftarget_fixmap = {
 _reftype_fixmap = {
     'aiostem.controller.EventCallbackType': 'data',
     'aiostem.protocol.argument.Argument': 'data',
+    'aiostem.protocol.utils.T': 'data',
     # Sometimes it is looked up as a class.
     'typing.Annotated': 'obj',
     'typing.Self': 'obj',
