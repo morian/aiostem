@@ -30,11 +30,7 @@ from ..exceptions import CommandError
 if TYPE_CHECKING:
     from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
     from pydantic.json_schema import JsonSchemaValue
-    from pydantic_core.core_schema import (
-        SerializationInfo,
-        ValidationInfo,
-        ValidatorFunctionWrapHandler,
-    )
+    from pydantic_core.core_schema import SerializationInfo, ValidatorFunctionWrapHandler
 
     from .argument import ArgumentKeyword, ArgumentString
     from .command import CommandWord
@@ -281,7 +277,7 @@ class EncodedBase(Generic[T]):
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Tell the core schema and how to validate the whole thing."""
-        return core_schema.with_info_wrap_validator_function(
+        return core_schema.no_info_wrap_validator_function(
             function=self.decode,
             schema=self.CORE_SCHEMA,
             serialization=core_schema.plain_serializer_function_ser_schema(
@@ -304,7 +300,6 @@ class EncodedBase(Generic[T]):
         self,
         data: Any,
         validator: ValidatorFunctionWrapHandler,
-        info: ValidationInfo,
     ) -> T:
         """Decode the data using the specified encoder."""
         if isinstance(data, str):
@@ -384,12 +379,12 @@ class HiddenServiceAddressV2(BaseHiddenServiceAddress):
     @classmethod
     def __get_pydantic_core_schema__(
         cls,
-        source: type[str],
+        source: type[Any],
         handler: GetCoreSchemaHandler,
-    ) -> core_schema.AfterValidatorFunctionSchema:
+    ) -> CoreSchema:
         """Declare schema and validator for a v2 hidden service address."""
-        return core_schema.no_info_after_validator_function(
-            cls.validate,
+        return core_schema.no_info_wrap_validator_function(
+            cls._pydantic_wrap_validator,
             core_schema.str_schema(
                 pattern=cls.ADDRESS_PATTERN,
                 min_length=cls.ADDRESS_LENGTH,
@@ -400,9 +395,29 @@ class HiddenServiceAddressV2(BaseHiddenServiceAddress):
         )
 
     @classmethod
-    def validate(cls, value: str) -> Self:
+    def _pydantic_wrap_validator(
+        cls,
+        value: Any,
+        validator: ValidatorFunctionWrapHandler,
+    ) -> Self:
         """Validate any input value provided by the user."""
-        return cls(cls.strip_suffix(value))
+        if isinstance(value, cls):
+            return value
+        return cls.from_string(validator(value))
+
+    @classmethod
+    def from_string(cls, domain: str) -> Self:
+        """
+        Build from a user string.
+
+        Args:
+            domain: A valid ``.onion`` domain, with or without its TLD.
+
+        Returns:
+            A valid V2 domain without its ``.onion`` suffix.
+
+        """
+        return cls(cls.strip_suffix(domain))
 
 
 class HiddenServiceAddressV3(BaseHiddenServiceAddress):
@@ -416,12 +431,12 @@ class HiddenServiceAddressV3(BaseHiddenServiceAddress):
     @classmethod
     def __get_pydantic_core_schema__(
         cls,
-        source: type[str],
+        source: type[Any],
         handler: GetCoreSchemaHandler,
-    ) -> core_schema.AfterValidatorFunctionSchema:
+    ) -> CoreSchema:
         """Declare schema and validator for a v3 hidden service address."""
-        return core_schema.no_info_after_validator_function(
-            cls.validate,
+        return core_schema.no_info_wrap_validator_function(
+            cls._pydantic_wrap_validator,
             core_schema.str_schema(
                 pattern=cls.ADDRESS_PATTERN,
                 min_length=cls.ADDRESS_LENGTH,
@@ -432,9 +447,33 @@ class HiddenServiceAddressV3(BaseHiddenServiceAddress):
         )
 
     @classmethod
-    def validate(cls, value: str) -> Self:
+    @classmethod
+    def _pydantic_wrap_validator(
+        cls,
+        value: Any,
+        validator: ValidatorFunctionWrapHandler,
+    ) -> Self:
         """Validate any input value provided by the user."""
-        address = cls.strip_suffix(value)
+        if isinstance(value, cls):
+            return value
+        return cls.from_string(validator(value))
+
+    @classmethod
+    def from_string(cls, domain: str) -> Self:
+        """
+        Build from a user string.
+
+        Args:
+            domain: A valid ``.onion`` domain, with or without its TLD.
+
+        Raises:
+            PydanticCustomError: On invalid onion V3 domain.
+
+        Returns:
+            A valid V3 domain without its ``.onion`` suffix.
+
+        """
+        address = cls.strip_suffix(domain)
         data = base64.b32decode(address, casefold=True)
         pkey = data[00:32]
         csum = data[32:34]
