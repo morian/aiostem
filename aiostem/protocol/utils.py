@@ -447,7 +447,6 @@ class HiddenServiceAddressV3(BaseHiddenServiceAddress):
         )
 
     @classmethod
-    @classmethod
     def _pydantic_wrap_validator(
         cls,
         value: Any,
