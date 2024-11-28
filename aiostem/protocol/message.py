@@ -188,5 +188,5 @@ async def messages_from_stream(stream: StreamReader) -> AsyncIterator[Message]:
                 data = MessageData(status=status, header=content)
 
             case _:
-                msg = "Unrecognized separator on line '{line}'"
+                msg = f"Unrecognized separator on line '{line}'"
                 raise ProtocolError(msg)

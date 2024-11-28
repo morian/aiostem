@@ -145,7 +145,6 @@ __all__ = [
     'ArgumentKeyword',
     'ArgumentString',
     'AuthMethod',
-    'BaseCommand',
     'CircuitPurpose',
     'CloseStreamReason',
     'Command',
