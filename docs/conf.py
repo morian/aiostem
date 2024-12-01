@@ -9,13 +9,13 @@ from __future__ import annotations
 
 import os
 import sys
-from docutils import nodes
 from typing import TYPE_CHECKING, Any
 
 from sphinx.ext.intersphinx import missing_reference
 from sphinx.util.inspect import TypeAliasForwardRef
 
 if TYPE_CHECKING:
+    from docutils import nodes
     from docutils.nodes import TextElement
     from sphinx.addnodes import pending_xref
     from sphinx.application import Sphinx
@@ -69,8 +69,8 @@ autodoc_default_options = {
 autodoc_class_signature = 'separated'
 autodoc_preserve_defaults = False
 autodoc_type_aliases = {
-    'EventCallbackType':  '~aiostem.controller.EventCallbackType',
     'Argument': '~aiostem.protocol.argument.Argument',
+    'EventCallbackType':  '~aiostem.controller.EventCallbackType',
 }
 autodoc_typehints = 'signature'
 autoclass_content = 'class'
@@ -85,8 +85,8 @@ typehints_use_signature_return = True
 typehints_use_rtype = False
 
 # Napoleon settings
-napoleon_use_admonition_for_notes = True
 napoleon_preprocess_types = True
+napoleon_use_admonition_for_notes = True
 
 
 # InterSphinx
@@ -97,6 +97,7 @@ intersphinx_mapping = {
 # Map of references known to be broken by default.
 # We register a custom mapper linked to intersphinx.
 _reftarget_fixmap = {
+    'PydanticCustomError': 'pydantic_core.PydanticCustomError',
     'asyncio.locks.Condition': 'asyncio.Condition',
     'asyncio.streams.StreamReader': 'asyncio.StreamReader',
     'asyncio.streams.StreamWriter': 'asyncio.StreamWriter',
@@ -117,7 +118,6 @@ _reftype_fixmap = {
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'furo'
-
 html_theme_options = {
     'source_directory': 'docs/',
     'light_css_variables': {
@@ -192,4 +192,5 @@ def custom_missing_reference(
 
 
 def setup(app: Sphinx) -> None:
+    """Add a custom methid for missing references."""
     app.connect('missing-reference', custom_missing_reference)

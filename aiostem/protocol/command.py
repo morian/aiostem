@@ -96,6 +96,7 @@ class CommandWord(StrEnum):
     #: Tell the server to replace addresses on future SOCKS requests.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.map_address`
     #:     - Command implementation: :class:`CommandMapAddress`
     #:     - Reply implementation: :class:`.ReplyMapAddress`
     MAPADDRESS = 'MAPADDRESS'

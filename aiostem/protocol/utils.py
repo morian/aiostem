@@ -169,7 +169,19 @@ class Base32Encoder(EncoderProtocol[bytes]):
 
     @classmethod
     def decode(cls, data: str) -> bytes:
-        """Decode the provided base32 bytes to original bytes data."""
+        """
+        Decode the provided base32 bytes to original bytes data.
+
+        Args:
+            data: A base32-encoded string to decode.
+
+        Raises:
+            PydanticCustomError: On decoding error.
+
+        Returns:
+            The corresponding decoded bytes.
+
+        """
         try:
             if cls.trim_padding:
                 data = data.rstrip('=')
@@ -185,7 +197,16 @@ class Base32Encoder(EncoderProtocol[bytes]):
 
     @classmethod
     def encode(cls, value: bytes) -> str:
-        """Encode ``value`` to a base32 encoded string."""
+        """
+        Encode a value to a base32 encoded string.
+
+        Args:
+            value: A byte value to encode to base32.
+
+        Returns:
+            The corresponding encoded string value.
+
+        """
         encoded = base64.b32encode(value)
         if cls.trim_padding:
             encoded = encoded.rstrip(b'=')
@@ -205,7 +226,19 @@ class Base64Encoder(EncoderProtocol[bytes]):
 
     @classmethod
     def decode(cls, data: str) -> bytes:
-        """Decode the provided base64 bytes to original bytes data."""
+        """
+        Decode the provided base64 bytes to original bytes data.
+
+        Args:
+            data: A base64-encoded string to decode.
+
+        Raises:
+            PydanticCustomError: On decoding error.
+
+        Returns:
+            The corresponding decoded bytes.
+
+        """
         try:
             encoded = data.encode()
             if cls.trim_padding:
@@ -222,7 +255,16 @@ class Base64Encoder(EncoderProtocol[bytes]):
 
     @classmethod
     def encode(cls, value: bytes) -> str:
-        """Encode ``value`` to a base64 encoded string."""
+        """
+        Encode a value to a base64 encoded string.
+
+        Args:
+            value: A byte value to encode to base64.
+
+        Returns:
+            The corresponding encoded string value.
+
+        """
         encoded = base64.standard_b64encode(value)
         if cls.trim_padding:
             encoded = encoded.rstrip(b'=')
@@ -239,7 +281,19 @@ class HexEncoder(EncoderProtocol[bytes]):
 
     @classmethod
     def decode(cls, data: str) -> bytes:
-        """Decode the provided hex string to original bytes data."""
+        """
+        Decode the provided hex string to original bytes data.
+
+        Args:
+            data: A hex-encoded string to decode.
+
+        Raises:
+            PydanticCustomError: On decoding error.
+
+        Returns:
+            The corresponding decoded bytes.
+
+        """
         try:
             return bytes.fromhex(data.zfill((len(data) + 1) & ~1))
         except ValueError as e:
@@ -251,7 +305,16 @@ class HexEncoder(EncoderProtocol[bytes]):
 
     @classmethod
     def encode(cls, value: bytes) -> str:
-        """Encode ``value`` to a hex encoded string."""
+        """
+        Encode a value to a hex encoded string.
+
+        Args:
+            value: A byte value to encode to a hexadecimal string.
+
+        Returns:
+            The corresponding encoded string value.
+
+        """
         return value.hex()
 
     @classmethod

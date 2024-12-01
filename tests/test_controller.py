@@ -163,6 +163,25 @@ class TestController:
         resp = await controller.load_conf(info.values['config-text'])
         resp.raise_for_status()
 
+    async def test_map_address(self, controller):
+        reply = await controller.map_address(
+            {
+                'one.one.one.one': '1.1.1.1',
+                'dns.google': '8.8.8.8',
+            }
+        )
+        reply.raise_for_status()
+        for item in reply.items:
+            item.raise_for_status()
+        assert len(reply.items) == 2
+
+        info = await controller.get_info('address-mappings/control')
+        info.raise_for_status()
+
+        entries = info.values['address-mappings/control'].splitlines()
+        assert isinstance(entries, list)
+        assert len(entries) == 2
+
     async def test_cmd_reset_conf(self, controller):
         conf = {'MaxClientCircuitsPending': '64'}
         result = await controller.reset_conf(conf)

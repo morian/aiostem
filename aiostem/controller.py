@@ -26,6 +26,7 @@ from .protocol import (
     CommandGetInfo,
     CommandHsFetch,
     CommandLoadConf,
+    CommandMapAddress,
     CommandProtocolInfo,
     CommandQuit,
     CommandResetConf,
@@ -45,6 +46,7 @@ from .protocol import (
     ReplyGetInfo,
     ReplyHsFetch,
     ReplyLoadConf,
+    ReplyMapAddress,
     ReplyProtocolInfo,
     ReplyQuit,
     ReplyResetConf,
@@ -341,6 +343,98 @@ class Controller:
                 replies.put_nowait(None)
             await self._notify_disconnect()
 
+    async def add_event_handler(
+        self,
+        event: EventWord | EventWordInternal | str,
+        callback: EventCallbackType,
+    ) -> None:
+        """
+        Register a callback function to be called when an event message is received.
+
+        Notes:
+            - A special event :attr:`~.protocol.event.EventWordInternal.DISCONNECT` is handled
+              internally by this library and can be registered here to be notified of any
+              disconnection from the control socket.
+            - Multiple callbacks can be set for a single event.
+              If so, they are called in the order they were registered.
+
+        USE EXAMPLE::
+
+            def client_status_callback(event: EventStatusClient):
+                print(event)
+
+            async with Controller.from_path('/run/tor/control.sock') as controller:
+                await controller.authenticate()
+                await controller.add_event_handler('STATUS_CLIENT', client_status_callback)
+                ...
+
+        See Also:
+            https://spec.torproject.org/control-spec/replies.html#asynchronous-events
+
+        Args:
+            event: Name of the event linked to the callback.
+            callback: A function or coroutine to be called when the event occurs.
+
+        Raises:
+            CommandError: When the event name does not exit.
+            ReplyStatusError: When the event could not be registered.
+
+        """
+        if not isinstance(event, EventWord | EventWordInternal):
+            event = self._str_event_to_enum(event)
+
+        async with self._events_lock:
+            listeners = self._evt_callbacks.setdefault(event.value, [])
+            try:
+                # Tell Tor that we are now interested in this event.
+                if not len(listeners) and isinstance(event, EventWord):
+                    keys = frozenset(self._evt_callbacks.keys())
+                    reals = keys.difference(EventWordInternal)
+                    events = frozenset(map(EventWord, reals))
+
+                    reply = await self.set_events(events)
+                    reply.raise_for_status()
+            except BaseException:
+                if not len(listeners):  # pragma: no branch
+                    self._evt_callbacks.pop(event)
+                raise
+            else:
+                listeners.append(callback)
+
+    async def del_event_handler(
+        self,
+        event: EventWord | EventWordInternal | str,
+        callback: EventCallbackType,
+    ) -> None:
+        """
+        Unregister a previously registered callback function.
+
+        Args:
+            event: Name of the event linked to the callback.
+            callback: A function or coroutine to be removed from the event list.
+
+        """
+        if not isinstance(event, EventWord | EventWordInternal):
+            event = self._str_event_to_enum(event)
+
+        async with self._events_lock:
+            listeners = self._evt_callbacks.get(event, [])
+            if callback in listeners:
+                backup_listeners = listeners.copy()
+                listeners.remove(callback)
+                try:
+                    if not len(listeners):
+                        self._evt_callbacks.pop(event.value)
+                        if isinstance(event, EventWord):
+                            keys = frozenset(self._evt_callbacks.keys())
+                            reals = keys.difference(EventWordInternal)
+                            events = frozenset(map(EventWord, reals))
+                            await self.set_events(events)
+                except BaseException:
+                    # Restore the original callbacks on error.
+                    self._evt_callbacks[event.value] = backup_listeners
+                    raise
+
     async def request(self, command: Command) -> Message:
         """
         Send any kind of command to the controller.
@@ -490,98 +584,6 @@ class Controller:
         message = await self.request(command)
         return ReplyDropGuards.from_message(message)
 
-    async def add_event_handler(
-        self,
-        event: EventWord | EventWordInternal | str,
-        callback: EventCallbackType,
-    ) -> None:
-        """
-        Register a callback function to be called when an event message is received.
-
-        Notes:
-            - A special event :attr:`~.protocol.event.EventWordInternal.DISCONNECT` is handled
-              internally by this library and can be registered here to be notified of any
-              disconnection from the control socket.
-            - Multiple callbacks can be set for a single event.
-              If so, they are called in the order they were registered.
-
-        USE EXAMPLE::
-
-            def client_status_callback(event: EventStatusClient):
-                print(event)
-
-            async with Controller.from_path('/run/tor/control.sock') as controller:
-                await controller.authenticate()
-                await controller.add_event_handler('STATUS_CLIENT', client_status_callback)
-                ...
-
-        See Also:
-            https://spec.torproject.org/control-spec/replies.html#asynchronous-events
-
-        Args:
-            event: Name of the event linked to the callback.
-            callback: A function or coroutine to be called when the event occurs.
-
-        Raises:
-            CommandError: When the event name does not exit.
-            ReplyStatusError: When the event could not be registered.
-
-        """
-        if not isinstance(event, EventWord | EventWordInternal):
-            event = self._str_event_to_enum(event)
-
-        async with self._events_lock:
-            listeners = self._evt_callbacks.setdefault(event.value, [])
-            try:
-                # Tell Tor that we are now interested in this event.
-                if not len(listeners) and isinstance(event, EventWord):
-                    keys = frozenset(self._evt_callbacks.keys())
-                    reals = keys.difference(EventWordInternal)
-                    events = frozenset(map(EventWord, reals))
-
-                    reply = await self.set_events(events)
-                    reply.raise_for_status()
-            except BaseException:
-                if not len(listeners):  # pragma: no branch
-                    self._evt_callbacks.pop(event)
-                raise
-            else:
-                listeners.append(callback)
-
-    async def del_event_handler(
-        self,
-        event: EventWord | EventWordInternal | str,
-        callback: EventCallbackType,
-    ) -> None:
-        """
-        Unregister a previously registered callback function.
-
-        Args:
-            event: Name of the event linked to the callback.
-            callback: A function or coroutine to be removed from the event list.
-
-        """
-        if not isinstance(event, EventWord | EventWordInternal):
-            event = self._str_event_to_enum(event)
-
-        async with self._events_lock:
-            listeners = self._evt_callbacks.get(event, [])
-            if callback in listeners:
-                backup_listeners = listeners.copy()
-                listeners.remove(callback)
-                try:
-                    if not len(listeners):
-                        self._evt_callbacks.pop(event.value)
-                        if isinstance(event, EventWord):
-                            keys = frozenset(self._evt_callbacks.keys())
-                            reals = keys.difference(EventWordInternal)
-                            events = frozenset(map(EventWord, reals))
-                            await self.set_events(events)
-                except BaseException:
-                    # Restore the original callbacks on error.
-                    self._evt_callbacks[event.value] = backup_listeners
-                    raise
-
     async def get_conf(self, *args: str) -> ReplyGetConf:
         """
         Request the value of zero or move configuration variable(s).
@@ -624,35 +626,6 @@ class Controller:
         command = CommandGetInfo(keywords=[*args])
         message = await self.request(command)
         return ReplyGetInfo.from_message(message)
-
-    async def protocol_info(self, version: int | None = None) -> ReplyProtocolInfo:
-        """
-        Get control protocol information from Tor.
-
-        This command is performed as part of the authentication process in order to find out
-        all supported authentication methods (see :class:`~.protocol.structures.AuthMethod`).
-
-        The ``version`` is supposed to set to ``1`` but Tor currently does not care.
-
-        Note:
-            The command result is cached when unauthenticated as we can only send this
-            command once in this situation.
-
-        See Also:
-            https://spec.torproject.org/control-spec/commands.html#protocolinfo
-
-        Args:
-            version: Protocol version to ask for when provided.
-
-        Returns:
-            A completed protocol info reply from Tor.
-
-        """
-        if self.authenticated or not self._protoinfo:
-            command = CommandProtocolInfo(version=version)
-            message = await self.request(command)
-            self._protoinfo = ReplyProtocolInfo.from_message(message)
-        return self._protoinfo
 
     async def hs_fetch(
         self,
@@ -698,6 +671,72 @@ class Controller:
         command = CommandLoadConf(text=text)
         message = await self.request(command)
         return ReplyLoadConf.from_message(message)
+
+    async def map_address(self, addresses: Mapping[str, str]) -> ReplyMapAddress:
+        """
+        Map provided addresses with their replacement.
+
+        The client tells the server that future SOCKS requests for connections to any
+        original address provided here should be replaced with a connection to the
+        specificed replacement address.
+
+        The client may decline to provide a replacement address and instead provide
+        a special null address:
+
+        - ``0.0.0.0`` for IPv4
+        - ``::0`` for IPv6
+        - ``.`` for hostname
+
+        This means that the server should choose the original address itself.
+
+        Mapping values can be read using :meth:`get_info` with ``address-mappings/control``.
+
+        See Also:
+            https://spec.torproject.org/control-spec/commands.html#mapaddress
+
+        Args:
+            addresses: A map of addresses to remap on socks requests.
+
+        Returns:
+            A list of individual replies for each map request.
+
+            Note that some values can be rejected and others can be accepted, which means
+            that you should check each individual value.
+
+        """
+        command = CommandMapAddress()
+        command.addresses.update(addresses)
+        message = await self.request(command)
+        return ReplyMapAddress.from_message(message)
+
+    async def protocol_info(self, version: int | None = None) -> ReplyProtocolInfo:
+        """
+        Get control protocol information from Tor.
+
+        This command is performed as part of the authentication process in order to find out
+        all supported authentication methods (see :class:`~.protocol.structures.AuthMethod`).
+
+        The ``version`` is supposed to set to ``1`` but Tor currently does not care.
+
+        Note:
+            The command result is cached when unauthenticated as we can only send this
+            command once in this situation.
+
+        See Also:
+            https://spec.torproject.org/control-spec/commands.html#protocolinfo
+
+        Args:
+            version: Protocol version to ask for when provided.
+
+        Returns:
+            A completed protocol info reply from Tor.
+
+        """
+        if self.authenticated or not self._protoinfo:
+            command = CommandProtocolInfo(version=version)
+            message = await self.request(command)
+            self._protoinfo = ReplyProtocolInfo.from_message(message)
+        return self._protoinfo
 
     async def reset_conf(
         self,

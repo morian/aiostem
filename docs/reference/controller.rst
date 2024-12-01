@@ -99,6 +99,7 @@ Control commands
    :no-index:
 
    .. automethod:: get_info
+   .. automethod:: map_address
    .. automethod:: signal
 
 

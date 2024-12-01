@@ -18,6 +18,7 @@ Generic decoders
 These are helpers used to encode/decode encoded strings to something else like :class:`bytes`.
 
 .. autotypevar:: T
+   :no-type:
 
 .. autoclass:: EncoderProtocol
    :members:
@@ -56,8 +57,11 @@ Data transformers
 -----------------
 
 .. autoclass:: LogSeverityTransformer
+   :no-show-inheritance:
    :members:
 .. autoclass:: StringSequence
+   :no-show-inheritance:
    :members:
 .. autoclass:: TimedeltaTransformer
+   :no-show-inheritance:
    :members:
