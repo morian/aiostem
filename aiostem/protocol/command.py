@@ -26,6 +26,7 @@ from .structures import (
     Signal,
 )
 from .utils import (
+    AnyHost,
     Base32Bytes,
     Base64Bytes,
     CommandSerializer,
@@ -529,7 +530,7 @@ class CommandMapAddress(Command):
     command: ClassVar[CommandWord] = CommandWord.MAPADDRESS
 
     #: Map of addresses to remap on socks requests.
-    addresses: MutableMapping[str, str] = field(default_factory=dict)
+    addresses: MutableMapping[AnyHost, AnyHost] = field(default_factory=dict)
 
     def _serialize(self) -> CommandSerializer:
         """Append ``MAPADDRESS`` specific arguments."""

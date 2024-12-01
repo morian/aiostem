@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 from enum import IntEnum
 from functools import partial
+from ipaddress import IPv4Address, IPv6Address
 from typing import (
     TYPE_CHECKING,
     Annotated,
@@ -19,6 +20,7 @@ from typing import (
     Self,
     TypeAlias,
     TypeVar,
+    Union,
 )
 
 from pydantic import ConfigDict, TypeAdapter
@@ -34,6 +36,10 @@ if TYPE_CHECKING:
 
     from .argument import ArgumentKeyword, ArgumentString
     from .command import CommandWord
+
+
+#: Any host, either by IP address or host name.
+AnyHost: TypeAlias = Union[IPv4Address, IPv6Address, str]  # noqa: UP007
 
 
 class CommandSerializer:

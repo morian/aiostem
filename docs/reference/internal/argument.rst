@@ -13,6 +13,9 @@ Base class
 .. autoclass:: BaseArgument
    :members: __str__
 
+.. autodata:: KeyTypes
+.. autodata:: ValueTypes
+
 
 Argument classes
 ----------------

@@ -12,6 +12,14 @@ data from Tor to python structures. Most of these classes heavily rely on
 .. currentmodule:: aiostem.protocol.utils
 
 
+Type aliases
+------------
+
+These are helper types used to describe common types encountered throughout his library.
+
+.. autodata:: AnyHost
+
+
 Generic decoders
 ----------------
 

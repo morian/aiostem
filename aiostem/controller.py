@@ -18,6 +18,7 @@ from .connector import (
 )
 from .exceptions import CommandError, ControllerError
 from .protocol import (
+    AnyHost,
     Command,
     CommandAuthChallenge,
     CommandAuthenticate,
@@ -672,7 +673,7 @@ class Controller:
         message = await self.request(command)
         return ReplyLoadConf.from_message(message)
 
-    async def map_address(self, addresses: Mapping[str, str]) -> ReplyMapAddress:
+    async def map_address(self, addresses: Mapping[AnyHost, AnyHost]) -> ReplyMapAddress:
         """
         Map provided addresses with their replacement.
 
@@ -681,13 +682,12 @@ class Controller:
         specificed replacement address.
 
         The client may decline to provide a replacement address and instead provide
-        a special null address:
+        a special address. This means that the server should choose the original
+        address itself.
 
-        - ``0.0.0.0`` for IPv4
-        - ``::0`` for IPv6
-        - ``.`` for hostname
-
-        This means that the server should choose the original address itself.
+        - For IPv4: ``0.0.0.0``
+        - For IPv6: ``::0``
+        - For hostname: ``.``
 
         Mapping values can be read using :meth:`get_info` with ``address-mappings/control``.
 

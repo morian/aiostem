@@ -3,17 +3,30 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from enum import IntEnum, StrEnum
-from typing import TYPE_CHECKING, Any, TypeAlias, overload
+from ipaddress import IPv4Address, IPv6Address
+from typing import TYPE_CHECKING, Any, TypeAlias, Union, overload
 
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
 
-    ValueTypes: TypeAlias = IntEnum | StrEnum | int | str
 
 from ..exceptions import CommandError
 
 #: List of characters in a string that need an escape.
 _AUTO_CHARS: AbstractSet[str] = frozenset({' ', '"', '\\'})
+
+#: All types allowed as a key in a keyword argument.
+KeyTypes: TypeAlias = Union[IPv4Address, IPv6Address, str, None]  # noqa: UP007
+
+#: All types allowed as a value, either for a keyword or a simple string.
+ValueTypes: TypeAlias = Union[  # noqa: UP007
+    IPv4Address,
+    IPv6Address,
+    IntEnum,
+    StrEnum,
+    int,
+    str,
+]
 
 
 @overload
@@ -31,7 +44,7 @@ def _serialize_value(value: Any, *, allow_none: bool = False) -> str | None:
     match value:
         case IntEnum() | StrEnum():
             result = str(value.value)
-        case int() | str():
+        case IPv4Address() | IPv6Address() | int() | str():
             result = str(value)
         case None:
             if allow_none is False:
@@ -115,7 +128,7 @@ class ArgumentKeyword(BaseArgument):
 
     def __init__(
         self,
-        key: str | None,
+        key: KeyTypes,
         value: ValueTypes | None,
         *,
         quotes: QuoteStyle = QuoteStyle.AUTO,
@@ -147,7 +160,7 @@ class ArgumentKeyword(BaseArgument):
                 msg = 'Both key and value cannot be None.'
                 raise CommandError(msg)
 
-        self._key = key
+        self._key = _serialize_value(key, allow_none=True)
         self._value = _serialize_value(value, allow_none=True)
         self._quotes = quotes
 

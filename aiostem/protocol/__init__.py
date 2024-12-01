@@ -139,9 +139,15 @@ from .structures import (
     StatusServerReachabilityFailed,
     StatusServerReachabilitySucceeded,
 )
-from .utils import HiddenServiceAddress, HiddenServiceAddressV2, HiddenServiceAddressV3
+from .utils import (
+    AnyHost,
+    HiddenServiceAddress,
+    HiddenServiceAddressV2,
+    HiddenServiceAddressV3,
+)
 
 __all__ = [
+    'AnyHost',
     'ArgumentKeyword',
     'ArgumentString',
     'AuthMethod',

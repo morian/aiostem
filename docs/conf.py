@@ -69,8 +69,11 @@ autodoc_default_options = {
 autodoc_class_signature = 'separated'
 autodoc_preserve_defaults = False
 autodoc_type_aliases = {
-    'Argument': '~aiostem.protocol.argument.Argument',
     'EventCallbackType':  '~aiostem.controller.EventCallbackType',
+    'AnyHost': '~aiostem.protocol.utils.AnyHost',
+    'Argument': '~aiostem.protocol.argument.Argument',
+    'KeyTypes': '~aiostem.protocol.argument.KeyTypes',
+    'ValueTypes': '~aiostem.protocol.argument.ValueTypes',
 }
 autodoc_typehints = 'signature'
 autoclass_content = 'class'
@@ -101,15 +104,22 @@ _reftarget_fixmap = {
     'asyncio.locks.Condition': 'asyncio.Condition',
     'asyncio.streams.StreamReader': 'asyncio.StreamReader',
     'asyncio.streams.StreamWriter': 'asyncio.StreamWriter',
+    # Fixes for aiostem.protocol.argument.
+    'KeyTypes': 'aiostem.protocol.argument.KeyTypes',
+    'ValueTypes': 'aiostem.protocol.argument.ValueTypes',
 }
 # Map of known types that get badly requested to be a class.
 _reftype_fixmap = {
     'aiostem.controller.EventCallbackType': 'data',
     'aiostem.protocol.argument.Argument': 'data',
+    'aiostem.protocol.argument.KeyTypes': 'data',
+    'aiostem.protocol.argument.ValueTypes': 'data',
+    'aiostem.protocol.utils.AnyHost': 'data',
     'aiostem.protocol.utils.HiddenServiceAddress': 'data',
     'aiostem.protocol.utils.T': 'data',
-    # Sometimes it is looked up as a class.
+    # Sometimes these are looked up as classes.
     'typing.Annotated': 'obj',
+    'typing.Final': 'obj',
     'typing.Self': 'obj',
 }
 
