@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import secrets
+from ipaddress import IPv4Address
 
 import pytest
 
@@ -102,10 +103,10 @@ class TestReplies:
         assert reply.status == 250
         assert reply.status_text is None
         assert len(reply.items) == 2
-        assert reply.items[0].original == '127.218.108.43'
+        assert reply.items[0].original == IPv4Address('127.218.108.43')
         assert reply.items[0].replacement == 'bogus1.google.com'
         assert reply.items[1].original == 'one.one.one.one'
-        assert reply.items[1].replacement == '1.1.1.1'
+        assert reply.items[1].replacement == IPv4Address('1.1.1.1')
 
     async def test_map_address_error(self):
         lines = [
@@ -122,7 +123,7 @@ class TestReplies:
         assert reply.items[0].replacement is None
         assert reply.items[1].status == 250
         assert reply.items[1].original == 'one.one.one.one'
-        assert reply.items[1].replacement == '1.1.1.1'
+        assert reply.items[1].replacement == IPv4Address('1.1.1.1')
 
     async def test_get_info(self):
         lines = [

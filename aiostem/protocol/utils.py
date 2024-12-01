@@ -23,7 +23,7 @@ from typing import (
     Union,
 )
 
-from pydantic import ConfigDict, TypeAdapter
+from pydantic import ConfigDict, Field, TypeAdapter
 from pydantic_core import PydanticCustomError, core_schema
 from pydantic_core.core_schema import CoreSchema, WhenUsed
 
@@ -39,7 +39,10 @@ if TYPE_CHECKING:
 
 
 #: Any host, either by IP address or host name.
-AnyHost: TypeAlias = Union[IPv4Address, IPv6Address, str]  # noqa: UP007
+AnyHost: TypeAlias = Annotated[
+    IPv4Address | IPv6Address | str,
+    Field(union_mode='left_to_right'),
+]
 
 
 class CommandSerializer:

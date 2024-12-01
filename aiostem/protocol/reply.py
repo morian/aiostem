@@ -15,7 +15,14 @@ from pydantic import PositiveInt, TypeAdapter
 from ..exceptions import ReplyError, ReplyStatusError
 from .structures import AuthMethod, OnionClientAuthKey, OnionServiceKeyType
 from .syntax import ReplySyntax, ReplySyntaxFlag
-from .utils import Base32Bytes, Base64Bytes, HexBytes, HiddenServiceAddress, StringSequence
+from .utils import (
+    AnyHost,
+    Base32Bytes,
+    Base64Bytes,
+    HexBytes,
+    HiddenServiceAddress,
+    StringSequence,
+)
 
 if TYPE_CHECKING:
     from .message import BaseMessage, Message
@@ -206,10 +213,10 @@ class ReplyMapAddressItem(BaseReply):
     )
 
     #: Original address to replace with another one.
-    original: str | None = None
+    original: AnyHost | None = None
 
     #: Replacement item for the corresponding :attr:`original` address.
-    replacement: str | None = None
+    replacement: AnyHost | None = None
 
     @classmethod
     def from_message_item(cls, message: BaseMessage) -> Self:
