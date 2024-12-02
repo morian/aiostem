@@ -3,9 +3,11 @@ from __future__ import annotations
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
+from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, Literal
 
 from .utils import (
+    AnyPort,
     Base64Bytes,
     HexBytes,
     HiddenServiceAddress,
@@ -430,7 +432,7 @@ class StatusClientDangerousPort:
     """Arguments for action :attr:`StatusActionClient.DANGEROUS_PORT`."""
 
     #: A stream was initiated and this port is commonly used for vulnerable protocols.
-    port: int
+    port: AnyPort
     #: When "reject", we refused the connection; whereas if it's "warn", we allowed it.
     reason: Literal['REJECT', 'WARN']
 
@@ -543,7 +545,7 @@ class StatusServerExternalAddress:
     """Arguments for action :attr:`StatusActionServer.EXTERNAL_ADDRESS`."""
 
     #: Our external IP address.
-    address: str
+    address: IPv4Address | IPv6Address
     #: When set, we got our new IP by resolving this host name.
     hostname: str | None = None
     #: How we found out our external IP address.

@@ -27,6 +27,7 @@ from .structures import (
 )
 from .utils import (
     AnyHost,
+    AnyPort,
     Base32Bytes,
     Base64Bytes,
     CommandSerializer,
@@ -753,9 +754,9 @@ class CommandRedirectStream(Command):
     #: Stream identifier to redirect.
     stream: int
     #: Destination address to redirect it to.
-    address: str
+    address: AnyHost
     #: Optional port to redirect the stream to.
-    port: int | None = None
+    port: AnyPort | None = None
 
     def _serialize(self) -> CommandSerializer:
         """Append ``REDIRECTSTREAM`` specific arguments."""

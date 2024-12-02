@@ -141,6 +141,7 @@ from .structures import (
 )
 from .utils import (
     AnyHost,
+    AnyPort,
     HiddenServiceAddress,
     HiddenServiceAddressV2,
     HiddenServiceAddressV3,
@@ -148,6 +149,7 @@ from .utils import (
 
 __all__ = [
     'AnyHost',
+    'AnyPort',
     'ArgumentKeyword',
     'ArgumentString',
     'AuthMethod',

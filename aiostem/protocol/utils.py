@@ -20,7 +20,6 @@ from typing import (
     Self,
     TypeAlias,
     TypeVar,
-    Union,
 )
 
 from pydantic import ConfigDict, Field, TypeAdapter
@@ -38,11 +37,13 @@ if TYPE_CHECKING:
     from .command import CommandWord
 
 
-#: Any host, either by IP address or host name.
+#: Any host, either by IP address or hostname.
 AnyHost: TypeAlias = Annotated[
     IPv4Address | IPv6Address | str,
     Field(union_mode='left_to_right'),
 ]
+#: Any TCP or UDP port.
+AnyPort: TypeAlias = Annotated[int, Field(gt=0, lt=65536)]
 
 
 class CommandSerializer:

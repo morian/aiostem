@@ -18,6 +18,7 @@ Type aliases
 These are helper types used to describe common types encountered throughout his library.
 
 .. autodata:: AnyHost
+.. autodata:: AnyPort
 
 
 Generic decoders
