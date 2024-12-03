@@ -280,7 +280,7 @@ class ReplyGetInfo(ReplyGetMap):
         )
     )
 
-    #: Values received for the provides keywords.
+    #: Values received for the provided keywords.
     values: Mapping[str, Sequence[str | None] | str | None] = field(default_factory=dict)
 
     @classmethod
@@ -296,7 +296,7 @@ class ReplyGetInfo(ReplyGetMap):
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyExtendCircuit(ReplyGetMap):
+class ReplyExtendCircuit(Reply):
     """A reply for a :attr:`~.CommandWord.EXTENDCIRCUIT` command."""
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(args_min=2, args_map=(None, 'circuit'))

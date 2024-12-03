@@ -6,6 +6,8 @@ from enum import IntEnum, StrEnum
 from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, Literal
 
+from pydantic import NonNegativeInt
+
 from .utils import (
     AnyPort,
     Base64Bytes,
@@ -502,7 +504,7 @@ class StatusGeneralTooManyConnections:
     """Arguments for action :attr:`StatusActionGeneral.TOO_MANY_CONNECTIONS`."""
 
     #: Number of currently opened file descriptors.
-    current: int
+    current: NonNegativeInt
 
 
 @dataclass(kw_only=True, slots=True)
