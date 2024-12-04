@@ -141,7 +141,7 @@ class Monitor:
                 # This option was introduced in Tor `0.4.6.2`.
                 try:
                     reply = await self._controller.get_conf('DormantTimeoutEnabled')
-                    dormant = bool(reply.values.get('DormantTimeoutEnabled', True))
+                    dormant = bool(reply.get('DormantTimeoutEnabled', True))
                 except ReplyStatusError:  # pragma: no cover
                     dormant = True
 
@@ -200,7 +200,7 @@ class Monitor:
 
         reply = await self._controller.get_conf('DormantClientTimeout')
         if reply.is_success:  # pragma: no branch
-            value = reply.values.get('DormantClientTimeout')
+            value = reply.get('DormantClientTimeout')
             if isinstance(value, str):  # pragma: no branch
                 dormant_timeout = float(value)
             logger.debug("Config 'DormantClientTimeout' is set to %d", value)
@@ -228,7 +228,7 @@ class Monitor:
         reply.raise_for_status()
 
         values = {}  # type: dict[str, str]
-        for key, val in reply.values.items():
+        for key, val in reply.items():
             if isinstance(key, str) and isinstance(val, str):  # pragma: no branch
                 values[key] = val
 

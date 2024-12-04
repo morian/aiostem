@@ -144,7 +144,7 @@ class TestController:
 
     async def test_cmd_get_info(self, controller):
         info = await controller.get_info('version')
-        assert 'version' in info.values
+        assert 'version' in info
 
     async def test_cmd_get_info_error(self, controller):
         res = await controller.get_info('THIS_IS_AN_INVALID_VALUE')
@@ -154,13 +154,13 @@ class TestController:
 
     async def test_cmd_get_conf(self, controller):
         info = await controller.get_conf('DormantClientTimeout')
-        assert info.values == {'DormantClientTimeout': '86400'}
+        assert info.get('DormantClientTimeout') == '86400'
 
     async def test_cmd_load_conf(self, controller):
         info = await controller.get_info('config-text')
         info.raise_for_status()
 
-        resp = await controller.load_conf(info.values['config-text'])
+        resp = await controller.load_conf(info['config-text'])
         resp.raise_for_status()
 
     async def test_map_address(self, controller):
@@ -178,7 +178,7 @@ class TestController:
         info = await controller.get_info('address-mappings/control')
         info.raise_for_status()
 
-        entries = info.values['address-mappings/control'].splitlines()
+        entries = info['address-mappings/control'].splitlines()
         assert isinstance(entries, list)
         assert len(entries) == 2
 
@@ -188,7 +188,7 @@ class TestController:
         assert result.status == 250
 
         info = await controller.get_conf('MaxClientCircuitsPending')
-        assert info.values == conf
+        assert dict(info.items()) == conf
 
     async def test_cmd_save_conf(self, controller):
         result = await controller.save_conf()
@@ -201,7 +201,7 @@ class TestController:
         assert result.status == 250
 
         info = await controller.get_conf('MaxClientCircuitsPending')
-        assert info.values == conf
+        assert dict(info.items()) == conf
 
     async def test_cmd_protocol_info(self, controller):
         res1 = await controller.protocol_info()

@@ -106,9 +106,9 @@ class ReplySyntax:
     Describe the syntax of a single reply item.
 
     Important:
-        - ``args_max`` is set to ``max(args_max, len(args_map))``.
-        - ``args_min`` cannot be greater than ``args_max``.
-        - ``kwargs_map`` must be empty when :data:`~ReplySyntaxFlag.KW_ENABLE` is not set.
+        - :attr:`args_max` is set to ``max(args_max, len(args_map))``.
+        - :attr:`args_min` cannot be greater than :attr:`args_max`.
+        - :attr:`kwargs_map` must be empty when :data:`~ReplySyntaxFlag.KW_ENABLE` is not set.
         - :data:`~ReplySyntaxFlag.POS_REMAIN` is mutually exclusive with
           :data:`~ReplySyntaxFlag.KW_ENABLE`.
         - :data:`~ReplySyntaxFlag.KW_QUOTED` is mutually exclusive with

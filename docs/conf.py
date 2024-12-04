@@ -114,6 +114,7 @@ _reftype_fixmap = {
     'aiostem.protocol.argument.Argument': 'data',
     'aiostem.protocol.argument.KeyTypes': 'data',
     'aiostem.protocol.argument.ValueTypes': 'data',
+    'aiostem.protocol.reply._ReplyMapDefault': 'data',
     'aiostem.protocol.utils.AnyHost': 'data',
     'aiostem.protocol.utils.HiddenServiceAddress': 'data',
     'aiostem.protocol.utils.T': 'data',

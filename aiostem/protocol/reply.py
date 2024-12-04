@@ -5,10 +5,18 @@ import hashlib
 import hmac
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import (
+    ItemsView,
+    Iterable,
+    Iterator,
+    KeysView,
+    Mapping,
+    Sequence,
+    ValuesView,
+)
 from dataclasses import dataclass, field
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Self
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Self, TypeAlias, TypeVar
 
 from pydantic import PositiveInt, TypeAdapter
 
@@ -106,10 +114,23 @@ class ReplySimple(Reply):
         return cls.adapter().validate_python(result)
 
 
+#: Type of values received in ``GETCONF`` or ``GETINFO``.
+ReplyMapValueType: TypeAlias = Sequence[str | None] | str | None
+
+#: Type of map we have for :class:`ReplyGetConf` and :class:`ReplyGetInfo`.
+ReplyMapType: TypeAlias = Mapping[str, ReplyMapValueType]
+
+#: Placeholder type for the default argument of ``Mapping.get``.
+_ReplyMapDefault = TypeVar('_ReplyMapDefault')
+
+
 @dataclass(kw_only=True, slots=True)
-class ReplyGetMap(Reply):
+class ReplyGetMap(Reply, ReplyMapType):
     """
     A base reply class for commands returning maps of values.
+
+    Hint:
+        This reply and all subclasses behaves as a :class:`Mapping`.
 
     These are replies for commands such as:
         - :class:`~.CommandGetConf`
@@ -120,12 +141,49 @@ class ReplyGetMap(Reply):
     #: Syntax to use, needs to be defined by sub-classes.
     SYNTAX: ClassVar[ReplySyntax]
 
+    #: Map of values received on this reply.
+    _values: ReplyMapType = field(default_factory=dict)
+
+    def __contains__(self, key: Any) -> bool:
+        """Whether the reply contains the provided key."""
+        return self._values.__contains__(key)
+
+    def __getitem__(self, key: str) -> ReplyMapValueType:
+        """Get the content of the provided item (if any)."""
+        return self._values.__getitem__(key)
+
+    def __iter__(self) -> Iterator[str]:
+        """Iterate on our keys."""
+        return self._values.__iter__()
+
+    def __len__(self) -> int:
+        """Get the number of items we have in our reply."""
+        return self._values.__len__()
+
+    def items(self) -> ItemsView[str, ReplyMapValueType]:
+        """Get the pairs of keys and values."""
+        return self._values.items()
+
+    def keys(self) -> KeysView[str]:
+        """Get the list of all keys."""
+        return self._values.keys()
+
+    def values(self) -> ValuesView[ReplyMapValueType]:
+        """Get all values."""
+        return self._values.values()
+
+    def get(
+        self,
+        key: str,
+        /,
+        default: ReplyMapValueType | _ReplyMapDefault = None,
+    ) -> ReplyMapValueType | _ReplyMapDefault:
+        """Get the value for the provided ``key`` or a default one."""
+        return self._values.get(key, default)
+
     @classmethod
-    def _key_value_extract(
-        cls,
-        messages: Iterable[BaseMessage],
-    ) -> Mapping[str, Sequence[str | None] | str | None]:
-        """Extract key/value pairs from `messages`."""
+    def _key_value_extract(cls, messages: Iterable[BaseMessage]) -> ReplyMapType:
+        """Extract key/value pairs from ``messages``."""
         values = {}  # type: dict[str, list[str | None] | str | None]
         for item in messages:
             update = cls.SYNTAX.parse(item)
@@ -165,9 +223,6 @@ class ReplyGetConf(ReplyGetMap):
         )
     )
 
-    #: Values read from the current Tor configuration.
-    values: Mapping[str, Sequence[str | None] | str | None] = field(default_factory=dict)
-
     @classmethod
     def from_message(cls, message: Message) -> Self:
         """Build a structure from a received message."""
@@ -179,8 +234,7 @@ class ReplyGetConf(ReplyGetMap):
         }  # type: dict[str, Any]
 
         if has_data:
-            result['values'] = cls._key_value_extract([*message.items, message])
-
+            result['_values'] = cls._key_value_extract([*message.items, message])
         return cls.adapter().validate_python(result)
 
 
@@ -280,9 +334,6 @@ class ReplyGetInfo(ReplyGetMap):
         )
     )
 
-    #: Values received for the provided keywords.
-    values: Mapping[str, Sequence[str | None] | str | None] = field(default_factory=dict)
-
     @classmethod
     def from_message(cls, message: Message) -> Self:
         """Build a structure from a received message."""
@@ -291,7 +342,7 @@ class ReplyGetInfo(ReplyGetMap):
             'status_text': message.header,
         }
         if message.is_success:
-            result['values'] = cls._key_value_extract(message.items)
+            result['_values'] = cls._key_value_extract(message.items)
         return cls.adapter().validate_python(result)
 
 

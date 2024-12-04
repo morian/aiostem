@@ -62,16 +62,17 @@ class TestReplies:
         ]
         message = await create_message(lines)
         reply = ReplyGetConf.from_message(message)
-        assert len(reply.values) == 4
-        assert reply.values['ControlPort'] == '0.0.0.0:9051'
-        assert reply.values['Log'] == 'notice stdout'
-        assert reply.values['EntryNode'] == ''
-        assert reply.values['HashedControlPassword'] is None
+        assert len(reply) == 4
+        assert reply['ControlPort'] == '0.0.0.0:9051'
+        assert reply['Log'] == 'notice stdout'
+        assert reply['EntryNode'] == ''
+        assert reply['HashedControlPassword'] is None
+        assert set(reply.values()) == {'0.0.0.0:9051', 'notice stdout', '', None}
 
     async def test_get_conf_empty(self):
         message = await create_message(['250 OK'])
         reply = ReplyGetConf.from_message(message)
-        assert len(reply.values) == 0
+        assert len(reply) == 0
         assert reply.status_text == 'OK'
         assert reply.is_success is True
 
@@ -90,8 +91,9 @@ class TestReplies:
         ]
         message = await create_message(lines)
         reply = ReplyGetConf.from_message(message)
-        assert isinstance(reply.values['ControlPort'], list)
-        assert len(reply.values['ControlPort']) == 3
+        assert set(reply.keys()) == {'ControlPort'}
+        assert isinstance(reply['ControlPort'], list)
+        assert len(reply['ControlPort']) == 3
 
     async def test_map_address(self):
         lines = [
@@ -138,8 +140,8 @@ class TestReplies:
         ]
         message = await create_message(lines)
         reply = ReplyGetInfo.from_message(message)
-        assert len(reply.values) == 2
-        assert set(reply.values) == {'version', 'orconn-status'}
+        assert len(reply) == 2
+        assert set(reply) == {'version', 'orconn-status'}
 
     async def test_get_info_error(self):
         lines = ['552 Not running in server mode']
@@ -147,7 +149,7 @@ class TestReplies:
         reply = ReplyGetInfo.from_message(message)
         assert reply.is_error is True
         assert reply.is_success is False
-        assert len(reply.values) == 0
+        assert len(reply) == 0
 
     async def test_extend_circuit(self):
         lines = ['250 EXTENDED 56832']

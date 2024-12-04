@@ -28,8 +28,7 @@ Base classes
    :members: status, status_text
 
 .. autoclass:: ReplyGetMap
-   :undoc-members:
-   :members:
+   :members: SYNTAX
 
 
 Authentication replies
