@@ -121,7 +121,7 @@ ReplyMapValueType: TypeAlias = Sequence[str | None] | str | None
 ReplyMapType: TypeAlias = Mapping[str, ReplyMapValueType]
 
 #: Placeholder type for the default argument of ``Mapping.get``.
-_ReplyMapDefault = TypeVar('_ReplyMapDefault')
+_ReplyMapDefaultType = TypeVar('_ReplyMapDefaultType')
 
 
 @dataclass(kw_only=True, slots=True)
@@ -144,43 +144,6 @@ class ReplyGetMap(Reply, ReplyMapType):
     #: Map of values received on this reply.
     _values: ReplyMapType = field(default_factory=dict)
 
-    def __contains__(self, key: Any) -> bool:
-        """Whether the reply contains the provided key."""
-        return self._values.__contains__(key)
-
-    def __getitem__(self, key: str) -> ReplyMapValueType:
-        """Get the content of the provided item (if any)."""
-        return self._values.__getitem__(key)
-
-    def __iter__(self) -> Iterator[str]:
-        """Iterate on our keys."""
-        return self._values.__iter__()
-
-    def __len__(self) -> int:
-        """Get the number of items we have in our reply."""
-        return self._values.__len__()
-
-    def items(self) -> ItemsView[str, ReplyMapValueType]:
-        """Get the pairs of keys and values."""
-        return self._values.items()
-
-    def keys(self) -> KeysView[str]:
-        """Get the list of all keys."""
-        return self._values.keys()
-
-    def values(self) -> ValuesView[ReplyMapValueType]:
-        """Get all values."""
-        return self._values.values()
-
-    def get(
-        self,
-        key: str,
-        /,
-        default: ReplyMapValueType | _ReplyMapDefault = None,
-    ) -> ReplyMapValueType | _ReplyMapDefault:
-        """Get the value for the provided ``key`` or a default one."""
-        return self._values.get(key, default)
-
     @classmethod
     def _key_value_extract(cls, messages: Iterable[BaseMessage]) -> ReplyMapType:
         """Extract key/value pairs from ``messages``."""
@@ -198,6 +161,43 @@ class ReplyGetMap(Reply, ReplyMapType):
                     else:
                         values[key] = val
         return values
+
+    def __contains__(self, key: Any) -> bool:
+        """Whether the reply contains the provided key."""
+        return self._values.__contains__(key)
+
+    def __getitem__(self, key: str) -> ReplyMapValueType:
+        """Get the content of the provided item (if any)."""
+        return self._values.__getitem__(key)
+
+    def __iter__(self) -> Iterator[str]:
+        """Iterate on our keys."""
+        return self._values.__iter__()
+
+    def __len__(self) -> int:
+        """Get the number of items we have in our reply."""
+        return self._values.__len__()
+
+    def get(
+        self,
+        key: str,
+        /,
+        default: _ReplyMapDefaultType | ReplyMapValueType = None,
+    ) -> _ReplyMapDefaultType | ReplyMapValueType:
+        """Get the value for the provided ``key`` or a default one."""
+        return self._values.get(key, default)
+
+    def items(self) -> ItemsView[str, ReplyMapValueType]:
+        """Get the pairs of keys and values."""
+        return self._values.items()
+
+    def keys(self) -> KeysView[str]:
+        """Get the list of all keys."""
+        return self._values.keys()
+
+    def values(self) -> ValuesView[ReplyMapValueType]:
+        """Get all values."""
+        return self._values.values()
 
 
 @dataclass(kw_only=True, slots=True)
