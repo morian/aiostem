@@ -34,9 +34,20 @@ Common classes
 
    .. automethod:: __bool__
 
+.. currentmodule:: aiostem.protocol.utils
+
+.. autoclass:: LongServerName
+   :no-show-inheritance:
+   :special-members: __str__
+   :undoc-members:
+   :members:
+
+.. currentmodule:: aiostem.protocol.structures
+
 .. autoclass:: LogSeverity
    :undoc-members:
    :members:
+
 
 .. autoclass:: Signal
    :undoc-members:

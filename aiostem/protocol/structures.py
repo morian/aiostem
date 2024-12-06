@@ -13,6 +13,7 @@ from .utils import (
     Base64Bytes,
     HexBytes,
     HiddenServiceAddress,
+    LongServerName,
     StringSequence,
     TimedeltaSeconds,
 )
@@ -559,9 +560,9 @@ class StatusServerCheckingReachability:
     """Arguments for action :attr:`StatusActionServer.CHECKING_REACHABILITY`."""
 
     #: Checking reachability to this directory address that is our own.
-    dir_address: str | None = None
+    dir_address: LongServerName | None = None
     #: Checking reachability to this onion routing address that is our own.
-    or_address: str | None = None
+    or_address: LongServerName | None = None
 
 
 @dataclass(kw_only=True, slots=True)
@@ -569,9 +570,9 @@ class StatusServerReachabilitySucceeded:
     """Arguments for action :attr:`StatusActionServer.REACHABILITY_SUCCEEDED`."""
 
     #: Reachability succeeded to our directory address.
-    dir_address: str | None = None
+    dir_address: LongServerName | None = None
     #: Reachability succeeded to our onion routing address.
-    or_address: str | None = None
+    or_address: LongServerName | None = None
 
 
 @dataclass(kw_only=True, slots=True)
@@ -609,9 +610,9 @@ class StatusServerReachabilityFailed:
     """Arguments for action :attr:`StatusActionServer.REACHABILITY_FAILED`."""
 
     #: Reachability failed to our directory address.
-    dir_address: str | None = None
+    dir_address: LongServerName | None = None
     #: Reachability failed to our onion routing address.
-    or_address: str | None = None
+    or_address: LongServerName | None = None
 
 
 @dataclass(kw_only=True, slots=True)

@@ -26,6 +26,7 @@ from aiostem.protocol.utils import (
     HiddenServiceAddressV2,
     HiddenServiceAddressV3,
     LogSeverityTransformer,
+    LongServerName,
     StringSequence,
     TimedeltaSeconds,
     TimedeltaTransformer,
@@ -385,6 +386,38 @@ class TestStringSequence:
     def test_usage_error(self, type_):
         with pytest.raises(TypeError, match='source type is not a collection'):
             TypeAdapter(type_)
+
+
+class TestLongServerName:
+    @pytest.mark.parametrize(
+        ('string', 'nickname'),
+        [
+            ('$14AE2154A26F1D42C3C3BEDC10D05FDD9F8545BB~Test', 'Test'),
+            ('$14AE2154A26F1D42C3C3BEDC10D05FDD9F8545BB', None),
+        ],
+    )
+    def test_parse(self, string, nickname):
+        server = LongServerName.from_string(string)
+        assert len(server.fingerprint) == 20
+        assert server.nickname == nickname
+
+    def test_parse_error(self):
+        with pytest.raises(ValueError, match='LongServerName does not start with a'):
+            LongServerName.from_string('Hello world')
+
+    @pytest.mark.parametrize(
+        ('string', 'nickname'),
+        [
+            ('$A4DE8349C2089CC471EC12099F87BDD797EBDA8E~Test', 'Test'),
+            ('$A4DE8349C2089CC471EC12099F87BDD797EBDA8E', None),
+        ],
+    )
+    def test_serialize(self, string, nickname):
+        fp = b'\xa4\xde\x83I\xc2\x08\x9c\xc4q\xec\x12\t\x9f\x87\xbd\xd7\x97\xeb\xda\x8e'
+        adapter = TypeAdapter(LongServerName)
+        server = LongServerName(fingerprint=fp, nickname=nickname)
+        serial = adapter.dump_python(server)
+        assert serial == string
 
 
 class TestLogSeverity:

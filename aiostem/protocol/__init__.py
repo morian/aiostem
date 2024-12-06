@@ -145,6 +145,7 @@ from .utils import (
     HiddenServiceAddress,
     HiddenServiceAddressV2,
     HiddenServiceAddressV3,
+    LongServerName,
 )
 
 __all__ = [
@@ -220,6 +221,7 @@ __all__ = [
     'HsDescFailReason',
     'LivenessStatus',
     'LogSeverity',
+    'LongServerName',
     'Message',
     'MessageData',
     'MessageLine',

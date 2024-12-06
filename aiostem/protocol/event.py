@@ -49,6 +49,7 @@ from .utils import (
     HexBytes,
     HiddenServiceAddress,
     LogSeverityTransformer,
+    LongServerName,
 )
 
 logger = logging.getLogger(__package__)
@@ -321,7 +322,7 @@ class EventHsDesc(EventSimple):
     #: The descriptor blinded key used for the index value at the "HsDir".
     descriptor_id: Base32Bytes | Base64Bytes | None = None
     #: Hidden service directory answering this request.
-    hs_dir: str | Literal['UNKNOWN']  # noqa: PYI051
+    hs_dir: LongServerName | Literal['UNKNOWN']
     #: Contains the computed index of the HsDir the descriptor was uploaded to or fetched from.
     hs_dir_index: HexBytes | None = None
     #: If :attr:`action` is :attr:`~.HsDescAction.FAILED`, Tor SHOULD send a reason field.
@@ -350,7 +351,7 @@ class EventHsDescContent(Event):
     #: Onion address the report status is for (without the ``.onion`` suffix).
     address: HiddenServiceAddress | Literal['UNKNOWN']
     #: Hidden service directory answering this request.
-    hs_dir: str | Literal['UNKNOWN']  # noqa: PYI051
+    hs_dir: LongServerName | Literal['UNKNOWN']
     #: Unique identifier for the descriptor.
     descriptor_id: Base32Bytes | Base64Bytes | None = None
     #: Text content of the hidden service descriptor.

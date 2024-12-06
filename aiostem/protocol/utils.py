@@ -567,6 +567,71 @@ class HiddenServiceAddressV3(BaseHiddenServiceAddress):
 HiddenServiceAddress: TypeAlias = HiddenServiceAddressV2 | HiddenServiceAddressV3
 
 
+@dataclass(frozen=True, slots=True)
+class LongServerName:
+    """A Tor Server name and its optional nickname."""
+
+    #: Server fingerprint as a 20 bytes value.
+    fingerprint: HexBytes
+
+    #: Server nickname (optional).
+    nickname: str | None = None
+
+    def __str__(self) -> str:
+        """Get the string representation of this server."""
+        value = f'${self.fingerprint.hex().upper()}'
+        if self.nickname is not None:
+            value += f'~{self.nickname}'
+        return value
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Declare schema and validator for a v3 hidden service address."""
+        return core_schema.no_info_after_validator_function(
+            function=cls.from_string,
+            schema=core_schema.str_schema(),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                function=cls.to_string,
+                info_arg=False,
+                return_schema=core_schema.str_schema(),
+                when_used='always',
+            ),
+        )
+
+    @classmethod
+    def from_string(cls, server: str) -> Self:
+        """
+        Build a new instance from a single string.
+
+        See Also:
+            https://spec.torproject.org/control-spec/message-format.html#tokens
+
+        Returns:
+            An instance of this class properly parsed from the provided string.
+
+        """
+        if not server.startswith('$'):
+            msg = 'LongServerName does not start with a $'
+            raise ValueError(msg)
+
+        server = server[1:]
+        if '~' in server:
+            fingerprint, nickname = server.split('~', maxsplit=1)
+        else:
+            fingerprint, nickname = server, None
+
+        return cls(fingerprint=bytes.fromhex(fingerprint), nickname=nickname)
+
+    @classmethod
+    def to_string(cls, value: Self) -> str:
+        """Serialize the current valid to a string."""
+        return str(value)
+
+
 class LogSeverityTransformer:
     """Pre-validator for strings to build a valid :class:`.LogSeverity`."""
 
