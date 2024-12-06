@@ -15,6 +15,7 @@ from aiostem.protocol import (
     EventSignal,
     EventStatusClient,
     EventUnknown,
+    LongServerName,
     Message,
     event_from_message,
 )
@@ -224,13 +225,22 @@ class TestController:
         controller.traces.add('command')
 
         # This is an invalid argument here, no side effect.
-        await controller.hs_fetch('tor66sezptuu2nta', servers=('A', 'B'))
+        await controller.hs_fetch(
+            'tor66sezptuu2nta',
+            servers=(
+                '$9695DFC35FFEB861329B9F1AB04C46397020CE31~Test1',
+                LongServerName(
+                    fingerprint=b'\xc3\x07\xda\xa2\r(a\x19\tGS\r~XiD\x9d\x0bis',
+                    nickname=None,
+                ),
+            ),
+        )
 
         # Check that our trace has our command with our servers.
         assert len(controller.trace_commands) == 1
         command = controller.trace_commands[0]
         assert isinstance(command, CommandHsFetch)
-        assert command.servers == ['A', 'B']
+        assert len(command.servers) == 2
 
     async def test_cmd_drop_guard(self, controller):
         res = await controller.drop_guards()

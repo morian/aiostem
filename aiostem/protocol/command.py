@@ -33,6 +33,7 @@ from .utils import (
     CommandSerializer,
     HiddenServiceAddress,
     HiddenServiceAddressV3,
+    LongServerName,
 )
 
 
@@ -1088,7 +1089,7 @@ class CommandHsFetch(Command):
     command: ClassVar[CommandWord] = CommandWord.HSFETCH
 
     #: Optional list of servers to contact for a hidden service descriptor.
-    servers: MutableSequence[str] = field(default_factory=list)
+    servers: MutableSequence[LongServerName] = field(default_factory=list)
 
     #: Onion address (v2 or v3) to request a descriptor for, without the ``.onion`` suffix.
     address: HiddenServiceAddress
@@ -1260,7 +1261,7 @@ class CommandHsPost(Command):
     command: ClassVar[CommandWord] = CommandWord.HSPOST
 
     #: List of servers to upload the descriptor to (if any is provided).
-    servers: MutableSequence[str] = field(default_factory=list)
+    servers: MutableSequence[LongServerName] = field(default_factory=list)
     #: This is the optional v2 or v3 address without the ``.onion`` suffix.
     address: HiddenServiceAddress | None = None
     #: Descriptor content as raw text.

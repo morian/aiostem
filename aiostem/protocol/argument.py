@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 
 from ..exceptions import CommandError
+from .utils import LongServerName
 
 #: List of characters in a string that need an escape.
 _AUTO_CHARS: AbstractSet[str] = frozenset({' ', '"', '\\'})
@@ -23,6 +24,7 @@ ValueTypes: TypeAlias = Union[  # noqa: UP007
     IPv4Address,
     IPv6Address,
     IntEnum,
+    LongServerName,
     StrEnum,
     int,
     str,
@@ -44,7 +46,7 @@ def _serialize_value(value: Any, *, allow_none: bool = False) -> str | None:
     match value:
         case IntEnum() | StrEnum():
             result = str(value.value)
-        case IPv4Address() | IPv6Address() | int() | str():
+        case IPv4Address() | IPv6Address() | LongServerName() | int() | str():
             result = str(value)
         case None:
             if allow_none is False:

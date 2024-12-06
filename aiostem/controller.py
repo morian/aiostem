@@ -39,6 +39,7 @@ from .protocol import (
     EventWord,
     EventWordInternal,
     HiddenServiceAddress,
+    LongServerName,
     Message,
     ReplyAuthChallenge,
     ReplyAuthenticate,
@@ -631,7 +632,7 @@ class Controller:
     async def hs_fetch(
         self,
         address: HiddenServiceAddress | str,
-        servers: Iterable[str] | None = None,
+        servers: Iterable[LongServerName | str] | None = None,
     ) -> ReplyHsFetch:
         """
         Request a hidden service descriptor fetch.
@@ -640,8 +641,8 @@ class Controller:
         events such as :attr:`~.EventWord.HS_DESC` or :attr:`~.EventWord.HS_DESC_CONTENT`.
 
         Args:
-            address: the hidden service address to request.
-            servers: an optional list of servers to query.
+            address: The hidden service address to request.
+            servers: An optional list of servers to query.
 
         Returns:
             A simple hsfetch reply where only the status is relevant.
@@ -651,7 +652,10 @@ class Controller:
         addr = RootModel[HiddenServiceAddress].model_validate(address).root
         command = CommandHsFetch(address=addr)
         if servers is not None:
-            command.servers.extend(servers)
+            for server in servers:
+                if isinstance(server, str):
+                    server = LongServerName.from_string(server)
+                command.servers.append(server)
         message = await self.request(command)
         return ReplyHsFetch.from_message(message)
 
