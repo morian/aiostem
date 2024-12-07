@@ -704,17 +704,11 @@ class EventStatusServer(EventStatus):
             flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
         ),
         'CHECKING_REACHABILITY': ReplySyntax(
-            kwargs_map={
-                'ORADDRESS': 'or_address',
-                'DIRADDRESS': 'dir_address',
-            },
+            kwargs_map={'ORADDRESS': 'or_address'},
             flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
         ),
         'REACHABILITY_SUCCEEDED': ReplySyntax(
-            kwargs_map={
-                'ORADDRESS': 'or_address',
-                'DIRADDRESS': 'dir_address',
-            },
+            kwargs_map={'ORADDRESS': 'or_address'},
             flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
         ),
         'GOOD_SERVER_DESCRIPTOR': None,
@@ -741,10 +735,7 @@ class EventStatusServer(EventStatus):
             flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
         ),
         'REACHABILITY_FAILED': ReplySyntax(
-            kwargs_map={
-                'ORADDRESS': 'or_address',
-                'DIRADDRESS': 'dir_address',
-            },
+            kwargs_map={'ORADDRESS': 'or_address'},
             flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
         ),
         'HIBERNATION_STATUS': ReplySyntax(

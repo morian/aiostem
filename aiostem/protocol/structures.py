@@ -17,7 +17,6 @@ from .utils import (
     TimedeltaSeconds,
 )
 
-
 class AuthMethod(StrEnum):
     """Known authentication methods on the control port.."""
 
@@ -558,8 +557,6 @@ class StatusServerExternalAddress:
 class StatusServerCheckingReachability:
     """Arguments for action :attr:`StatusActionServer.CHECKING_REACHABILITY`."""
 
-    #: Checking reachability to this directory address that is our own.
-    dir_address: str | None = None
     #: Checking reachability to this onion routing address that is our own.
     or_address: str | None = None
 
@@ -568,8 +565,6 @@ class StatusServerCheckingReachability:
 class StatusServerReachabilitySucceeded:
     """Arguments for action :attr:`StatusActionServer.REACHABILITY_SUCCEEDED`."""
 
-    #: Reachability succeeded to our directory address.
-    dir_address: str | None = None
     #: Reachability succeeded to our onion routing address.
     or_address: str | None = None
 
@@ -608,8 +603,6 @@ class StatusServerAcceptedServerDescriptor:
 class StatusServerReachabilityFailed:
     """Arguments for action :attr:`StatusActionServer.REACHABILITY_FAILED`."""
 
-    #: Reachability failed to our directory address.
-    dir_address: str | None = None
     #: Reachability failed to our onion routing address.
     or_address: str | None = None
 
