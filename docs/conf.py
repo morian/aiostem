@@ -70,7 +70,6 @@ autodoc_class_signature = 'separated'
 autodoc_preserve_defaults = False
 autodoc_type_aliases = {
     'EventCallbackType':  '~aiostem.controller.EventCallbackType',
-    'AnyAddress': '~aiostem.protocol.utils.AnyAddress',
     'AnyHost': '~aiostem.protocol.utils.AnyHost',
     'Argument': '~aiostem.protocol.argument.Argument',
     'KeyTypes': '~aiostem.protocol.argument.KeyTypes',
@@ -116,7 +115,6 @@ _reftype_fixmap = {
     'aiostem.protocol.argument.KeyTypes': 'data',
     'aiostem.protocol.argument.ValueTypes': 'data',
     'aiostem.protocol.reply._ReplyMapDefault': 'data',
-    'aiostem.protocol.utils.AnyAddress': 'data',
     'aiostem.protocol.utils.AnyHost': 'data',
     'aiostem.protocol.utils.HiddenServiceAddress': 'data',
     'aiostem.protocol.utils.T': 'data',
