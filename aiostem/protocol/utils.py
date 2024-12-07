@@ -20,6 +20,7 @@ from typing import (
     Self,
     TypeAlias,
     TypeVar,
+    Union,
 )
 
 from pydantic import ConfigDict, Field, TypeAdapter
@@ -36,6 +37,9 @@ if TYPE_CHECKING:
     from .argument import ArgumentKeyword, ArgumentString
     from .command import CommandWord
 
+
+#: Any IP address, either IPv4 or IPv6.
+AnyAddress: TypeAlias = Union[IPv4Address | IPv6Address]  # noqa: UP007
 
 #: Any host, either by IP address or hostname.
 AnyHost: TypeAlias = Annotated[
@@ -590,7 +594,7 @@ class LongServerName:
         source: type[Any],
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
-        """Declare schema and validator for a v3 hidden service address."""
+        """Declare schema and validator for a long server name."""
         return core_schema.no_info_after_validator_function(
             function=cls.from_string,
             schema=core_schema.str_schema(),
@@ -733,6 +737,63 @@ class StringSequence:
             mode=mode,
         )
         return self.separator.join(map(str, serialized))
+
+
+@dataclass(frozen=True, slots=True)
+class TcpAddressPort:
+    """Describe a TCP target with a host and a port."""
+
+    #: Target host for the TCP connection.
+    host: AnyAddress
+    #: Target port for the TCP connection.
+    port: AnyPort
+
+    def __str__(self) -> str:
+        """Get the string representation of this connection."""
+        if isinstance(self.host, IPv6Address):
+            return f'[{self.host:s}]:{self.port:d}'
+        return f'{self.host:s}:{self.port:d}'
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Declare schema and validator for a TCP connection."""
+        return core_schema.no_info_after_validator_function(
+            function=cls.from_string,
+            schema=core_schema.str_schema(),
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                function=cls.to_string,
+                info_arg=False,
+                return_schema=core_schema.str_schema(),
+                when_used='always',
+            ),
+        )
+
+    @classmethod
+    def from_string(cls, string: str) -> Self:
+        """
+        Build a new instance from a single string.
+
+        Returns:
+            An instance of this class properly parsed from the provided string.
+
+        """
+        if string.startswith('['):
+            str_host, port = string.removeprefix('[').split(']:', maxsplit=1)
+            host = IPv6Address(str_host)  # type: AnyAddress
+        else:
+            str_host, port = string.split(':', maxsplit=1)
+            host = IPv4Address(str_host)
+
+        return cls(host=host, port=int(port))
+
+    @classmethod
+    def to_string(cls, value: Self) -> str:
+        """Serialize the current valid to a string."""
+        return str(value)
 
 
 class TimedeltaTransformer:

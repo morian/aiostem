@@ -5,7 +5,6 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, field
 from enum import StrEnum
-from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, Any, ClassVar, Literal, Self, Union
 
 from pydantic import Discriminator, Tag, TypeAdapter
@@ -43,6 +42,7 @@ from .structures import (
 )
 from .syntax import ReplySyntax, ReplySyntaxFlag
 from .utils import (
+    AnyAddress,
     AnyPort,
     Base32Bytes,
     Base64Bytes,
@@ -786,7 +786,7 @@ class EventTransportLaunched(EventSimple):
     #: Name of the pluggable transport.
     name: str
     #: Host hosting the pluggable transport.
-    host: IPv4Address | IPv6Address
+    host: AnyAddress
     #: Associated TCP port.
     port: AnyPort
 

@@ -3,19 +3,21 @@ from __future__ import annotations
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
-from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, Literal
 
 from pydantic import NonNegativeInt
 
 from .utils import (
+    AnyAddress,
     AnyPort,
     Base64Bytes,
     HexBytes,
     HiddenServiceAddress,
     StringSequence,
+    TcpAddressPort,
     TimedeltaSeconds,
 )
+
 
 class AuthMethod(StrEnum):
     """Known authentication methods on the control port.."""
@@ -410,8 +412,8 @@ class StatusClientBootstrap:
     count: int | None = None
     #: The identity digest of the node we're trying to connect to.
     host: HexBytes | None = None
-    #: An ``address:port`` combination, where 'address' is an ipv4 or ipv6 address.
-    hostaddr: str | None = None
+    #: An address and port combination, where 'address' is an ipv4 or ipv6 address.
+    hostaddr: TcpAddressPort | None = None
     #: Lists one of the reasons allowed in the :attr:`~.EventWord.ORCONN` event.
     reason: str | None = None
     #: Either "ignore" or "warn" as a recommendation.
@@ -444,8 +446,8 @@ class StatusClientDangerousSocks:
 
     #: The protocol implied in this dangerous connection.
     protocol: Literal['SOCKS4', 'SOCKS5']
-    #: The ``address:port`` implied in this connection.
-    address: str
+    #: The address and port implied in this connection.
+    address: TcpAddressPort
 
 
 @dataclass(kw_only=True, slots=True)
@@ -546,7 +548,7 @@ class StatusServerExternalAddress:
     """Arguments for action :attr:`StatusActionServer.EXTERNAL_ADDRESS`."""
 
     #: Our external IP address.
-    address: IPv4Address | IPv6Address
+    address: AnyAddress
     #: When set, we got our new IP by resolving this host name.
     hostname: str | None = None
     #: How we found out our external IP address.
@@ -558,7 +560,7 @@ class StatusServerCheckingReachability:
     """Arguments for action :attr:`StatusActionServer.CHECKING_REACHABILITY`."""
 
     #: Checking reachability to this onion routing address that is our own.
-    or_address: str | None = None
+    or_address: TcpAddressPort | None = None
 
 
 @dataclass(kw_only=True, slots=True)
@@ -566,7 +568,7 @@ class StatusServerReachabilitySucceeded:
     """Arguments for action :attr:`StatusActionServer.REACHABILITY_SUCCEEDED`."""
 
     #: Reachability succeeded to our onion routing address.
-    or_address: str | None = None
+    or_address: TcpAddressPort | None = None
 
 
 @dataclass(kw_only=True, slots=True)
@@ -604,7 +606,7 @@ class StatusServerReachabilityFailed:
     """Arguments for action :attr:`StatusActionServer.REACHABILITY_FAILED`."""
 
     #: Reachability failed to our onion routing address.
-    or_address: str | None = None
+    or_address: TcpAddressPort | None = None
 
 
 @dataclass(kw_only=True, slots=True)

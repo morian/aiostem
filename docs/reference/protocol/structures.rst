@@ -53,6 +53,16 @@ Common classes
    :undoc-members:
    :members:
 
+.. currentmodule:: aiostem.protocol.utils
+
+.. autoclass:: TcpAddressPort
+   :no-show-inheritance:
+   :special-members: __str__
+   :undoc-members:
+   :members:
+
+.. currentmodule:: aiostem.protocol.structures
+
 
 Hidden services
 ---------------

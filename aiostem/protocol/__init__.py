@@ -140,15 +140,18 @@ from .structures import (
     StatusServerReachabilitySucceeded,
 )
 from .utils import (
+    AnyAddress,
     AnyHost,
     AnyPort,
     HiddenServiceAddress,
     HiddenServiceAddressV2,
     HiddenServiceAddressV3,
     LongServerName,
+    TcpAddressPort,
 )
 
 __all__ = [
+    'AnyAddress',
     'AnyHost',
     'AnyPort',
     'ArgumentKeyword',
@@ -289,6 +292,7 @@ __all__ = [
     'StatusServerNameserverStatus',
     'StatusServerReachabilityFailed',
     'StatusServerReachabilitySucceeded',
+    'TcpAddressPort',
     'event_from_message',
     'messages_from_stream',
 ]

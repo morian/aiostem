@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
+from ipaddress import IPv4Address, IPv6Address
 
 import pytest
 from pydantic import ValidationError
@@ -158,11 +159,23 @@ class TestEvents:
         assert event.arguments.summary == 'Done'
         assert event.arguments.tag == 'done'
 
-    async def test_status_client_dangerous_socks(self):
-        line = '650 STATUS_CLIENT WARN DANGEROUS_SOCKS PROTOCOL=SOCKS5 ADDRESS=1.1.1.1:443'
+    async def test_status_client_dangerous_socks_ipv4(self):
+        line = '650 STATUS_CLIENT WARN DANGEROUS_SOCKS PROTOCOL=SOCKS5 ADDRESS=1.1.1.1:53'
         message = await create_message([line])
         event = event_from_message(message)
-        assert event.arguments.address == '1.1.1.1:443'
+        assert event.arguments.address.host == IPv4Address('1.1.1.1')
+        assert event.arguments.address.port == 53
+        assert event.arguments.protocol == 'SOCKS5'
+
+    async def test_status_client_dangerous_socks_ipv6(self):
+        line = (
+            '650 STATUS_CLIENT WARN DANGEROUS_SOCKS PROTOCOL=SOCKS5 '
+            'ADDRESS=[2a04:fa87:fffd::c000:426c]:443'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.arguments.address.host == IPv6Address('2a04:fa87:fffd::c000:426c')
+        assert event.arguments.address.port == 443
         assert event.arguments.protocol == 'SOCKS5'
 
     async def test_status_client_socks_bad_hostname(self):

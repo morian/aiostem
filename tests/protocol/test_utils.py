@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import timedelta
+from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar
 
 import pytest
@@ -13,7 +14,9 @@ from aiostem.protocol import (
     AuthMethod,
     CommandWord,
     LogSeverity,
+    LongServerName,
     QuoteStyle,
+    TcpAddressPort,
 )
 from aiostem.protocol.utils import (
     Base32Bytes,
@@ -26,7 +29,6 @@ from aiostem.protocol.utils import (
     HiddenServiceAddressV2,
     HiddenServiceAddressV3,
     LogSeverityTransformer,
-    LongServerName,
     StringSequence,
     TimedeltaSeconds,
     TimedeltaTransformer,
@@ -417,6 +419,33 @@ class TestLongServerName:
         adapter = TypeAdapter(LongServerName)
         server = LongServerName(fingerprint=fp, nickname=nickname)
         serial = adapter.dump_python(server)
+        assert serial == string
+
+
+class TestTcpAddressPort:
+    @pytest.mark.parametrize(
+        ('string', 'host', 'port'),
+        [
+            ('127.0.0.1:445', IPv4Address('127.0.0.1'), 445),
+            ('[::1]:65432', IPv6Address('::1'), 65432),
+        ],
+    )
+    def test_parse(self, string, host, port):
+        target = TcpAddressPort.from_string(string)
+        assert target.host == host
+        assert target.port == port
+
+    @pytest.mark.parametrize(
+        ('string', 'host', 'port'),
+        [
+            ('127.0.0.1:445', IPv4Address('127.0.0.1'), 445),
+            ('[::1]:65432', IPv6Address('::1'), 65432),
+        ],
+    )
+    def test_serialize(self, string, host, port):
+        adapter = TypeAdapter(TcpAddressPort)
+        target = TcpAddressPort(host=host, port=port)
+        serial = adapter.dump_python(target)
         assert serial == string
 
 
