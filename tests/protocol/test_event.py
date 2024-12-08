@@ -232,6 +232,17 @@ class TestEvents:
         assert event.values['ADDRESS'] == '198.51.100.123:1234'
         assert event.values['CONNECT'] == 'Success'
 
+    async def test_build_timeout_set(self):
+        line = (
+            '650 BUILDTIMEOUT_SET COMPUTED TOTAL_TIMES=1000 TIMEOUT_MS=815 '
+            'XM=283 ALPHA=1.520695 CUTOFF_QUANTILE=0.800000 TIMEOUT_RATE=0.292260 '
+            'CLOSE_MS=60000 CLOSE_RATE=0.011098'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.timeout_ms == 815
+        assert event.xm == 283
+
     async def test_signal(self):
         line = '650 SIGNAL RELOAD'
         message = await create_message([line])

@@ -102,6 +102,7 @@ from .reply import (
 from .structures import (
     AuthMethod,
     CircuitPurpose,
+    ClockSkewSource,
     CloseStreamReason,
     ExternalAddressResolveMethod,
     Feature,
@@ -160,6 +161,7 @@ __all__ = [
     'ArgumentString',
     'AuthMethod',
     'CircuitPurpose',
+    'ClockSkewSource',
     'CloseStreamReason',
     'Command',
     'CommandAddOnion',

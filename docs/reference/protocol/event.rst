@@ -44,8 +44,16 @@ only handled internally by this library.
    :members:
 
 
-Event classes
--------------
+Circuit events
+--------------
+
+.. autoclass:: EventBuildTimeoutSet
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
+
+Hidden service events
+---------------------
 
 .. autoclass:: EventHsDesc
    :exclude-members: SYNTAX, __init__, from_message
@@ -55,14 +63,6 @@ Event classes
 .. autoclass:: EventHsDescContent
    :exclude-members: SYNTAX, __init__, from_message
    :undoc-members:
-   :members:
-
-.. autoclass:: EventNetworkLiveness
-   :exclude-members: SYNTAX, __init__, from_message
-   :members:
-
-.. autoclass:: EventSignal
-   :exclude-members: SYNTAX, __init__, from_message
    :members:
 
 
@@ -84,9 +84,17 @@ Log events
 .. autoclass:: EventLogErr
    :members:
 
+.. autoclass:: EventSignal
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
 
 Status events
 -------------
+
+.. autoclass:: EventNetworkLiveness
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
 
 .. autoclass:: EventStatusGeneral
    :members: TYPE, action, arguments

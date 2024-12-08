@@ -90,6 +90,7 @@ Streams and circuits
    :no-index:
 
    .. automethod:: drop_guards
+   .. automethod:: drop_timeouts
 
 
 Control commands

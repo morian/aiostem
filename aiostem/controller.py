@@ -23,6 +23,7 @@ from .protocol import (
     CommandAuthChallenge,
     CommandAuthenticate,
     CommandDropGuards,
+    CommandDropTimeouts,
     CommandGetConf,
     CommandGetInfo,
     CommandHsFetch,
@@ -44,6 +45,7 @@ from .protocol import (
     ReplyAuthChallenge,
     ReplyAuthenticate,
     ReplyDropGuards,
+    ReplyDropTimeouts,
     ReplyGetConf,
     ReplyGetInfo,
     ReplyHsFetch,
@@ -585,6 +587,25 @@ class Controller:
         command = CommandDropGuards()
         message = await self.request(command)
         return ReplyDropGuards.from_message(message)
+
+    async def drop_timeouts(self) -> ReplyDropTimeouts:
+        """
+        Tells the server to drop all circuit build times.
+
+        Warning:
+            Do not invoke this command lightly; it can increase vulnerability
+            to tracking attacks over time.
+
+        Note:
+            Tor also emits the ``BUILDTIMEOUT_SET RESET`` event rigth after the reply.
+
+        Returns:
+            A simple drop-timeouts reply where only the status is relevant.
+
+        """
+        command = CommandDropTimeouts()
+        message = await self.request(command)
+        return ReplyDropTimeouts.from_message(message)
 
     async def get_conf(self, *args: str) -> ReplyGetConf:
         """

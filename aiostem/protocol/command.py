@@ -287,6 +287,7 @@ class CommandWord(StrEnum):
     #: Tells the server to drop all circuit build times.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.drop_timeouts`
     #:     - Command implementation: :class:`CommandDropTimeouts`
     #:     - Reply implementation: :class:`.ReplyDropTimeouts`
     DROPTIMEOUTS = 'DROPTIMEOUTS'

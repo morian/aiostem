@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Annotated, Any, ClassVar, Literal, Self, Union
 
-from pydantic import Discriminator, Tag, TypeAdapter
+from pydantic import Discriminator, NonNegativeInt, Tag, TypeAdapter
 
 from ..exceptions import MessageError, ReplySyntaxError
 from .message import Message, MessageData
@@ -272,6 +272,53 @@ class EventDisconnect(Event):
     def from_message(cls, message: Message) -> Self:
         """Build an event dataclass from a received message."""
         return cls.adapter().validate_python({})
+
+
+@dataclass(kw_only=True, slots=True)
+class EventBuildTimeoutSet(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.BUILDTIMEOUT_SET` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#BUILDTIMEOUT_SET
+
+    """
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=1,
+        args_map=(None, 'kind'),
+        kwargs_map={
+            'TOTAL_TIMES': 'total_times',
+            'TIMEOUT_MS': 'timeout_ms',
+            'XM': 'xm',
+            'ALPHA': 'alpha',
+            'CUTOFF_QUANTILE': 'cutoff_quantile',
+            'TIMEOUT_RATE': 'timeout_rate',
+            'CLOSE_MS': 'close_ms',
+            'CLOSE_RATE': 'close_rate',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE,
+    )
+    TYPE = EventWord.BUILDTIMEOUT_SET
+
+    #: Type of event we just received.
+    kind: Literal['COMPUTED', 'RESET', 'SUSPENDED', 'DISCARD', 'RESUME']
+    #: Integer count of timeouts stored.
+    total_times: NonNegativeInt
+    #: Integer timeout in milliseconds.
+    timeout_ms: NonNegativeInt
+    #: Estimated integer Pareto parameter Xm in milliseconds.
+    xm: NonNegativeInt
+    #: Estimated floating point Paredo parameter alpha.
+    alpha: float
+    #: Floating point CDF quantile cutoff point for this timeout.
+    cutoff_quantile: float
+    #: Floating point ratio of circuits that timeout.
+    timeout_rate: float
+    #: How long to keep measurement circs in milliseconds.
+    close_ms: NonNegativeInt
+    #: Floating point ratio of measurement circuits that are closed.
+    close_rate: float
 
 
 @dataclass(kw_only=True, slots=True)
@@ -885,6 +932,7 @@ class EventUnknown(Event):
 
 
 _EVENT_MAP = {
+    'BUILDTIMEOUT_SET': EventBuildTimeoutSet,
     'DISCONNECT': EventDisconnect,
     'HS_DESC': EventHsDesc,
     'HS_DESC_CONTENT': EventHsDescContent,
