@@ -650,7 +650,7 @@ class LogSeverityTransformer:
 
 
 @dataclass(frozen=True, slots=True)
-class StringSequence:
+class StringSplit:
     """Deserialize sequences from/to strings."""
 
     #: Base pydantic configuration to apply when serializing.

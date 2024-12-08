@@ -13,7 +13,7 @@ from .utils import (
     Base64Bytes,
     HexBytes,
     HiddenServiceAddress,
-    StringSequence,
+    StringSplit,
     TcpAddressPort,
     TimedeltaSeconds,
 )
@@ -190,7 +190,7 @@ class OnionClientAuthKey:
     name: str | None = None
 
     #: Flags associated with this client.
-    flags: Annotated[AbstractSet[OnionClientAuthFlags], StringSequence()] = field(
+    flags: Annotated[AbstractSet[OnionClientAuthFlags], StringSplit()] = field(
         default_factory=set
     )
 
@@ -497,7 +497,7 @@ class StatusGeneralDangerousVersion:
     #: Tell why is this a dangerous version.
     reason: StatusGeneralDangerousVersionReason
     #: List of recommended versions to use instead.
-    recommended: Annotated[set[str], StringSequence()]
+    recommended: Annotated[set[str], StringSplit()]
 
 
 @dataclass(kw_only=True, slots=True)
@@ -629,7 +629,7 @@ class VirtualPortTarget:
 #: A virtual port parser and serializer from/to a :class:`VirtualPortTarget`.
 VirtualPort: TypeAlias = Annotated[
     VirtualPortTarget,
-    StringSequence(
+    StringSplit(
         dict_keys=('port', 'target'),
         maxsplit=1,
         separator=',',

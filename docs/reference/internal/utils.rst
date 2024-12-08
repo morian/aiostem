@@ -69,7 +69,7 @@ Data transformers
 .. autoclass:: LogSeverityTransformer
    :no-show-inheritance:
    :members:
-.. autoclass:: StringSequence
+.. autoclass:: StringSplit
    :no-show-inheritance:
    :members:
 .. autoclass:: TimedeltaTransformer

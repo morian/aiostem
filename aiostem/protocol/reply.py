@@ -29,7 +29,7 @@ from .utils import (
     Base64Bytes,
     HexBytes,
     HiddenServiceAddress,
-    StringSequence,
+    StringSplit,
 )
 
 if TYPE_CHECKING:
@@ -454,7 +454,7 @@ class ReplyProtocolInfo(Reply):
     }
 
     #: List of available authentication methods.
-    auth_methods: Annotated[set[AuthMethod], StringSequence()] = field(default_factory=set)
+    auth_methods: Annotated[set[AuthMethod], StringSplit()] = field(default_factory=set)
     #: Path on the server to the cookie file.
     auth_cookie_file: str | None = None
     #: Version of the Tor control protocol in use.

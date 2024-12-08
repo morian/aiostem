@@ -29,7 +29,7 @@ from aiostem.protocol.utils import (
     HiddenServiceAddressV2,
     HiddenServiceAddressV3,
     LogSeverityTransformer,
-    StringSequence,
+    StringSplit,
     TimedeltaSeconds,
     TimedeltaTransformer,
 )
@@ -326,7 +326,7 @@ class TestHiddenServiceV3:
         assert error['type'] == errtype, address
 
 
-class TestStringSequence:
+class TestStringSplit:
     @pytest.mark.parametrize(
         'entry',
         [
@@ -336,7 +336,7 @@ class TestStringSequence:
         ],
     )
     def test_with_simple_types(self, entry: Any):
-        adapter = TypeAdapter(Annotated[list[int], StringSequence()])
+        adapter = TypeAdapter(Annotated[list[int], StringSplit()])
         res = adapter.validate_python(entry)
         assert res == [1, 2, 3, 4]
 
@@ -352,13 +352,13 @@ class TestStringSequence:
         ],
     )
     def test_with_strenum(self, entry: str, output: set[AuthMethod]):
-        adapter = TypeAdapter(Annotated[set[AuthMethod], StringSequence()])
+        adapter = TypeAdapter(Annotated[set[AuthMethod], StringSplit()])
         for item in (entry, output):
             assert adapter.validate_python(item) == output
 
     def test_with_max_split(self):
         value = 'A,B,C,D'
-        adapter = TypeAdapter(Annotated[list[str], StringSequence(maxsplit=1)])
+        adapter = TypeAdapter(Annotated[list[str], StringSplit(maxsplit=1)])
         result = adapter.validate_python(value)
         assert len(result) == 2
         assert result[1] == 'B,C,D'
@@ -372,7 +372,7 @@ class TestStringSequence:
         adapter = TypeAdapter(
             Annotated[
                 HostPort,
-                StringSequence(dict_keys=('host', 'port'), maxsplit=1, separator=':'),
+                StringSplit(dict_keys=('host', 'port'), maxsplit=1, separator=':'),
             ]
         )
         result = adapter.validate_python(value)
@@ -381,7 +381,7 @@ class TestStringSequence:
         assert result.port == 443
 
     def test_json_schema(self):
-        adapter = TypeAdapter(Annotated[tuple[str, int], StringSequence()])
+        adapter = TypeAdapter(Annotated[tuple[str, int], StringSplit()])
         schema = adapter.json_schema()
         assert schema == {
             'maxItems': 2,
@@ -398,8 +398,8 @@ class TestStringSequence:
     @pytest.mark.parametrize(
         'type_',
         [
-            Annotated[int, StringSequence()],
-            Annotated[None, StringSequence()],
+            Annotated[int, StringSplit()],
+            Annotated[None, StringSplit()],
         ],
     )
     def test_usage_error_as_sequence(self, type_):
