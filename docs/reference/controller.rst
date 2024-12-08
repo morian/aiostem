@@ -102,6 +102,7 @@ Control commands
    .. automethod:: drop_ownership
    .. automethod:: get_info
    .. automethod:: map_address
+   .. automethod:: resolve
    .. automethod:: signal
    .. automethod:: take_ownership
 

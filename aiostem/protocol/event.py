@@ -157,6 +157,9 @@ class EventWord(StrEnum):
     NEWCONSENSUS = 'NEWCONSENSUS'
 
     #: New circuit buildtime has been set.
+    #:
+    #: See Also:
+    #:     :class:`EventBuildTimeoutSet`
     BUILDTIMEOUT_SET = 'BUILDTIMEOUT_SET'
 
     #: Signal received.

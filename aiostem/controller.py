@@ -33,6 +33,7 @@ from .protocol import (
     CommandProtocolInfo,
     CommandQuit,
     CommandResetConf,
+    CommandResolve,
     CommandSaveConf,
     CommandSetConf,
     CommandSetEvents,
@@ -57,6 +58,7 @@ from .protocol import (
     ReplyProtocolInfo,
     ReplyQuit,
     ReplyResetConf,
+    ReplyResolve,
     ReplySaveConf,
     ReplySetConf,
     ReplySetEvents,
@@ -810,6 +812,37 @@ class Controller:
         command.values.update(items)
         message = await self.request(command)
         return ReplyResetConf.from_message(message)
+
+    async def resolve(
+        self,
+        addresses: Iterable[AnyHost],
+        *,
+        reverse: bool = False,
+    ) -> ReplyResolve:
+        """
+        Launch a remote hostname lookup request for every specified request.
+
+        Note:
+            The result is not provided along with the reply here but can be caught
+            using the :attr:`~.EventWord.ADDRMAP`.
+
+        See Also:
+            https://spec.torproject.org/control-spec/commands.html#resolve
+
+        Args:
+            addresses: List of addresses to launch a resolve request for.
+
+        Keyword Arguments:
+            reverse: Whether to perform a reverse DNS lookup.
+
+        Returns:
+            A simple resolve reply where only the status is relevant.
+
+        """
+        command = CommandResolve(reverse=reverse)
+        command.addresses.extend(addresses)
+        message = await self.request(command)
+        return ReplyResolve.from_message(message)
 
     async def save_conf(self, *, force: bool = False) -> ReplySaveConf:
         """

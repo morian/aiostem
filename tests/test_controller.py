@@ -191,6 +191,10 @@ class TestController:
         info = await controller.get_conf('MaxClientCircuitsPending')
         assert dict(info.items()) == conf
 
+    async def test_cmd_resolve(self, controller):
+        result = await controller.resolve(['one.one.one.one'])
+        assert result.status == 250
+
     async def test_cmd_save_conf(self, controller):
         result = await controller.save_conf()
         with pytest.raises(ReplyStatusError, match='Unable to write configuration to disk'):
