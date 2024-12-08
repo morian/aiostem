@@ -138,6 +138,8 @@ from .structures import (
     StatusServerNameserverStatus,
     StatusServerReachabilityFailed,
     StatusServerReachabilitySucceeded,
+    VirtualPort,
+    VirtualPortTarget,
 )
 from .utils import (
     AnyAddress,
@@ -293,6 +295,8 @@ __all__ = [
     'StatusServerReachabilityFailed',
     'StatusServerReachabilitySucceeded',
     'TcpAddressPort',
+    'VirtualPort',
+    'VirtualPortTarget',
     'event_from_message',
     'messages_from_stream',
 ]

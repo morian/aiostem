@@ -24,6 +24,8 @@ from .structures import (
     OnionServiceFlags,
     OnionServiceKeyType,
     Signal,
+    VirtualPort,
+    VirtualPortAdapter,
 )
 from .utils import (
     AnyHost,
@@ -825,7 +827,7 @@ class CommandCloseCircuit(Command):
     if_unused: bool = False
 
     def _serialize(self) -> CommandSerializer:
-        """Append `CLOSECIRCUIT` specific arguments."""
+        """Append ``CLOSECIRCUIT`` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
@@ -884,7 +886,7 @@ class CommandUseFeature(Command):
     features: set[Feature | str] = field(default_factory=set)
 
     def _serialize(self) -> CommandSerializer:
-        """Append `USEFEATURE` specific arguments."""
+        """Append ``USEFEATURE`` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         for feature in self.features:
@@ -911,7 +913,7 @@ class CommandResolve(Command):
     command: ClassVar[CommandWord] = CommandWord.RESOLVE
 
     #: List of addresses get a resolution for.
-    addresses: MutableSequence[str] = field(default_factory=list)
+    addresses: MutableSequence[AnyHost] = field(default_factory=list)
     #: Whether we should perform a reverse lookup resolution.
     reverse: bool = False
 
@@ -1135,7 +1137,7 @@ class CommandAddOnion(Command):
     max_streams: int | None = None
 
     #: As in an arguments to config ``HiddenServicePort``, ``port,target``.
-    ports: MutableSequence[str] = field(default_factory=list)
+    ports: MutableSequence[VirtualPort] = field(default_factory=list)
 
     #: Syntax is ``ClientName:ClientBlob``.
     client_auth: MutableSequence[str] = field(default_factory=list)
@@ -1201,7 +1203,8 @@ class CommandAddOnion(Command):
             kwarg = ArgumentKeyword('MaxStreams', self.max_streams, quotes=QuoteStyle.NEVER)
             args.append(kwarg)
         for port in self.ports:
-            args.append(ArgumentKeyword('Port', port, quotes=QuoteStyle.NEVER_ENSURE))
+            string = VirtualPortAdapter.dump_python(port)
+            args.append(ArgumentKeyword('Port', string, quotes=QuoteStyle.NEVER_ENSURE))
         for auth in self.client_auth:
             args.append(ArgumentKeyword('ClientAuth', auth, quotes=QuoteStyle.NEVER_ENSURE))
         for auth_v3 in self.client_auth_v3:

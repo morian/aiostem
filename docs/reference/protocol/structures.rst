@@ -48,7 +48,6 @@ Common classes
    :undoc-members:
    :members:
 
-
 .. autoclass:: Signal
    :undoc-members:
    :members:

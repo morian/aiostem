@@ -3,7 +3,7 @@ from __future__ import annotations
 import base64
 import hashlib
 import typing
-from collections.abc import Collection, MutableSequence
+from collections.abc import Collection, MutableSequence, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from enum import IntEnum
@@ -598,12 +598,7 @@ class LongServerName:
         return core_schema.no_info_after_validator_function(
             function=cls.from_string,
             schema=core_schema.str_schema(),
-            serialization=core_schema.plain_serializer_function_ser_schema(
-                function=cls.to_string,
-                info_arg=False,
-                return_schema=core_schema.str_schema(),
-                when_used='always',
-            ),
+            serialization=core_schema.to_string_ser_schema(when_used='always'),
         )
 
     @classmethod
@@ -630,11 +625,6 @@ class LongServerName:
 
         return cls(fingerprint=bytes.fromhex(fingerprint), nickname=nickname)
 
-    @classmethod
-    def to_string(cls, value: Self) -> str:
-        """Serialize the current valid to a string."""
-        return str(value)
-
 
 class LogSeverityTransformer:
     """Pre-validator for strings to build a valid :class:`.LogSeverity`."""
@@ -646,11 +636,11 @@ class LogSeverityTransformer:
     ) -> CoreSchema:
         """Set a custom validator used to transform the input string."""
         return core_schema.no_info_before_validator_function(
-            self.parse_value,
+            self.from_value,
             handler(source),
         )
 
-    def parse_value(self, value: Any) -> Any:
+    def from_value(self, value: Any) -> Any:
         """Parse the input value, split it when it is a string."""
         if isinstance(value, str):  # pragma: no branch
             value = value.upper()
@@ -672,27 +662,30 @@ class StringSequence:
     #: How to split this string sequence.
     separator: str = ','
 
+    #: Optional list of keys when converted to a dictionary.
+    dict_keys: Sequence[str] | None = None
+
     #: When serialization is supposed to be used.
     when_used: WhenUsed = 'json'
 
     def __get_pydantic_core_schema__(
         self,
-        source: type[Collection[Any]],
+        source: type[Any],
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Tell the core schema and how to validate the whole thing."""
-        # Check that we have a valid collection of something like a str, int, float, bool.
-        origin = typing.get_origin(source)
-        if not isinstance(origin, type) or not issubclass(origin, Collection):
-            msg = f"source type is not a collection, got '{source.__name__}'"
-            raise TypeError(msg)
+        if self.dict_keys is None:
+            # Check that we have a valid collection of something like a str, int, float, bool.
+            origin = typing.get_origin(source)
+            if not isinstance(origin, type) or not issubclass(origin, Collection):
+                msg = f"source type is not a collection, got '{source.__name__}'"
+                raise TypeError(msg)
 
-        adapter = TypeAdapter(source, config=self.model_config)
         return core_schema.no_info_before_validator_function(
-            function=self.parse_value,
+            function=self.from_value,
             schema=handler(source),
             serialization=core_schema.plain_serializer_function_ser_schema(
-                function=partial(self.serialize, adapter),
+                function=partial(self.serialize, TypeAdapter(source)),
                 info_arg=True,
                 return_schema=core_schema.str_schema(),
                 when_used=self.when_used,
@@ -713,30 +706,41 @@ class StringSequence:
         )
         return field_schema
 
-    def parse_value(self, value: Any) -> Any:
+    def from_value(self, value: Any) -> Any:
         """Parse the input value, split it when it is a string."""
         if isinstance(value, bytes | bytearray):
             value = value.decode()
         if isinstance(value, str):
-            return value.split(self.separator, maxsplit=self.maxsplit)
+            items = value.split(self.separator, maxsplit=self.maxsplit)
+            if self.dict_keys is not None:
+                return dict(zip(self.dict_keys, items, strict=True))
+            return items
         return value
 
     def serialize(
         self,
-        adapter: TypeAdapter[Collection[Any]],
-        values: Collection[Any],
+        adapter: TypeAdapter[Any],
+        item: Any,
         info: SerializationInfo,
     ) -> str:
         """Tells how we serialize this collection for JSON."""
         mode = 'json' if info.mode_is_json() else 'python'  # type: Literal['json', 'python']
-        serialized = adapter.dump_python(
-            values,
+        dump = adapter.dump_python(
+            item,
             exclude_defaults=info.exclude_defaults,
             exclude_none=info.exclude_none,
             exclude_unset=info.exclude_unset,
             mode=mode,
         )
-        return self.separator.join(map(str, serialized))
+
+        values = []  # type: MutableSequence[Any]
+        if self.dict_keys is not None:
+            for key in self.dict_keys:
+                values.append(dump[key])
+        else:
+            values.extend(dump)
+
+        return self.separator.join(map(str, values))
 
 
 @dataclass(frozen=True, slots=True)
@@ -764,12 +768,7 @@ class TcpAddressPort:
         return core_schema.no_info_after_validator_function(
             function=cls.from_string,
             schema=core_schema.str_schema(),
-            serialization=core_schema.plain_serializer_function_ser_schema(
-                function=cls.to_string,
-                info_arg=False,
-                return_schema=core_schema.str_schema(),
-                when_used='always',
-            ),
+            serialization=core_schema.to_string_ser_schema(when_used='always'),
         )
 
     @classmethod
@@ -790,11 +789,6 @@ class TcpAddressPort:
 
         return cls(host=host, port=int(port))
 
-    @classmethod
-    def to_string(cls, value: Self) -> str:
-        """Serialize the current valid to a string."""
-        return str(value)
-
 
 class TimedeltaTransformer:
     """Pre-validator that gets a timedelta from an int or float."""
@@ -810,11 +804,11 @@ class TimedeltaTransformer:
             raise TypeError(msg)
 
         return core_schema.no_info_before_validator_function(
-            self.parse_value,
+            self.from_value,
             handler(source),
         )
 
-    def parse_value(self, value: Any) -> Any:
+    def from_value(self, value: Any) -> Any:
         """Parse the input value as an integer or float timedelta."""
         if isinstance(value, int | str):
             value = float(value)

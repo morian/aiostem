@@ -4,6 +4,7 @@ import secrets
 from base64 import b32decode, b64decode
 
 import pytest
+from pydantic import TypeAdapter
 
 from aiostem.exceptions import CommandError
 from aiostem.protocol import (
@@ -47,7 +48,10 @@ from aiostem.protocol import (
     OnionServiceFlags,
     OnionServiceKeyType,
     Signal,
+    VirtualPort,
 )
+
+VirtualPortAdapter = TypeAdapter(VirtualPort)
 
 
 class TestCommands:
@@ -259,29 +263,32 @@ class TestCommands:
         assert cmd.serialize() == f'HSFETCH {address} SERVER={server1} SERVER={server2}\r\n'
 
     def test_add_onion(self):
+        port = VirtualPortAdapter.validate_python('80,127.0.0.1:80')
         cmd = CommandAddOnion(
             key_type='NEW',
             key=OnionServiceKeyType.ED25519_V3,
-            ports=['80,127.0.0.1:80'],
+            ports=[port],
         )
         assert cmd.serialize() == 'ADD_ONION NEW:ED25519-V3 Port=80,127.0.0.1:80\r\n'
 
     def test_add_onion_bytes(self):
         key = b'\xe6PG\xf74\xa4\xfc\xa3O\xaa\x95\x91X+\x8d\x1a'
+        port = VirtualPortAdapter.validate_python('80,127.0.0.1:80')
         cmd = CommandAddOnion(
             key_type=OnionServiceKeyType.ED25519_V3,
             key=key,
-            ports=['80,127.0.0.1:80'],
+            ports=[port],
         )
         assert cmd.serialize() == (
             'ADD_ONION ED25519-V3:5lBH9zSk/KNPqpWRWCuNGg Port=80,127.0.0.1:80\r\n'
         )
 
     def test_add_onion_with_client_auth(self):
+        port = VirtualPortAdapter.validate_python('80,127.0.0.1:80')
         cmd = CommandAddOnion(
             key_type='NEW',
             key='BEST',
-            ports=['80,127.0.0.1:80'],
+            ports=[port],
             flags={OnionServiceFlags.DISCARD_PK},
             max_streams=2,
             client_auth=['5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ'],
@@ -293,10 +300,11 @@ class TestCommands:
 
     def test_add_onion_with_client_auth_v3(self):
         client = b32decode('RC3BHJ6WTBQPRRSMV65XGCZVSYJQZNWBQI3LLFS73VP6NHSIAD2Q====')
+        port = VirtualPortAdapter.validate_python('80,127.0.0.1:80')
         cmd = CommandAddOnion(
             key_type='NEW',
             key='BEST',
-            ports=['80,127.0.0.1:80'],
+            ports=[port],
             client_auth_v3=[
                 '5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ',
                 client,

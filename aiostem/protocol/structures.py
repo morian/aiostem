@@ -3,9 +3,9 @@ from __future__ import annotations
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
-from typing import Annotated, Literal
+from typing import Annotated, Literal, TypeAlias
 
-from pydantic import NonNegativeInt
+from pydantic import NonNegativeInt, TypeAdapter
 
 from .utils import (
     AnyAddress,
@@ -403,13 +403,13 @@ class StatusClientBootstrap:
     """Arguments for action :attr:`StatusActionClient.BOOTSTRAP`."""
 
     #: A number between 0 and 100 for how far through the bootstrapping process we are.
-    progress: int
+    progress: NonNegativeInt
     #: Describe the *next* task that Tor will tackle.
     summary: str
     #: A string that controllers can use to recognize bootstrap phases.
     tag: str
     #: Tells how many bootstrap problems there have been so far at this phase.
-    count: int | None = None
+    count: NonNegativeInt | None = None
     #: The identity digest of the node we're trying to connect to.
     host: HexBytes | None = None
     #: An address and port combination, where 'address' is an ipv4 or ipv6 address.
@@ -587,8 +587,8 @@ class StatusServerNameserverStatus:
 class StatusServerBadServerDescriptor:
     """Arguments for action :attr:`StatusActionServer.BAD_SERVER_DESCRIPTOR`."""
 
-    #: Directory that rejected our descriptor, ``address:port``.
-    dir_auth: str
+    #: Directory that rejected our descriptor as an address and port.
+    dir_auth: TcpAddressPort
     #: Include malformed descriptors, incorrect keys, highly skewed clocks, and so on.
     reason: str
 
@@ -597,8 +597,8 @@ class StatusServerBadServerDescriptor:
 class StatusServerAcceptedServerDescriptor:
     """Arguments for action :attr:`StatusActionServer.ACCEPTED_SERVER_DESCRIPTOR`."""
 
-    #: Directory that accepted our server descriptor ``address:port``.
-    dir_auth: str
+    #: Directory that accepted our server descriptor as an address and port.
+    dir_auth: TcpAddressPort
 
 
 @dataclass(kw_only=True, slots=True)
@@ -614,3 +614,26 @@ class StatusServerHibernationStatus:
     """Arguments for action :attr:`StatusActionServer.HIBERNATION_STATUS`."""
 
     status: Literal['AWAKE', 'SOFT', 'HARD']
+
+
+@dataclass(kw_only=True, slots=True)
+class VirtualPortTarget:
+    """Target for an onion virtual port."""
+
+    #: Virtual port to listen to on a hidden service.
+    port: AnyPort
+    #: Local target for this virtual port.
+    target: TcpAddressPort
+
+
+#: A virtual port parser and serializer from/to a :class:`VirtualPortTarget`.
+VirtualPort: TypeAlias = Annotated[
+    VirtualPortTarget,
+    StringSequence(
+        dict_keys=('port', 'target'),
+        maxsplit=1,
+        separator=',',
+        when_used='always',
+    ),
+]
+VirtualPortAdapter = TypeAdapter(VirtualPort)

@@ -363,6 +363,23 @@ class TestStringSequence:
         assert len(result) == 2
         assert result[1] == 'B,C,D'
 
+    def test_with_dict_keys(self):
+        class HostPort(BaseModel):
+            host: str
+            port: int
+
+        value = 'localhost:443'
+        adapter = TypeAdapter(
+            Annotated[
+                HostPort,
+                StringSequence(dict_keys=('host', 'port'), maxsplit=1, separator=':'),
+            ]
+        )
+        result = adapter.validate_python(value)
+        assert isinstance(result, HostPort)
+        assert result.host == 'localhost'
+        assert result.port == 443
+
     def test_json_schema(self):
         adapter = TypeAdapter(Annotated[tuple[str, int], StringSequence()])
         schema = adapter.json_schema()
@@ -382,10 +399,10 @@ class TestStringSequence:
         'type_',
         [
             Annotated[int, StringSequence()],
-            Annotated[bytes, StringSequence()],
+            Annotated[None, StringSequence()],
         ],
     )
-    def test_usage_error(self, type_):
+    def test_usage_error_as_sequence(self, type_):
         with pytest.raises(TypeError, match='source type is not a collection'):
             TypeAdapter(type_)
 
@@ -422,6 +439,23 @@ class TestLongServerName:
         assert serial == string
 
 
+class TestLogSeverity:
+    @pytest.mark.parametrize(
+        'entry',
+        [
+            LogSeverity.ERROR,
+            'ERR',
+            'ERROR',
+            'Error',
+            'err',
+        ],
+    )
+    def test_with_multiple_values(self, entry: Any):
+        adapter = TypeAdapter(Annotated[LogSeverity, LogSeverityTransformer()])
+        value = adapter.validate_python(entry)
+        assert value == LogSeverity.ERROR
+
+
 class TestTcpAddressPort:
     @pytest.mark.parametrize(
         ('string', 'host', 'port'),
@@ -447,23 +481,6 @@ class TestTcpAddressPort:
         target = TcpAddressPort(host=host, port=port)
         serial = adapter.dump_python(target)
         assert serial == string
-
-
-class TestLogSeverity:
-    @pytest.mark.parametrize(
-        'entry',
-        [
-            LogSeverity.ERROR,
-            'ERR',
-            'ERROR',
-            'Error',
-            'err',
-        ],
-    )
-    def test_with_multiple_values(self, entry: Any):
-        adapter = TypeAdapter(Annotated[LogSeverity, LogSeverityTransformer()])
-        value = adapter.validate_python(entry)
-        assert value == LogSeverity.ERROR
 
 
 class TestTimedeltaSeconds:
