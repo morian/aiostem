@@ -62,6 +62,11 @@ Common classes
 
 .. currentmodule:: aiostem.protocol.structures
 
+.. autoclass:: VirtualPortTarget
+   :no-show-inheritance:
+   :undoc-members:
+   :members:
+
 
 Hidden services
 ---------------
