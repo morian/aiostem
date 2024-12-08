@@ -50,6 +50,7 @@ from .utils import (
     HiddenServiceAddress,
     LogSeverityTransformer,
     LongServerName,
+    TimedeltaMilliseconds,
 )
 
 logger = logging.getLogger(__package__)
@@ -306,9 +307,9 @@ class EventBuildTimeoutSet(EventSimple):
     #: Integer count of timeouts stored.
     total_times: NonNegativeInt
     #: Integer timeout in milliseconds.
-    timeout_ms: NonNegativeInt
+    timeout_ms: TimedeltaMilliseconds
     #: Estimated integer Pareto parameter Xm in milliseconds.
-    xm: NonNegativeInt
+    xm: TimedeltaMilliseconds
     #: Estimated floating point Paredo parameter alpha.
     alpha: float
     #: Floating point CDF quantile cutoff point for this timeout.
@@ -316,7 +317,7 @@ class EventBuildTimeoutSet(EventSimple):
     #: Floating point ratio of circuits that timeout.
     timeout_rate: float
     #: How long to keep measurement circs in milliseconds.
-    close_ms: NonNegativeInt
+    close_ms: TimedeltaMilliseconds
     #: Floating point ratio of measurement circuits that are closed.
     close_rate: float
 

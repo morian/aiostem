@@ -790,8 +790,12 @@ class TcpAddressPort:
         return cls(host=host, port=int(port))
 
 
+@dataclass(frozen=True, slots=True)
 class TimedeltaTransformer:
     """Pre-validator that gets a timedelta from an int or float."""
+
+    #: Whether the input value is expected to be in milliseconds.
+    milliseconds: bool = False
 
     def __get_pydantic_core_schema__(
         self,
@@ -813,6 +817,8 @@ class TimedeltaTransformer:
         if isinstance(value, int | str):
             value = float(value)
         if isinstance(value, float):
+            if self.milliseconds:
+                value = value / 1000.0
             value = timedelta(seconds=value)
         return value
 
@@ -820,4 +826,5 @@ class TimedeltaTransformer:
 Base32Bytes = Annotated[bytes, EncodedBytes(encoder=Base32Encoder)]
 Base64Bytes = Annotated[bytes, EncodedBytes(encoder=Base64Encoder)]
 HexBytes = Annotated[bytes, EncodedBytes(encoder=HexEncoder)]
-TimedeltaSeconds = Annotated[timedelta, TimedeltaTransformer()]
+TimedeltaSeconds = Annotated[timedelta, TimedeltaTransformer(milliseconds=False)]
+TimedeltaMilliseconds = Annotated[timedelta, TimedeltaTransformer(milliseconds=True)]

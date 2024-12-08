@@ -240,8 +240,8 @@ class TestEvents:
         )
         message = await create_message([line])
         event = event_from_message(message)
-        assert event.timeout_ms == 815
-        assert event.xm == 283
+        assert event.total_times == 1000
+        assert event.xm.microseconds == 283000
 
     async def test_signal(self):
         line = '650 SIGNAL RELOAD'
