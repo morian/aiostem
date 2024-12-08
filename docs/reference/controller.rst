@@ -99,9 +99,11 @@ Control commands
 .. class:: Controller
    :no-index:
 
+   .. automethod:: drop_ownership
    .. automethod:: get_info
    .. automethod:: map_address
    .. automethod:: signal
+   .. automethod:: take_ownership
 
 
 Generic request

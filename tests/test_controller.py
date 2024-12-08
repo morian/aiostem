@@ -246,8 +246,16 @@ class TestController:
         res = await controller.drop_guards()
         assert res.status_text == 'OK'
 
+    async def test_cmd_drop_ownership(self, controller):
+        res = await controller.drop_ownership()
+        assert res.status_text == 'OK'
+
     async def test_cmd_drop_timeouts(self, controller):
         res = await controller.drop_timeouts()
+        assert res.status_text == 'OK'
+
+    async def test_cmd_take_ownership(self, controller):
+        res = await controller.take_ownership()
         assert res.status_text == 'OK'
 
     @pytest.mark.timeout(2)

@@ -23,6 +23,7 @@ from .protocol import (
     CommandAuthChallenge,
     CommandAuthenticate,
     CommandDropGuards,
+    CommandDropOwnership,
     CommandDropTimeouts,
     CommandGetConf,
     CommandGetInfo,
@@ -36,6 +37,7 @@ from .protocol import (
     CommandSetConf,
     CommandSetEvents,
     CommandSignal,
+    CommandTakeOwnership,
     Event,
     EventWord,
     EventWordInternal,
@@ -45,6 +47,7 @@ from .protocol import (
     ReplyAuthChallenge,
     ReplyAuthenticate,
     ReplyDropGuards,
+    ReplyDropOwnership,
     ReplyDropTimeouts,
     ReplyGetConf,
     ReplyGetInfo,
@@ -58,6 +61,7 @@ from .protocol import (
     ReplySetConf,
     ReplySetEvents,
     ReplySignal,
+    ReplyTakeOwnership,
     Signal,
     event_from_message,
     messages_from_stream,
@@ -588,6 +592,24 @@ class Controller:
         message = await self.request(command)
         return ReplyDropGuards.from_message(message)
 
+    async def drop_ownership(self) -> ReplyDropOwnership:
+        """
+        Relinquish ownership of this control connection.
+
+        See Also:
+            https://spec.torproject.org/control-spec/commands.html#dropownership
+
+        Hint:
+            This ownership can be taken using :meth:`take_ownership`.
+
+        Returns:
+            A simple drop-ownership reply where only the status is relevant.
+
+        """
+        command = CommandDropOwnership()
+        message = await self.request(command)
+        return ReplyDropOwnership.from_message(message)
+
     async def drop_timeouts(self) -> ReplyDropTimeouts:
         """
         Tells the server to drop all circuit build times.
@@ -878,6 +900,24 @@ class Controller:
         command = CommandSignal(signal=signal)
         message = await self.request(command)
         return ReplySignal.from_message(message)
+
+    async def take_ownership(self) -> ReplyTakeOwnership:
+        """
+        Instructs Tor to shut down when this control connection is closed.
+
+        Hint:
+            This ownership can be dropped with :meth:`drop_ownership`.
+
+        See Also:
+            https://spec.torproject.org/control-spec/commands.html#takeownership
+
+        Returns:
+            A simple take-ownership reply where only the status is relevant.
+
+        """
+        command = CommandTakeOwnership()
+        message = await self.request(command)
+        return ReplyTakeOwnership.from_message(message)
 
     async def quit(self) -> ReplyQuit:
         """

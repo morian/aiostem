@@ -8,6 +8,7 @@ import pytest_asyncio
 
 from aiostem import Controller
 from aiostem.exceptions import ReplyStatusError
+from aiostem.protocol import CommandWord, Message
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -20,7 +21,6 @@ if TYPE_CHECKING:
     from aiostem.protocol import (
         Command,
         EventWord,
-        Message,
         ReplyAuthChallenge,
         ReplyProtocolInfo,
         ReplySetEvents,
@@ -72,7 +72,17 @@ class CustomController(Controller):
         if 'command' in self.traces:
             self.trace_commands.append(command)
 
-        message = await super().request(command)
+        if command.command in frozenset(
+            {
+                CommandWord.DROPGUARDS,
+                CommandWord.DROPOWNERSHIP,
+                CommandWord.DROPTIMEOUTS,
+                CommandWord.TAKEOWNERSHIP,
+            }
+        ):
+            message = Message(status=250, header='OK')
+        else:
+            message = await super().request(command)
 
         if 'replies' in self.traces:
             self.trace_replies.append(message)

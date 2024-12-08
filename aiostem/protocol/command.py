@@ -207,6 +207,7 @@ class CommandWord(StrEnum):
     #: Instructs Tor to shut down when this control connection is closed.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.take_ownership`
     #:     - Command implementation: :class:`CommandTakeOwnership`
     #:     - Reply implementation: :class:`.ReplyTakeOwnership`
     TAKEOWNERSHIP = 'TAKEOWNERSHIP'
@@ -280,6 +281,7 @@ class CommandWord(StrEnum):
     #: This command instructs Tor to relinquish ownership of its control connection.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.drop_ownership`
     #:     - Command implementation: :class:`CommandDropOwnership`
     #:     - Reply implementation: :class:`.ReplyDropOwnership`
     DROPOWNERSHIP = 'DROPOWNERSHIP'
