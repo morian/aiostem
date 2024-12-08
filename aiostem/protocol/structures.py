@@ -43,6 +43,23 @@ class CircuitPurpose(StrEnum):
     BRIDGE = 'bridge'
 
 
+@dataclass(kw_only=True, slots=True)
+class ClockSkewSource:
+    """
+    Source of a clock skew, properly parsed.
+
+    Note:
+        This is to be used with :class:`StatusGeneralClockSkew`.
+
+    """
+
+    #: Name of the source.
+    name: Literal['DIRSERV', 'NETWORKSTATUS', 'OR', 'CONSENSUS']
+
+    #: Optional address of the source (:obj:`None` with ``CONSENSUS``).
+    address: TcpAddressPort | None = None
+
+
 class CloseStreamReason(IntEnum):
     """
     All reasons provided to close a stream.
@@ -523,13 +540,15 @@ class StatusGeneralClockSkew:
     #: Estimate of how far we are from the time declared in the source.
     skew: TimedeltaSeconds
 
-    #: The following values are accepted and not parsed (yet):
-    #:
-    #:    - ``"DIRSERV:" IP ":" Port``
-    #:    - ``"NETWORKSTATUS:" IP ":" Port``
-    #:    - ``"OR:" IP ":" Port``
-    #:    - ``"CONSENSUS"``
-    source: str
+    #: Source of the clock skew event.
+    source: Annotated[
+        ClockSkewSource,
+        StringSplit(
+            dict_keys=('name', 'address'),
+            maxsplit=1,
+            separator=':',
+        ),
+    ]
 
 
 class ExternalAddressResolveMethod(StrEnum):

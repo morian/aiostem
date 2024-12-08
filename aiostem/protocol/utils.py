@@ -713,7 +713,7 @@ class StringSplit:
         if isinstance(value, str):
             items = value.split(self.separator, maxsplit=self.maxsplit)
             if self.dict_keys is not None:
-                return dict(zip(self.dict_keys, items, strict=True))
+                return dict(zip(self.dict_keys, items, strict=False))
             return items
         return value
 

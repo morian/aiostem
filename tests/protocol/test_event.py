@@ -134,6 +134,24 @@ class TestEvents:
         assert isinstance(event.arguments.time, timedelta)
         assert int(event.arguments.time.total_seconds()) == 120
 
+    async def test_status_general_clock_skew_with_ip(self):
+        line = '650 STATUS_GENERAL NOTICE CLOCK_SKEW SKEW=120 SOURCE=OR:1.1.1.1:443'
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.action == StatusActionGeneral.CLOCK_SKEW
+        assert isinstance(event.arguments.skew, timedelta)
+        assert event.arguments.source.name == 'OR'
+        assert event.arguments.source.address.host == IPv4Address('1.1.1.1')
+        assert event.arguments.source.address.port == 443
+
+    async def test_status_general_clock_skew_with_consensus(self):
+        line = '650 STATUS_GENERAL NOTICE CLOCK_SKEW SKEW=120 SOURCE=CONSENSUS'
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.action == StatusActionGeneral.CLOCK_SKEW
+        assert event.arguments.source.name == 'CONSENSUS'
+        assert event.arguments.source.address is None
+
     async def test_status_general_dir_all_unreachable(self):
         line = '650 STATUS_GENERAL ERR DIR_ALL_UNREACHABLE'
         message = await create_message([line])

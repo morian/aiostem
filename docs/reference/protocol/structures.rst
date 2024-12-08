@@ -147,6 +147,10 @@ These :func:`~dataclasses.dataclass` structures are specific for each action of 
 Server status
 -------------
 
+.. autoclass:: ClockSkewSource
+   :no-show-inheritance:
+   :members:
+
 .. autoclass:: StatusActionServer
    :members:
 
