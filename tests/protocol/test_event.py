@@ -232,6 +232,26 @@ class TestEvents:
         assert event.values['ADDRESS'] == '198.51.100.123:1234'
         assert event.values['CONNECT'] == 'Success'
 
+    async def test_addr_map_standard(self):
+        line = (
+            '650 ADDRMAP google.com 142.250.74.110 "2024-12-08 23:00:36" '
+            'EXPIRES="2024-12-08 23:00:36" CACHED="NO" STREAMID=109038'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.original == 'google.com'
+        assert event.replacement == IPv4Address('142.250.74.110')
+
+    async def test_addr_map_error(self):
+        line = (
+            '650 ADDRMAP 2a04:fa87:fffd::c000:426c <error> "2024-12-09 07:24:03" '
+            'error=yes EXPIRES="2024-12-09 07:24:03" CACHED="NO" STREAMID=110330'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.original == IPv6Address('2a04:fa87:fffd::c000:426c')
+        assert event.replacement is None
+
     async def test_build_timeout_set(self):
         line = (
             '650 BUILDTIMEOUT_SET COMPUTED TOTAL_TIMES=1000 TIMEOUT_MS=815 '

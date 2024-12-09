@@ -4,6 +4,7 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, ClassVar, Literal, Self, Union
 
@@ -43,6 +44,7 @@ from .structures import (
 from .syntax import ReplySyntax, ReplySyntaxFlag
 from .utils import (
     AnyAddress,
+    AnyHost,
     AnyPort,
     Base32Bytes,
     Base64Bytes,
@@ -50,6 +52,7 @@ from .utils import (
     HiddenServiceAddress,
     LogSeverityTransformer,
     LongServerName,
+    SetToNone,
     TimedeltaMilliseconds,
 )
 
@@ -115,6 +118,9 @@ class EventWord(StrEnum):
     NEWDESC = 'NEWDESC'
 
     #: New Address mapping.
+    #:
+    #: See Also:
+    #:     :class:`EventAddrMap`
     ADDRMAP = 'ADDRMAP'
 
     #: Descriptors uploaded to us in our role as authoritative dirserver.
@@ -276,6 +282,47 @@ class EventDisconnect(Event):
     def from_message(cls, message: Message) -> Self:
         """Build an event dataclass from a received message."""
         return cls.adapter().validate_python({})
+
+
+@dataclass(kw_only=True, slots=True)
+class EventAddrMap(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.ADDRMAP` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#ADDRMAP
+
+    """
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=2,
+        args_map=(None, 'original', 'replacement'),
+        kwargs_map={
+            None: 'expires_local',
+            'EXPIRES': 'expires',
+            'CACHED': 'cached',
+            'STREAMID': 'stream',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE
+        | ReplySyntaxFlag.KW_QUOTED
+        | ReplySyntaxFlag.KW_OMIT_KEYS,
+    )
+    TYPE = EventWord.ADDRMAP
+
+    #: Original address.
+    original: AnyHost
+    #: Replacement address, ``<error>`` is mapped to None.
+    replacement: Annotated[AnyHost | None, SetToNone({'<error>'})]
+    #: When this entry expires.
+    #: TODO: Force the timezone to UTC here.
+    expires: datetime | None = None
+    #: Error message when replacement is None.
+    error: str | None = None
+    #: Whether this value has been kept in cache.
+    #: TODO: build a yes/no to boolean.
+    cached: str
+    #: Stream identifier.
+    stream: int
 
 
 @dataclass(kw_only=True, slots=True)
@@ -936,6 +983,7 @@ class EventUnknown(Event):
 
 
 _EVENT_MAP = {
+    'ADDRMAP': EventAddrMap,
     'BUILDTIMEOUT_SET': EventBuildTimeoutSet,
     'DISCONNECT': EventDisconnect,
     'HS_DESC': EventHsDesc,

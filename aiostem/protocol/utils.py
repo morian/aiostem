@@ -3,8 +3,13 @@ from __future__ import annotations
 import base64
 import hashlib
 import typing
-from collections.abc import Collection, MutableSequence, Sequence
-from dataclasses import dataclass
+from collections.abc import (
+    Collection,
+    MutableSequence,
+    Sequence,
+    Set as AbstractSet,
+)
+from dataclasses import dataclass, field
 from datetime import timedelta
 from enum import IntEnum
 from functools import partial
@@ -788,6 +793,40 @@ class TcpAddressPort:
             host = IPv4Address(str_host)
 
         return cls(host=host, port=int(port))
+
+
+@dataclass(frozen=True, slots=True)
+class SetToNone:
+    """Pre-validator that sets a value to :obj:`None`."""
+
+    #: List of values mapped to None.
+    values: AbstractSet[Any] = field(default_factory=set)
+
+    def __get_pydantic_core_schema__(
+        self,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Declare schema and validator to replace values to None."""
+        return core_schema.no_info_before_validator_function(
+            self.from_value,
+            handler(source),
+        )
+
+    def from_value(self, value: Any) -> Any:
+        """
+        Set the return value to :obj:`None` when applicable.
+
+        Args:
+            value: The value to check against :attr:`values`.
+
+        Returns:
+            The same value of :obj:`None` when matching any value in :attr:`values`.
+
+        """
+        if value in self.values:
+            return None
+        return value
 
 
 @dataclass(frozen=True, slots=True)

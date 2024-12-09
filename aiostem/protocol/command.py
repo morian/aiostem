@@ -184,6 +184,7 @@ class CommandWord(StrEnum):
     #: This command launches a remote hostname lookup request for every specified request.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.resolve`
     #:     - Command implementation: :class:`CommandResolve`
     #:     - Reply implementation: :class:`.ReplyResolve`
     RESOLVE = 'RESOLVE'
