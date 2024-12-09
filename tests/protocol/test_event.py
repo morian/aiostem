@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from ipaddress import IPv4Address, IPv6Address
 
 import pytest
@@ -241,6 +241,7 @@ class TestEvents:
         event = event_from_message(message)
         assert event.original == 'google.com'
         assert event.replacement == IPv4Address('142.250.74.110')
+        assert event.cached is False
 
     async def test_addr_map_error(self):
         line = (
@@ -251,6 +252,17 @@ class TestEvents:
         event = event_from_message(message)
         assert event.original == IPv6Address('2a04:fa87:fffd::c000:426c')
         assert event.replacement is None
+        assert isinstance(event.expires, datetime)
+        assert event.expires.tzinfo == UTC
+        assert event.stream == 110330
+        assert event.cached is False
+
+    async def test_addr_map_permanent(self):
+        line = '650 ADDRMAP dns.google 8.8.8.8 NEVER CACHED="YES"'
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert event.expires is None
+        assert event.cached is True
 
     async def test_build_timeout_set(self):
         line = (

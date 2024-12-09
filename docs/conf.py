@@ -203,5 +203,5 @@ def custom_missing_reference(
 
 
 def setup(app: Sphinx) -> None:
-    """Add a custom methid for missing references."""
+    """Add a custom method for missing references."""
     app.connect('missing-reference', custom_missing_reference)

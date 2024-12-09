@@ -10,7 +10,7 @@ from collections.abc import (
     Set as AbstractSet,
 )
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta, tzinfo
 from enum import IntEnum
 from functools import partial
 from ipaddress import IPv4Address, IPv6Address
@@ -53,6 +53,40 @@ AnyHost: TypeAlias = Annotated[
 ]
 #: Any TCP or UDP port.
 AnyPort: TypeAlias = Annotated[int, Field(gt=0, lt=65536)]
+
+
+@dataclass(frozen=True, slots=True)
+class AsTimezone:
+    """Post-validator that enforces a timezone."""
+
+    #: Timezone to map this date to.
+    timezone: tzinfo = UTC
+
+    def __get_pydantic_core_schema__(
+        self,
+        source: type[datetime],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Declare a validator to add or change the timezone."""
+        return core_schema.no_info_after_validator_function(
+            function=self.from_value,
+            schema=core_schema.datetime_schema(),
+        )
+
+    def from_value(self, value: datetime) -> datetime:
+        """
+        Apply the timezone of change the offset.
+
+        Args:
+            value: The original datetime to change.
+
+        Returns:
+            A new datetime with the proper timezone applied.
+
+        """
+        if value.tzinfo is None:
+            return value.replace(tzinfo=self.timezone)
+        return value.astimezone(self.timezone)
 
 
 class CommandSerializer:

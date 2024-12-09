@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar
 
@@ -19,6 +19,7 @@ from aiostem.protocol import (
     TcpAddressPort,
 )
 from aiostem.protocol.utils import (
+    AsTimezone,
     Base32Bytes,
     Base32Encoder,
     Base64Bytes,
@@ -36,6 +37,20 @@ from aiostem.protocol.utils import (
 
 if TYPE_CHECKING:
     from collections.abc import Mapping, Sequence
+
+
+class TestAsTimezone:
+    @pytest.mark.parametrize(
+        ('raw', 'timezone', 'timestamp'),
+        [
+            ('2024-12-09T23:10:14+01:00', None, 1733782214),
+            ('2024-12-09T23:10:14', UTC, 1733785814),
+        ],
+    )
+    def test_astimezone(self, raw, timezone, timestamp):
+        adapter = TypeAdapter(Annotated[datetime, AsTimezone(timezone)])
+        result = adapter.validate_python(raw)
+        assert int(result.timestamp()) == timestamp
 
 
 class TestCommandSerializer:

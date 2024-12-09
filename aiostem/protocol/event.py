@@ -46,6 +46,7 @@ from .utils import (
     AnyAddress,
     AnyHost,
     AnyPort,
+    AsTimezone,
     Base32Bytes,
     Base64Bytes,
     HexBytes,
@@ -309,20 +310,21 @@ class EventAddrMap(EventSimple):
     )
     TYPE = EventWord.ADDRMAP
 
-    #: Original address.
+    #: Original address to replace.
     original: AnyHost
     #: Replacement address, ``<error>`` is mapped to None.
     replacement: Annotated[AnyHost | None, SetToNone({'<error>'})]
-    #: When this entry expires.
-    #: TODO: Force the timezone to UTC here.
-    expires: datetime | None = None
-    #: Error message when replacement is None.
+    #: When this entry expires as an UTC date.
+    expires: Annotated[datetime, AsTimezone()] | None = None
+    #: Error message when replacement is :obj:`None`.
     error: str | None = None
     #: Whether this value has been kept in cache.
-    #: TODO: build a yes/no to boolean.
-    cached: str
+    #:
+    #: See Also:
+    #:    https://docs.pydantic.dev/latest/api/standard_library_types/#booleans
+    cached: bool | None = None
     #: Stream identifier.
-    stream: int
+    stream: int | None = None
 
 
 @dataclass(kw_only=True, slots=True)

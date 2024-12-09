@@ -66,12 +66,22 @@ Hidden services
 Data transformers
 -----------------
 
+.. autoclass:: AsTimezone
+   :no-show-inheritance:
+   :members:
+
 .. autoclass:: LogSeverityTransformer
    :no-show-inheritance:
    :members:
+
+.. autoclass:: SetToNone
+   :no-show-inheritance:
+   :members:
+
 .. autoclass:: StringSplit
    :no-show-inheritance:
    :members:
+
 .. autoclass:: TimedeltaTransformer
    :no-show-inheritance:
    :members:
