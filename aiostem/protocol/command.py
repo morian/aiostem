@@ -10,7 +10,7 @@ from collections.abc import (
 )
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import ClassVar, Literal
+from typing import ClassVar, Literal, Union
 
 from ..exceptions import CommandError
 from .argument import ArgumentKeyword, ArgumentString, QuoteStyle
@@ -538,7 +538,7 @@ class CommandMapAddress(Command):
     command: ClassVar[CommandWord] = CommandWord.MAPADDRESS
 
     #: Map of addresses to remap on socks requests.
-    addresses: MutableMapping[AnyHost, AnyHost] = field(default_factory=dict)
+    addresses: MutableMapping[Union[AnyHost], Union[AnyHost]] = field(default_factory=dict)  # noqa: UP007
 
     def _serialize(self) -> CommandSerializer:
         """Append ``MAPADDRESS`` specific arguments."""
@@ -761,7 +761,7 @@ class CommandRedirectStream(Command):
     #: Stream identifier to redirect.
     stream: int
     #: Destination address to redirect it to.
-    address: AnyHost
+    address: Union[AnyHost]  # noqa: UP007
     #: Optional port to redirect the stream to.
     port: AnyPort | None = None
 
@@ -917,7 +917,7 @@ class CommandResolve(Command):
     command: ClassVar[CommandWord] = CommandWord.RESOLVE
 
     #: List of addresses get a resolution for.
-    addresses: MutableSequence[AnyHost] = field(default_factory=list)
+    addresses: MutableSequence[Union[AnyHost]] = field(default_factory=list)  # noqa: UP007
     #: Whether we should perform a reverse lookup resolution.
     reverse: bool = False
 

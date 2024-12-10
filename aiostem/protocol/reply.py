@@ -16,7 +16,7 @@ from collections.abc import (
 )
 from dataclasses import dataclass, field
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Self, TypeAlias, TypeVar
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Optional, Self, TypeAlias, TypeVar
 
 from pydantic import PositiveInt, TypeAdapter
 
@@ -267,10 +267,10 @@ class ReplyMapAddressItem(BaseReply):
     )
 
     #: Original address to replace with another one.
-    original: AnyHost | None = None
+    original: Optional[AnyHost] = None  # noqa: UP007
 
     #: Replacement item for the corresponding :attr:`original` address.
-    replacement: AnyHost | None = None
+    replacement: Optional[AnyHost] = None  # noqa: UP007
 
     @classmethod
     def from_message_item(cls, message: BaseMessage) -> Self:
