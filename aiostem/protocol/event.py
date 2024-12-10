@@ -314,7 +314,7 @@ class EventAddrMap(EventSimple):
     # Union is used around AnyHost to fix a weird bug with typing.get_type_hints().
     original: Union[AnyHost]  # noqa: UP007
     #: Replacement address, ``<error>`` is mapped to None.
-    replacement: Annotated[Union[AnyHost], SetToNone({'<error>'})]  # noqa: UP007
+    replacement: Annotated[Union[AnyHost, None], SetToNone({'<error>'})]  # noqa: UP007
     #: When this entry expires as an UTC date.
     expires: Annotated[datetime, AsTimezone()] | None = None
     #: Error message when replacement is :obj:`None`.
