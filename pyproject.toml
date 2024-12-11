@@ -50,7 +50,6 @@ branch = true
 [tool.coverage.report]
 precision = 2
 exclude_lines = [
-	'def __repr__\(self\)',
 	'pragma: no cover',
 	'raise NotImplementedError',
 	'if TYPE_CHECKING:',
@@ -169,9 +168,3 @@ disallow_incomplete_defs = true
 disallow_untyped_decorators = true
 disallow_untyped_calls = true
 disallow_untyped_defs = true
-
-[[tool.mypy.overrides]]
-module = [
-	'stem.*',
-]
-ignore_missing_imports = true

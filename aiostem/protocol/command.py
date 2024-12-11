@@ -12,6 +12,8 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import ClassVar, Literal, Union
 
+from pydantic import NonNegativeInt
+
 from ..exceptions import CommandError
 from .argument import ArgumentKeyword, ArgumentString, QuoteStyle
 from .event import EventWord
@@ -1138,7 +1140,7 @@ class CommandAddOnion(Command):
     #: Optional number between 0 and 65535 which is the maximum streams that can be
     #: attached on a rendezvous circuit. Setting it to 0 means unlimited which is
     #: also the default behavior.
-    max_streams: int | None = None
+    max_streams: NonNegativeInt | None = None
 
     #: As in an arguments to config ``HiddenServicePort``, ``port,target``.
     ports: MutableSequence[VirtualPort] = field(default_factory=list)
