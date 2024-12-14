@@ -3,11 +3,7 @@ from __future__ import annotations
 import secrets
 from abc import ABC, abstractmethod
 from base64 import standard_b64encode
-from collections.abc import (
-    MutableMapping,
-    MutableSequence,
-    Set as AbstractSet,
-)
+from collections.abc import MutableMapping, MutableSequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Annotated, ClassVar, Literal, Self, Union
@@ -38,6 +34,7 @@ from .utils import (
     HiddenServiceAddressV3,
     LongServerName,
     StringSplit,
+    X25519PrivateKeyBase64,
     X25519PublicKeyBase32,
 )
 
@@ -1312,12 +1309,12 @@ class CommandOnionClientAuthAdd(Command):
 
     #: Key type is currently set to :attr:`~.OnionClientAuthKeyType.X25519`.
     key_type: OnionClientAuthKeyType = OnionClientAuthKeyType.X25519
-    #: The private ``x25519`` key as bytes or as a string of base64 encoded bytes.
-    key: Base64Bytes | str
+    #: The private ``x25519`` key used to authenticate to :attr:`address`.
+    key: X25519PrivateKeyBase64
     #: An optional nickname for the client.
     nickname: str | None = None
     #: Whether this client's credentials should be stored on the file system.
-    flags: AbstractSet[OnionClientAuthFlags] = field(default_factory=set)
+    flags: Annotated[set[OnionClientAuthFlags], StringSplit()] = field(default_factory=set)
 
     def _serialize(self) -> CommandSerializer:
         """Append ``ONION_CLIENT_AUTH_ADD`` specific arguments."""
@@ -1326,23 +1323,23 @@ class CommandOnionClientAuthAdd(Command):
 
         args.append(ArgumentString(self.address))
 
-        match self.key:
-            case bytes():
-                key_data = standard_b64encode(self.key).decode('ascii').rstrip('=')
-            case str():  # pragma: no branch
-                key_data = self.key
+        adapter = self.adapter()
+        struct = adapter.dump_python(self)
 
+        # TODO: build a custom serializer so we get rid of `key_type`.
+        key_data = struct['key']
         args.append(ArgumentString(f'{self.key_type.value}:{key_data}'))
 
         if self.nickname is not None:
             kwarg = ArgumentKeyword(
-                'ClientName', self.nickname, quotes=QuoteStyle.NEVER_ENSURE
+                'ClientName',
+                self.nickname,
+                quotes=QuoteStyle.NEVER_ENSURE,
             )
             args.append(kwarg)
 
         if len(self.flags):
-            flags = ','.join(self.flags)
-            args.append(ArgumentKeyword('Flags', flags, quotes=QuoteStyle.NEVER))
+            args.append(ArgumentKeyword('Flags', struct['flags'], quotes=QuoteStyle.NEVER))
 
         ser.arguments.extend(args)
         return ser

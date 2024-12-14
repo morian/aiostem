@@ -5,7 +5,7 @@ import secrets
 from ipaddress import IPv4Address
 
 import pytest
-from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 
 from aiostem.exceptions import ReplyError, ReplyStatusError
 from aiostem.protocol import (
@@ -389,7 +389,7 @@ class TestReplies:
         client = reply.clients[0]
         assert client.address == 'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
         assert client.name == 'Peter'
-        assert len(client.key) == 32
+        assert isinstance(client.key, X25519PrivateKey)
         assert len(client.flags) == 0
 
     async def test_onion_client_auth_view_error(self):

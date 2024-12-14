@@ -10,12 +10,12 @@ from pydantic import NonNegativeInt
 from .utils import (
     AnyAddress,
     AnyPort,
-    Base64Bytes,
     HexBytes,
     HiddenServiceAddress,
     StringSplit,
     TcpAddressPort,
     TimedeltaSeconds,
+    X25519PrivateKeyBase64,
 )
 
 
@@ -201,7 +201,7 @@ class OnionClientAuthKey:
     key_type: OnionClientAuthKeyType = OnionClientAuthKeyType.X25519
 
     #: Client's private ``x25519`` key (32 bytes).
-    key: Base64Bytes
+    key: X25519PrivateKeyBase64
 
     #: Client name (optional).
     name: str | None = None

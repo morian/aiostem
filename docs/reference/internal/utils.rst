@@ -86,6 +86,10 @@ Data transformers
    :no-show-inheritance:
    :members:
 
+.. autoclass:: X25519PrivateKeyTransformer
+   :no-show-inheritance:
+   :members:
+
 .. autoclass:: X25519PublicKeyTransformer
    :no-show-inheritance:
    :members:

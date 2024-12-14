@@ -4,7 +4,7 @@ import secrets
 from base64 import b32decode, b64decode
 
 import pytest
-from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from pydantic import TypeAdapter
 
 from aiostem.exceptions import CommandError
@@ -366,25 +366,20 @@ class TestCommands:
             'desc\r\n.\r\n'
         )
 
-    def test_onion_client_auth_add_as_str(self):
-        address = 'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
-        k64 = 'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o='
-        cmd = CommandOnionClientAuthAdd(address=address, key=k64)
-        assert cmd.serialize() == f'ONION_CLIENT_AUTH_ADD {address} x25519:{k64}\r\n'
-
-    def test_onion_client_auth_add_as_bytes(self):
+    def test_onion_client_auth_add(self):
         address = 'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
         k64 = 'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o'
-        key = b64decode(k64 + '=')
+        key = X25519PrivateKey.from_private_bytes(b64decode(k64 + '='))
         cmd = CommandOnionClientAuthAdd(address=address, key=key)
         assert cmd.serialize() == f'ONION_CLIENT_AUTH_ADD {address} x25519:{k64}\r\n'
 
     def test_onion_client_auth_add_advanced(self):
         address = 'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
-        k64 = 'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o='
+        k64 = 'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o'
+        key = X25519PrivateKey.from_private_bytes(b64decode(k64 + '='))
         cmd = CommandOnionClientAuthAdd(
             address=address,
-            key=k64,
+            key=key,
             nickname='Peter',
             flags={OnionClientAuthFlags.PERMANENT},
         )

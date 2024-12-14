@@ -747,7 +747,7 @@ class ReplyOnionClientAuthView(Reply):
 
     #: Onion address minus the ``.onion`` suffix.
     address: HiddenServiceAddress | None = None
-    #: List of client private keys.
+    #: List of authorized clients and their private key.
     clients: Sequence[OnionClientAuthKey] = field(default_factory=list)
 
     @classmethod

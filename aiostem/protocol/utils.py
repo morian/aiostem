@@ -28,7 +28,7 @@ from typing import (
     Union,
 )
 
-from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from pydantic import ConfigDict, Field, TypeAdapter
 from pydantic_core import PydanticCustomError, core_schema
 from pydantic_core.core_schema import CoreSchema, WhenUsed
@@ -934,6 +934,68 @@ class TimedeltaTransformer:
 
 
 @dataclass(frozen=True, slots=True)
+class X25519PrivateKeyTransformer:
+    """Transform bytes into a X25519 private key."""
+
+    def __get_pydantic_core_schema__(
+        self,
+        source: type[X25519PrivateKey],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Declare schema and validator for a X25519 private key."""
+        if not issubclass(source, X25519PrivateKey):
+            msg = f"source type is not a x25519 private key, got '{source.__name__}'"
+            raise TypeError(msg)
+
+        return core_schema.no_info_wrap_validator_function(
+            function=self._pydantic_validator,
+            schema=handler(source),
+            serialization=core_schema.wrap_serializer_function_ser_schema(
+                function=self._pydantic_serializer,
+                schema=handler(source),
+            ),
+        )
+
+    def _pydantic_serializer(
+        self,
+        key: X25519PrivateKey,
+        serialize: SerializerFunctionWrapHandler,
+    ) -> Any:
+        """Serialize the current key to bytes and beyond."""
+        return serialize(self.to_bytes(key))
+
+    def _pydantic_validator(
+        self,
+        data: Any,
+        validator: ValidatorFunctionWrapHandler,
+    ) -> X25519PrivateKey:
+        """Decode the underlying X25519 private key."""
+        if isinstance(data, str | bytes):
+            data = self.from_bytes(validator(data))
+        return data
+
+    def from_bytes(self, data: bytes) -> X25519PrivateKey:
+        """
+        Build a X25519 private key out of the provided bytes.
+
+        Returns:
+            An instance of a X25519 private key.
+
+        """
+        return X25519PrivateKey.from_private_bytes(data)
+
+    def to_bytes(self, key: X25519PrivateKey) -> bytes:
+        """
+        Serialize the provided private key to bytes.
+
+        Returns:
+            32 bytes corresponding to the private key.
+
+        """
+        return key.private_bytes_raw()
+
+
+@dataclass(frozen=True, slots=True)
 class X25519PublicKeyTransformer:
     """Transform bytes into a X25519 public key."""
 
@@ -1017,4 +1079,10 @@ X25519PublicKeyBase32: TypeAlias = Annotated[
     X25519PublicKey,
     EncodedBytes(encoder=Base32Encoder),
     X25519PublicKeyTransformer(),
+]
+#: Base64 encoded bytes parsed as a private x25519 key.
+X25519PrivateKeyBase64: TypeAlias = Annotated[
+    X25519PrivateKey,
+    EncodedBytes(encoder=Base64Encoder),
+    X25519PrivateKeyTransformer(),
 ]

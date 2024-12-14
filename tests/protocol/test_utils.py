@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from base64 import b32encode
+from base64 import b32encode, b64decode
 from datetime import UTC, datetime, timedelta
 from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar
 
 import pytest
-from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
-from pydantic import BaseModel, Field, TypeAdapter, ValidationError
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from aiostem.exceptions import CommandError
 from aiostem.protocol import (
@@ -35,6 +35,8 @@ from aiostem.protocol.utils import (
     StringSplit,
     TimedeltaSeconds,
     TimedeltaTransformer,
+    X25519PrivateKeyBase64,
+    X25519PrivateKeyTransformer,
     X25519PublicKeyBase32,
     X25519PublicKeyTransformer,
 )
@@ -554,6 +556,46 @@ class TestTimedeltaSeconds:
     )
     def test_with_error(self, type_):
         with pytest.raises(TypeError, match='source type is not a timedelta'):
+            TypeAdapter(type_)
+
+
+class TestX25519PrivateKeyTransformer:
+    @pytest.mark.parametrize(
+        ('raw', 'encoded'),
+        [
+            (
+                'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o',
+                'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o',
+            ),
+            (
+                b64decode('yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o='),
+                'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o',
+            ),
+            (
+                X25519PrivateKey.from_private_bytes(
+                    b64decode('yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o='),
+                ),
+                'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o',
+            ),
+        ],
+    )
+    def test_decode_encode(self, raw, encoded):
+        adapter = TypeAdapter(X25519PrivateKeyBase64)
+        key = adapter.validate_python(raw)
+        assert isinstance(key, X25519PrivateKey)
+
+        serial = adapter.dump_python(key)
+        assert serial == encoded
+
+    @pytest.mark.parametrize(
+        'type_',
+        [
+            Annotated[int, X25519PrivateKeyTransformer()],
+            Annotated[None, X25519PrivateKeyTransformer()],
+        ],
+    )
+    def test_usage_error_on_source_type(self, type_):
+        with pytest.raises(TypeError, match='source type is not a x25519 private key'):
             TypeAdapter(type_)
 
 
