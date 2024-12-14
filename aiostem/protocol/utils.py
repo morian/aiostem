@@ -28,6 +28,7 @@ from typing import (
     Union,
 )
 
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
 from pydantic import ConfigDict, Field, TypeAdapter
 from pydantic_core import PydanticCustomError, core_schema
 from pydantic_core.core_schema import CoreSchema, WhenUsed
@@ -37,7 +38,11 @@ from ..exceptions import CommandError
 if TYPE_CHECKING:
     from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
     from pydantic.json_schema import JsonSchemaValue
-    from pydantic_core.core_schema import SerializationInfo, ValidatorFunctionWrapHandler
+    from pydantic_core.core_schema import (
+        SerializationInfo,
+        SerializerFunctionWrapHandler,
+        ValidatorFunctionWrapHandler,
+    )
 
     from .argument import ArgumentKeyword, ArgumentString
     from .command import CommandWord
@@ -64,13 +69,17 @@ class AsTimezone:
 
     def __get_pydantic_core_schema__(
         self,
-        source: type[datetime],
+        source: type[Any],
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Declare a validator to add or change the timezone."""
+        if not issubclass(source, datetime):
+            msg = f"source type is not a datetime, got '{source.__name__}'"
+            raise TypeError(msg)
+
         return core_schema.no_info_after_validator_function(
             function=self.from_value,
-            schema=core_schema.datetime_schema(),
+            schema=handler(source),
         )
 
     def from_value(self, value: datetime) -> datetime:
@@ -351,8 +360,8 @@ class HexEncoder(EncoderProtocol[bytes]):
             return bytes.fromhex(data.zfill((len(data) + 1) & ~1))
         except ValueError as e:
             raise PydanticCustomError(
-                'hex_decode',
-                "Hex decoding error: '{error}'",
+                'base16_decode',
+                "Base16 decoding error: '{error}'",
                 {'error': str(e)},
             ) from e
 
@@ -371,9 +380,9 @@ class HexEncoder(EncoderProtocol[bytes]):
         return value.hex()
 
     @classmethod
-    def get_json_format(cls) -> Literal['hex']:
+    def get_json_format(cls) -> Literal['base16']:
         """Get the JSON format for the encoded data."""
-        return 'hex'
+        return 'base16'
 
 
 @dataclass(slots=True)
@@ -394,10 +403,10 @@ class EncodedBase(Generic[T]):
     ) -> CoreSchema:
         """Tell the core schema and how to validate the whole thing."""
         return core_schema.no_info_wrap_validator_function(
-            function=self.decode,
+            function=self._validate,
             schema=self.CORE_SCHEMA,
             serialization=core_schema.plain_serializer_function_ser_schema(
-                function=self.encode,
+                function=self.to_string,
                 when_used=self.when_used,
             ),
         )
@@ -407,22 +416,32 @@ class EncodedBase(Generic[T]):
         core_schema: CoreSchema,
         handler: GetJsonSchemaHandler,
     ) -> JsonSchemaValue:
-        """Update JSON schema to also tell about this field."""
+        """
+        Update JSON schema to also tell about this field.
+
+        See Also:
+            https://json-schema.org/draft/2020-12/json-schema-validation#name-contentencoding
+
+        """
         field_schema = handler(core_schema)
-        field_schema.update(type='string', format=self.encoder.get_json_format())
+        field_schema.update(type='string', contentEncoding=self.encoder.get_json_format())
         return field_schema
 
-    def decode(
+    def _validate(
         self,
         data: Any,
         validator: ValidatorFunctionWrapHandler,
     ) -> T:
         """Decode the data using the specified encoder."""
         if isinstance(data, str):
-            return validator(self.encoder.decode(data))
+            return validator(self.from_string(data))
         return validator(data)
 
-    def encode(self, value: T) -> str:
+    def from_string(self, string: str) -> T:
+        """Decode a string to the underlying type."""
+        return self.encoder.decode(string)
+
+    def to_string(self, value: T) -> str:
         """Encode the value using the specified encoder."""
         return self.encoder.encode(value)
 
@@ -705,7 +724,7 @@ class StringSplit:
     dict_keys: Sequence[str] | None = None
 
     #: When serialization is supposed to be used.
-    when_used: WhenUsed = 'json'
+    when_used: WhenUsed = 'always'
 
     def __get_pydantic_core_schema__(
         self,
@@ -896,8 +915,88 @@ class TimedeltaTransformer:
         return value
 
 
-Base32Bytes = Annotated[bytes, EncodedBytes(encoder=Base32Encoder)]
-Base64Bytes = Annotated[bytes, EncodedBytes(encoder=Base64Encoder)]
-HexBytes = Annotated[bytes, EncodedBytes(encoder=HexEncoder)]
-TimedeltaSeconds = Annotated[timedelta, TimedeltaTransformer(milliseconds=False)]
-TimedeltaMilliseconds = Annotated[timedelta, TimedeltaTransformer(milliseconds=True)]
+@dataclass(frozen=True, slots=True)
+class X25519PublicKeyTransformer:
+    """Transform bytes into a X25519 public key."""
+
+    def __get_pydantic_core_schema__(
+        self,
+        source: type[X25519PublicKey],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Declare schema and validator for a X25519 public key."""
+        if not issubclass(source, X25519PublicKey):
+            msg = f"source type is not a x25519 public key, got '{source.__name__}'"
+            raise TypeError(msg)
+
+        return core_schema.no_info_wrap_validator_function(
+            function=self._validate,
+            schema=handler(source),
+            serialization=core_schema.wrap_serializer_function_ser_schema(
+                function=self._serialize,
+                schema=handler(source),
+            ),
+        )
+
+    def _serialize(
+        self,
+        key: X25519PublicKey,
+        serialize: SerializerFunctionWrapHandler,
+    ) -> Any:
+        """Serialize the current key to bytes and beyond."""
+        return serialize(self.to_bytes(key))
+
+    def _validate(
+        self,
+        data: Any,
+        validator: ValidatorFunctionWrapHandler,
+    ) -> X25519PublicKey:
+        """Decode the underlying X25519 public key."""
+        if isinstance(data, str | bytes):
+            data = self.from_bytes(validator(data))
+        return data
+
+    def from_bytes(self, data: bytes) -> Any:
+        """
+        Build a X25519 public key out of the provided bytes.
+
+        Returns:
+            An instance of a X25519 public key.
+
+        """
+        return X25519PublicKey.from_public_bytes(data)
+
+    def to_bytes(self, key: X25519PublicKey) -> bytes:
+        """
+        Serialize the provided public key to bytes.
+
+        Returns:
+            32 bytes corresponding to the public key.
+
+        """
+        return key.public_bytes_raw()
+
+
+#: Bytes that are base32 encoded.
+Base32Bytes: TypeAlias = Annotated[bytes, EncodedBytes(encoder=Base32Encoder)]
+#: Bytes that are base64 encoded.
+Base64Bytes: TypeAlias = Annotated[bytes, EncodedBytes(encoder=Base64Encoder)]
+#: Bytes that are base64 encoded.
+HexBytes: TypeAlias = Annotated[bytes, EncodedBytes(encoder=HexEncoder)]
+
+#: A :class:`timedelta` parsed from an integer value in seconds.
+TimedeltaSeconds: TypeAlias = Annotated[
+    timedelta,
+    TimedeltaTransformer(milliseconds=False),
+]
+#: A :class:`timedelta` parsed from an integer value in milliseconds.
+TimedeltaMilliseconds: TypeAlias = Annotated[
+    timedelta,
+    TimedeltaTransformer(milliseconds=True),
+]
+#: Base32 encoded bytes parsed as a public x25519 key.
+X25519PublicKeyBase32: TypeAlias = Annotated[
+    X25519PublicKey,
+    EncodedBytes(encoder=Base32Encoder),
+    X25519PublicKeyTransformer(),
+]

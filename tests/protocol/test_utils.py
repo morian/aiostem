@@ -5,6 +5,7 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from aiostem.exceptions import CommandError
@@ -33,6 +34,8 @@ from aiostem.protocol.utils import (
     StringSplit,
     TimedeltaSeconds,
     TimedeltaTransformer,
+    X25519PublicKeyBase32,
+    X25519PublicKeyTransformer,
 )
 
 if TYPE_CHECKING:
@@ -51,6 +54,17 @@ class TestAsTimezone:
         adapter = TypeAdapter(Annotated[datetime, AsTimezone(timezone)])
         result = adapter.validate_python(raw)
         assert int(result.timestamp()) == timestamp
+
+    @pytest.mark.parametrize(
+        'type_',
+        [
+            Annotated[int, AsTimezone()],
+            Annotated[None, AsTimezone()],
+        ],
+    )
+    def test_usage_error_on_source_type(self, type_):
+        with pytest.raises(TypeError, match='source type is not a datetime'):
+            TypeAdapter(type_)
 
 
 class TestCommandSerializer:
@@ -113,7 +127,8 @@ class BaseEncoderTest:
         schema = self.TEST_MODEL.model_json_schema()
         if self.SCHEMA_FORMAT is not None:
             assert schema['properties']['v'] == {
-                'format': self.SCHEMA_FORMAT,
+                'contentEncoding': self.SCHEMA_FORMAT,
+                'format': 'binary',
                 'title': 'V',
                 'type': 'string',
             }
@@ -239,14 +254,14 @@ class TestBase64Padded(BaseHexEncoderTest):
 class TestHexBytes(BaseHexEncoderTest):
     TEST_CLASS = HexBytes
     ENCODED_VALUE = '54686573652061726520627974657321'
-    SCHEMA_FORMAT = 'hex'
+    SCHEMA_FORMAT = 'base16'
     VALUES: ClassVar[Mapping[str, Sequence[Any]]] = {
         'good': [
             b'These are bytes!',
             HexBytes(b'These are bytes!'),
             '54686573652061726520627974657321',
         ],
-        'fail': ['546' '54T6'],
+        'fail': ['54T6'],
     }
 
 
@@ -355,8 +370,7 @@ class TestStringSplit:
         res = adapter.validate_python(entry)
         assert res == [1, 2, 3, 4]
 
-        assert adapter.dump_python(res) == [1, 2, 3, 4]
-        assert adapter.dump_python(res, mode='json') == '1,2,3,4'
+        assert adapter.dump_python(res) == '1,2,3,4'
         assert adapter.dump_json(res) == b'"1,2,3,4"'
 
     @pytest.mark.parametrize(
@@ -521,4 +535,48 @@ class TestTimedeltaSeconds:
     )
     def test_with_error(self, type_):
         with pytest.raises(TypeError, match='source type is not a timedelta'):
+            TypeAdapter(type_)
+
+
+class TestX25519PublicKeyTransformer:
+    @pytest.mark.parametrize(
+        ('raw', 'encoded'),
+        [
+            (
+                '5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ',
+                '5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ',
+            ),
+            (
+                bytes.fromhex(
+                    '88b613a7d69860f8c64cafbb730b3596130cb6c18236b5965fdd5fe69e4800f5'
+                ),
+                'RC3BHJ6WTBQPRRSMV65XGCZVSYJQZNWBQI3LLFS73VP6NHSIAD2Q',
+            ),
+            (
+                X25519PublicKey.from_public_bytes(
+                    bytes.fromhex(
+                        '5588fdbfea963654702043b7672f78437400b3bf5f6086e557f0d55edaaeecf3'
+                    )
+                ),
+                'KWEP3P7KSY3FI4BAIO3WOL3YIN2ABM57L5QINZKX6DKV5WVO5TZQ',
+            ),
+        ],
+    )
+    def test_decode_encode(self, raw, encoded):
+        adapter = TypeAdapter(X25519PublicKeyBase32)
+        key = adapter.validate_python(raw)
+        assert isinstance(key, X25519PublicKey)
+
+        serial = adapter.dump_python(key)
+        assert serial == encoded
+
+    @pytest.mark.parametrize(
+        'type_',
+        [
+            Annotated[int, X25519PublicKeyTransformer()],
+            Annotated[None, X25519PublicKeyTransformer()],
+        ],
+    )
+    def test_usage_error_on_source_type(self, type_):
+        with pytest.raises(TypeError, match='source type is not a x25519 public key'):
             TypeAdapter(type_)

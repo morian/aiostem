@@ -5,6 +5,7 @@ import secrets
 from ipaddress import IPv4Address
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
 
 from aiostem.exceptions import ReplyError, ReplyStatusError
 from aiostem.protocol import (
@@ -359,6 +360,8 @@ class TestReplies:
         message = await create_message(lines)
         reply = ReplyAddOnion.from_message(message)
         assert len(reply.client_auth_v3) == 2
+        for client_auth in reply.client_auth_v3:
+            assert isinstance(client_auth, X25519PublicKey)
 
     async def test_add_onion_error(self):
         line = '512 Bad arguments to ADD_ONION: Need at least 1 argument(s)'

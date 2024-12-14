@@ -94,7 +94,8 @@ napoleon_use_admonition_for_notes = True
 
 # InterSphinx
 intersphinx_mapping = {
-    'pydantic': ('https://docs.pydantic.dev/2.9', None),
+    'cryptography': ('https://cryptography.io/en/stable', None),
+    'pydantic': ('https://docs.pydantic.dev/2.10', None),
     'python': ('https://docs.python.org/3', None),
 }
 # Map of references known to be broken by default.

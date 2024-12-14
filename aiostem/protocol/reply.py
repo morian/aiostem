@@ -25,11 +25,11 @@ from .structures import AuthMethod, OnionClientAuthKey, OnionServiceKeyType
 from .syntax import ReplySyntax, ReplySyntaxFlag
 from .utils import (
     AnyHost,
-    Base32Bytes,
     Base64Bytes,
     HexBytes,
     HiddenServiceAddress,
     StringSplit,
+    X25519PublicKeyBase32,
 )
 
 if TYPE_CHECKING:
@@ -667,7 +667,8 @@ class ReplyAddOnion(Reply):
     #: List of client authentication for a v2 address.
     client_auth: Sequence[str] = field(default_factory=list)
     #: List of client authentication for a v3 address.
-    client_auth_v3: Sequence[Base32Bytes] = field(default_factory=list)
+    client_auth_v3: Sequence[X25519PublicKeyBase32] = field(default_factory=list)
+
     #: Onion service key type.
     key_type: OnionServiceKeyType | None = None
     #: Onion service key bytes.

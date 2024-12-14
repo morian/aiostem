@@ -4,6 +4,7 @@ import secrets
 from base64 import b32decode, b64decode
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
 from pydantic import TypeAdapter
 
 from aiostem.exceptions import CommandError
@@ -299,16 +300,21 @@ class TestCommands:
         )
 
     def test_add_onion_with_client_auth_v3(self):
-        client = b32decode('RC3BHJ6WTBQPRRSMV65XGCZVSYJQZNWBQI3LLFS73VP6NHSIAD2Q====')
+        v3_auth_strings = [
+            '5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ====',
+            'RC3BHJ6WTBQPRRSMV65XGCZVSYJQZNWBQI3LLFS73VP6NHSIAD2Q====',
+        ]
+        auth_v3 = []
+        for key_b32 in v3_auth_strings:
+            key_bytes = b32decode(key_b32)
+            auth_v3.append(X25519PublicKey.from_public_bytes(key_bytes))
+
         port = VirtualPortAdapter.validate_python('80,127.0.0.1:80')
         cmd = CommandAddOnion(
             key_type='NEW',
             key='BEST',
             ports=[port],
-            client_auth_v3=[
-                '5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ',
-                client,
-            ],
+            client_auth_v3=auth_v3,
         )
         assert cmd.serialize() == (
             'ADD_ONION NEW:BEST Flags=V3Auth Port=80,127.0.0.1:80 '

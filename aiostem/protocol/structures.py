@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from typing import Annotated, Literal, TypeAlias
 
-from pydantic import NonNegativeInt, TypeAdapter
+from pydantic import NonNegativeInt
 
 from .utils import (
     AnyAddress,
@@ -655,4 +655,3 @@ VirtualPort: TypeAlias = Annotated[
         when_used='always',
     ),
 ]
-VirtualPortAdapter = TypeAdapter(VirtualPort)

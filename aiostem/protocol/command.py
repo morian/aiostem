@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import secrets
 from abc import ABC, abstractmethod
-from base64 import b32encode, standard_b64encode
+from base64 import standard_b64encode
 from collections.abc import (
     MutableMapping,
     MutableSequence,
@@ -10,9 +10,9 @@ from collections.abc import (
 )
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import ClassVar, Literal, Union
+from typing import Annotated, ClassVar, Literal, Self, Union
 
-from pydantic import NonNegativeInt
+from pydantic import NonNegativeInt, TypeAdapter
 
 from ..exceptions import CommandError
 from .argument import ArgumentKeyword, ArgumentString, QuoteStyle
@@ -27,17 +27,17 @@ from .structures import (
     OnionServiceKeyType,
     Signal,
     VirtualPort,
-    VirtualPortAdapter,
 )
 from .utils import (
     AnyHost,
     AnyPort,
-    Base32Bytes,
     Base64Bytes,
     CommandSerializer,
     HiddenServiceAddress,
     HiddenServiceAddressV3,
     LongServerName,
+    StringSplit,
+    X25519PublicKeyBase32,
 )
 
 
@@ -301,8 +301,18 @@ class CommandWord(StrEnum):
 class Command(ABC):
     """Base class for all commands."""
 
+    #: Cached adapter used while serializing the command.
+    ADAPTER: ClassVar[TypeAdapter[Self] | None] = None
+
     #: Command word this command is for.
     command: ClassVar[CommandWord]
+
+    @classmethod
+    def adapter(cls) -> TypeAdapter[Self]:
+        """Get a cached type adapter to serialize a command."""
+        if cls.ADAPTER is None:
+            cls.ADAPTER = TypeAdapter(cls)
+        return cls.ADAPTER
 
     @abstractmethod
     def _serialize(self) -> CommandSerializer:
@@ -1132,10 +1142,10 @@ class CommandAddOnion(Command):
     key_type: OnionServiceKeyType | Literal['NEW']
 
     #: The key as :class:`bytes` or :class:`str`, or the type of key to generate.
-    key: OnionServiceKeyType | Literal['BEST'] | bytes | str  # noqa: PYI051
+    key: OnionServiceKeyType | Base64Bytes | Literal['BEST'] | str  # noqa: PYI051
 
     #: Set of boolean options to attach to this service.
-    flags: set[OnionServiceFlags] = field(default_factory=set)
+    flags: Annotated[set[OnionServiceFlags], StringSplit()] = field(default_factory=set)
 
     #: Optional number between 0 and 65535 which is the maximum streams that can be
     #: attached on a rendezvous circuit. Setting it to 0 means unlimited which is
@@ -1148,17 +1158,8 @@ class CommandAddOnion(Command):
     #: Syntax is ``ClientName:ClientBlob``.
     client_auth: MutableSequence[str] = field(default_factory=list)
 
-    #: String syntax is a base32-encoded x25519 public key with only the key part.
-    client_auth_v3: MutableSequence[Base32Bytes | str] = field(default_factory=list)
-
-    def _serialize_client_auth_v3_key(self, client: Base32Bytes | str) -> str:
-        """Serialize a client key to a string."""
-        match client:
-            case bytes():
-                auth_data = b32encode(client).decode('ascii').rstrip('=')
-            case str():  # pragma: no branch
-                auth_data = client
-        return auth_data
+    #: String syntax is a base32-encoded ``x25519`` public key with only the key part.
+    client_auth_v3: MutableSequence[X25519PublicKeyBase32] = field(default_factory=list)
 
     def _serialize_service_key(self) -> str:
         """Serialize the service key to a string."""
@@ -1194,30 +1195,29 @@ class CommandAddOnion(Command):
             msg = 'You must specify one or more virtual ports.'
             raise CommandError(msg)
 
-        key_spec = self._serialize_service_key()
-        args.append(ArgumentString(key_spec))
-
         # Automatically set the V3 authentication when applicable.
         if len(self.client_auth_v3):
             self.flags.add(OnionServiceFlags.V3AUTH)
 
+        adapter = self.adapter()
+        struct = adapter.dump_python(self)
+
+        # TODO: build a unique service key specification here.
+        key_spec = self._serialize_service_key()
+        args.append(ArgumentString(key_spec))
+
         if len(self.flags):
-            flags = ','.join(self.flags)
-            args.append(ArgumentKeyword('Flags', flags, quotes=QuoteStyle.NEVER))
+            args.append(ArgumentKeyword('Flags', struct['flags'], quotes=QuoteStyle.NEVER))
 
         if self.max_streams is not None:
             kwarg = ArgumentKeyword('MaxStreams', self.max_streams, quotes=QuoteStyle.NEVER)
             args.append(kwarg)
-        for port in self.ports:
-            string = VirtualPortAdapter.dump_python(port)
-            args.append(ArgumentKeyword('Port', string, quotes=QuoteStyle.NEVER_ENSURE))
-        for auth in self.client_auth:
+        for port in struct['ports']:
+            args.append(ArgumentKeyword('Port', port, quotes=QuoteStyle.NEVER_ENSURE))
+        for auth in struct['client_auth']:
             args.append(ArgumentKeyword('ClientAuth', auth, quotes=QuoteStyle.NEVER_ENSURE))
-        for auth_v3 in self.client_auth_v3:
-            key_spec = self._serialize_client_auth_v3_key(auth_v3)
-            kwarg = ArgumentKeyword('ClientAuthV3', key_spec, quotes=QuoteStyle.NEVER_ENSURE)
-            args.append(kwarg)
-
+        for auth_v3 in struct['client_auth_v3']:
+            args.append(ArgumentKeyword('ClientAuthV3', auth_v3, quotes=QuoteStyle.NEVER))
         ser.arguments.extend(args)
         return ser
 

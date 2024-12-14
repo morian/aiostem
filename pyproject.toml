@@ -27,6 +27,7 @@ classifiers = [
 	'Typing :: Typed',
 ]
 dependencies = [
+	'cryptography >= 44.0, < 45.0',
 	'pydantic >= 2.6, < 3.0',
 ]
 requires-python = '>=3.11'
