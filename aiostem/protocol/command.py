@@ -33,6 +33,7 @@ from .utils import (
     AnyPort,
     Base64Bytes,
     CommandSerializer,
+    HexBytes,
     HiddenServiceAddress,
     HiddenServiceAddressV3,
     LongServerName,
@@ -461,7 +462,7 @@ class CommandAuthenticate(Command):
     command: ClassVar[CommandWord] = CommandWord.AUTHENTICATE
 
     #: Password or token used to authenticate with the server.
-    token: bytes | str | None
+    token: HexBytes | str | None = None
 
     def _serialize(self) -> CommandSerializer:
         """Append ``AUTHENTICATE`` specific arguments."""

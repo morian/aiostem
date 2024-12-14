@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Annotated, Any, ClassVar
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import BaseModel, Field, TypeAdapter, ValidationError
 
 from aiostem.exceptions import CommandError
 from aiostem.protocol import (
@@ -102,7 +102,7 @@ class TestCommandSerializer:
 
 
 class BaseEncoderTest:
-    DECODED_VALUE = None
+    DECODED_VALUE = b'These are bytes!'
     ENCODED_VALUE = ''
     TEST_CLASS = NotImplemented
     SCHEMA_FORMAT = 'format'
@@ -124,6 +124,10 @@ class BaseEncoderTest:
         model = self.TEST_MODEL(v=value)
         assert model.model_dump_json() == '{"v":"' + self.ENCODED_VALUE + '"}'
 
+    def test_passthough(self):
+        model = self.TEST_MODEL_OR_NONE(v=123)
+        assert model.model_dump_json() == '{"v":123}'
+
     def test_schema(self):
         schema = self.TEST_MODEL.model_json_schema()
         if self.SCHEMA_FORMAT is not None:
@@ -137,16 +141,15 @@ class BaseEncoderTest:
             assert schema['properties']['v'] == {'title': 'V', 'type': 'string'}
 
 
-class BaseHexEncoderTest(BaseEncoderTest):
-    DECODED_VALUE = b'These are bytes!'
-
-
 # Dirty decorator to make our tests dynamic.
 # This looks for all 'stub_' methods in our direct parent and wraps this function
 # around pytest.mark.parametrize to inject our test values.
 def inject_test_values(cls):
     class TestModel(BaseModel):
         v: cls.TEST_CLASS
+
+    class TestModelOrNone(BaseModel):
+        v: cls.TEST_CLASS | int
 
     for name, method in BaseEncoderTest.__dict__.items():
         if name.startswith('stub_'):
@@ -160,6 +163,7 @@ def inject_test_values(cls):
             setattr(cls, 'test_' + name[5:], wrapper)
 
     cls.TEST_MODEL = TestModel
+    cls.TEST_MODEL_OR_NONE = TestModelOrNone
 
     return cls
 
@@ -172,7 +176,7 @@ Base32BytesPadded = Annotated[bytes, EncodedBytes(encoder=Base32PaddedEncoder)]
 
 
 @inject_test_values
-class TestBase32(BaseHexEncoderTest):
+class TestBase32(BaseEncoderTest):
     TEST_CLASS = Base32Bytes
     ENCODED_VALUE = 'KRUGK43FEBQXEZJAMJ4XIZLTEE'
     SCHEMA_FORMAT = 'base32'
@@ -190,7 +194,7 @@ class TestBase32(BaseHexEncoderTest):
 
 
 @inject_test_values
-class TestBase32Padded(BaseHexEncoderTest):
+class TestBase32Padded(BaseEncoderTest):
     TEST_CLASS = Base32BytesPadded
     ENCODED_VALUE = 'KRUGK43FEBQXEZJAMJ4XIZLTEE======'
     SCHEMA_FORMAT = 'base32'
@@ -216,7 +220,7 @@ Base64BytesPadded = Annotated[bytes, EncodedBytes(encoder=Base64PaddedEncoder)]
 
 
 @inject_test_values
-class TestBase64(BaseHexEncoderTest):
+class TestBase64(BaseEncoderTest):
     TEST_CLASS = Base64Bytes
     ENCODED_VALUE = 'VGhlc2UgYXJlIGJ5dGVzIQ'
     SCHEMA_FORMAT = 'base64'
@@ -234,7 +238,7 @@ class TestBase64(BaseHexEncoderTest):
 
 
 @inject_test_values
-class TestBase64Padded(BaseHexEncoderTest):
+class TestBase64Padded(BaseEncoderTest):
     TEST_CLASS = Base64BytesPadded
     ENCODED_VALUE = 'VGhlc2UgYXJlIGJ5dGVzIQ=='
     SCHEMA_FORMAT = 'base64'
@@ -252,7 +256,7 @@ class TestBase64Padded(BaseHexEncoderTest):
 
 
 @inject_test_values
-class TestHexBytes(BaseHexEncoderTest):
+class TestHexBytes(BaseEncoderTest):
     TEST_CLASS = HexBytes
     ENCODED_VALUE = '54686573652061726520627974657321'
     SCHEMA_FORMAT = 'base16'

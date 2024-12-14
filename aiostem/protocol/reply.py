@@ -12,6 +12,7 @@ from collections.abc import (
     KeysView,
     Mapping,
     Sequence,
+    Set as AbstractSet,
     ValuesView,
 )
 from dataclasses import dataclass, field
@@ -454,7 +455,9 @@ class ReplyProtocolInfo(Reply):
     }
 
     #: List of available authentication methods.
-    auth_methods: Annotated[set[AuthMethod], StringSplit()] = field(default_factory=set)
+    auth_methods: Annotated[AbstractSet[AuthMethod], StringSplit()] = field(
+        default_factory=set
+    )
     #: Path on the server to the cookie file.
     auth_cookie_file: str | None = None
     #: Version of the Tor control protocol in use.

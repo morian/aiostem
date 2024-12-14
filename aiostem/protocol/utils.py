@@ -269,10 +269,12 @@ class Base32Encoder(EncoderProtocol[bytes]):
             The corresponding encoded string value.
 
         """
-        encoded = base64.b32encode(value)
-        if cls.trim_padding:
-            encoded = encoded.rstrip(b'=')
-        return encoded.decode()
+        if isinstance(value, bytes):
+            encoded = base64.b32encode(value)
+            if cls.trim_padding:
+                encoded = encoded.rstrip(b'=')
+            return encoded.decode()
+        return value
 
     @classmethod
     def get_json_format(cls) -> Literal['base32']:
@@ -327,10 +329,12 @@ class Base64Encoder(EncoderProtocol[bytes]):
             The corresponding encoded string value.
 
         """
-        encoded = base64.standard_b64encode(value)
-        if cls.trim_padding:
-            encoded = encoded.rstrip(b'=')
-        return encoded.decode()
+        if isinstance(value, bytes):
+            encoded = base64.standard_b64encode(value)
+            if cls.trim_padding:
+                encoded = encoded.rstrip(b'=')
+            return encoded.decode()
+        return value
 
     @classmethod
     def get_json_format(cls) -> Literal['base64']:
@@ -377,7 +381,9 @@ class HexEncoder(EncoderProtocol[bytes]):
             The corresponding encoded string value.
 
         """
-        return value.hex()
+        if isinstance(value, bytes):
+            return value.hex()
+        return value
 
     @classmethod
     def get_json_format(cls) -> Literal['base16']:
