@@ -638,7 +638,7 @@ class HiddenServiceAddressV3(BaseHiddenServiceAddress):
 
 
 #: Any kind of onion service address.
-HiddenServiceAddress: TypeAlias = HiddenServiceAddressV2 | HiddenServiceAddressV3
+HiddenServiceAddress: TypeAlias = Union[HiddenServiceAddressV2 | HiddenServiceAddressV3]  # noqa: UP007
 
 
 @dataclass(frozen=True, slots=True)
@@ -968,7 +968,7 @@ class X25519PublicKeyTransformer:
             data = self.from_bytes(validator(data))
         return data
 
-    def from_bytes(self, data: bytes) -> Any:
+    def from_bytes(self, data: bytes) -> X25519PublicKey:
         """
         Build a X25519 public key out of the provided bytes.
 

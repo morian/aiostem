@@ -85,3 +85,7 @@ Data transformers
 .. autoclass:: TimedeltaTransformer
    :no-show-inheritance:
    :members:
+
+.. autoclass:: X25519PublicKeyTransformer
+   :no-show-inheritance:
+   :members:
