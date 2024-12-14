@@ -12,7 +12,7 @@ from collections.abc import (
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, tzinfo
 from enum import IntEnum
-from functools import partial
+from functools import cached_property, partial
 from ipaddress import IPv4Address, IPv6Address
 from typing import (
     TYPE_CHECKING,
@@ -403,7 +403,7 @@ class EncodedBase(Generic[T]):
     ) -> CoreSchema:
         """Tell the core schema and how to validate the whole thing."""
         return core_schema.no_info_wrap_validator_function(
-            function=self._validate,
+            function=self._pydantic_validator,
             schema=self.CORE_SCHEMA,
             serialization=core_schema.plain_serializer_function_ser_schema(
                 function=self.to_string,
@@ -427,7 +427,7 @@ class EncodedBase(Generic[T]):
         field_schema.update(type='string', contentEncoding=self.encoder.get_json_format())
         return field_schema
 
-    def _validate(
+    def _pydantic_validator(
         self,
         data: Any,
         validator: ValidatorFunctionWrapHandler,
@@ -623,6 +623,18 @@ class HiddenServiceAddressV3(BaseHiddenServiceAddress):
             'Invalid v3 hidden service address: "{address}"',
             {'address': address},
         )
+
+    @cached_property
+    def public_key(self) -> X25519PublicKey:
+        """
+        Get the x25519 public key for this domain.
+
+        Returns:
+            The x25519 public key associated with this v3 onion domain.
+
+        """
+        data = base64.b32decode(self, casefold=True)
+        return X25519PublicKey.from_public_bytes(data[00:32])
 
 
 #: Any kind of onion service address.
@@ -930,15 +942,15 @@ class X25519PublicKeyTransformer:
             raise TypeError(msg)
 
         return core_schema.no_info_wrap_validator_function(
-            function=self._validate,
+            function=self._pydantic_validator,
             schema=handler(source),
             serialization=core_schema.wrap_serializer_function_ser_schema(
-                function=self._serialize,
+                function=self._pydantic_serializer,
                 schema=handler(source),
             ),
         )
 
-    def _serialize(
+    def _pydantic_serializer(
         self,
         key: X25519PublicKey,
         serialize: SerializerFunctionWrapHandler,
@@ -946,7 +958,7 @@ class X25519PublicKeyTransformer:
         """Serialize the current key to bytes and beyond."""
         return serialize(self.to_bytes(key))
 
-    def _validate(
+    def _pydantic_validator(
         self,
         data: Any,
         validator: ValidatorFunctionWrapHandler,
