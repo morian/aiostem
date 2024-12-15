@@ -12,8 +12,8 @@ The format is based on `Keep a Changelog`_ and this project adheres to `Semantic
 ==================
 
 This is a major rework of this library as the whole underlying implementation has changed.
-All internal structures and protocol implementation were moved to `aiostem.protocol` and
-were re-implemented, using pydantic_ for type conversion and data validation.
+All internal helpers were moved to `aiostem.utils` and were re-implemented, using pydantic_
+for type conversion and data validation.
 
 This refactoring breaks all previous APIs although the `Controller` stays quite familiar.
 

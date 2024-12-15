@@ -7,12 +7,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from pydantic import TypeAdapter
 
-from aiostem.exceptions import CommandError
-from aiostem.protocol import (
-    ArgumentKeyword,
-    ArgumentString,
-    CircuitPurpose,
-    CloseStreamReason,
+from aiostem.command import (
     CommandAddOnion,
     CommandAttachStream,
     CommandAuthChallenge,
@@ -40,6 +35,7 @@ from aiostem.protocol import (
     CommandResetConf,
     CommandResolve,
     CommandSaveConf,
+    CommandSerializer,
     CommandSetCircuitPurpose,
     CommandSetConf,
     CommandSetEvents,
@@ -47,15 +43,19 @@ from aiostem.protocol import (
     CommandTakeOwnership,
     CommandUseFeature,
     CommandWord,
-    EventWord,
+)
+from aiostem.event import EventWord
+from aiostem.exceptions import CommandError
+from aiostem.structures import (
+    CircuitPurpose,
+    CloseStreamReason,
     OnionClientAuthFlags,
     OnionServiceFlags,
     OnionServiceKeyType,
     Signal,
     VirtualPort,
 )
-from aiostem.protocol.argument import QuoteStyle
-from aiostem.protocol.command import CommandSerializer
+from aiostem.utils import ArgumentKeyword, ArgumentString, QuoteStyle
 
 VirtualPortAdapter = TypeAdapter(VirtualPort)
 

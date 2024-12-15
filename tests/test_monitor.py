@@ -6,13 +6,8 @@ import dataclasses
 import pytest
 
 from aiostem import ControllerStatus, Monitor
-from aiostem.protocol import (
-    Event,
-    EventNetworkLiveness,
-    EventStatusClient,
-    Message,
-    event_from_message,
-)
+from aiostem.event import Event, EventNetworkLiveness, EventStatusClient, event_from_message
+from aiostem.utils import Message
 
 # All test coroutines will be treated as marked.
 pytestmark = pytest.mark.asyncio

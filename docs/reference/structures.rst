@@ -3,7 +3,7 @@
 Structures
 ==========
 
-.. currentmodule:: aiostem.protocol.structures
+.. currentmodule:: aiostem.structures
 
 This package provides many common structures generally used in :class:`.Command`,
 :class:`.Reply` or :class:`.Event`.
@@ -34,15 +34,11 @@ Common classes
 
    .. automethod:: __bool__
 
-.. currentmodule:: aiostem.protocol.utils
-
 .. autoclass:: LongServerName
    :no-show-inheritance:
    :special-members: __str__
    :undoc-members:
    :members:
-
-.. currentmodule:: aiostem.protocol.structures
 
 .. autoclass:: LogSeverity
    :undoc-members:
@@ -52,15 +48,11 @@ Common classes
    :undoc-members:
    :members:
 
-.. currentmodule:: aiostem.protocol.utils
-
 .. autoclass:: TcpAddressPort
    :no-show-inheritance:
    :special-members: __str__
    :undoc-members:
    :members:
-
-.. currentmodule:: aiostem.protocol.structures
 
 .. autoclass:: VirtualPortTarget
    :no-show-inheritance:
@@ -70,6 +62,23 @@ Common classes
 
 Hidden services
 ---------------
+
+.. autoclass:: HiddenServiceVersion
+   :undoc-members:
+   :members:
+
+.. autoclass:: BaseHiddenServiceAddress
+   :members:
+.. autoclass:: HiddenServiceAddressV2
+   :members:
+.. autoclass:: HiddenServiceAddressV3
+   :members:
+
+.. autodata:: HiddenServiceAddress
+
+
+Hidden Service structures
+-------------------------
 
 .. autoclass:: HsDescAction
    :undoc-members:

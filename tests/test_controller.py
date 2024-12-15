@@ -8,17 +8,17 @@ from functools import partial
 import pytest
 
 from aiostem import Controller
-from aiostem.exceptions import CommandError, ControllerError, ReplyError, ReplyStatusError
-from aiostem.protocol import (
-    CommandHsFetch,
+from aiostem.command import CommandHsFetch
+from aiostem.event import (
     EventNetworkLiveness,
     EventSignal,
     EventStatusClient,
     EventUnknown,
-    LongServerName,
-    Message,
     event_from_message,
 )
+from aiostem.exceptions import CommandError, ControllerError, ReplyError, ReplyStatusError
+from aiostem.structures import LongServerName
+from aiostem.utils import Message
 
 # All test coroutines will be treated as marked for asyncio.
 pytestmark = pytest.mark.asyncio

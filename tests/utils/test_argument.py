@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import pytest
 
+from aiostem.command import CommandWord
 from aiostem.exceptions import CommandError
-from aiostem.protocol import ArgumentKeyword, ArgumentString, CommandWord, QuoteStyle
+from aiostem.utils import ArgumentKeyword, ArgumentString, QuoteStyle
 
 
 class TestArgument:

@@ -3,7 +3,7 @@
 Commands
 ========
 
-.. currentmodule:: aiostem.protocol.command
+.. currentmodule:: aiostem.command
 
 
 These commands could be built by the end-user along with :meth:`.Controller.request`

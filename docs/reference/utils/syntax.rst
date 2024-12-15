@@ -1,7 +1,7 @@
 Syntax parser
 =============
 
-.. currentmodule:: aiostem.protocol.syntax
+.. currentmodule:: aiostem.utils.syntax
 
 This class helps with the parsing of a single :class:`.BaseMessage` using its header
 and optionally its body content (for :class:`.MessageData`). A syntax describes how

@@ -3,7 +3,7 @@
 Events
 ======
 
-.. currentmodule:: aiostem.protocol.event
+.. currentmodule:: aiostem.event
 
 This page describes all the possible events and their parser implementation, received though
 the callbacks registered by :meth:`.Controller.add_event_handler`. Note that all events are

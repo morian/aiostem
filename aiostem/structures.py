@@ -1,22 +1,24 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
-from typing import Annotated, Literal, TypeAlias
+from functools import cached_property
+from ipaddress import IPv4Address, IPv6Address
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Self, TypeAlias, Union
 
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
 from pydantic import NonNegativeInt
+from pydantic_core import PydanticCustomError, core_schema
 
-from .utils import (
-    AnyAddress,
-    AnyPort,
-    HexBytes,
-    HiddenServiceAddress,
-    StringSplit,
-    TcpAddressPort,
-    TimedeltaSeconds,
-    X25519PrivateKeyBase64,
-)
+from .types import AnyAddress, AnyPort, Base16Bytes, TimedeltaSeconds, X25519PrivateKeyBase64
+from .utils import TrBeforeStringSplit
+
+if TYPE_CHECKING:
+    from pydantic import GetCoreSchemaHandler
+    from pydantic_core.core_schema import CoreSchema, ValidatorFunctionWrapHandler
 
 
 class AuthMethod(StrEnum):
@@ -108,6 +110,179 @@ class Feature(StrEnum):
     VERBOSE_NAMES = 'VERBOSE_NAMES'
 
 
+class HiddenServiceVersion(IntEnum):
+    """Any valid onion hidden service version."""
+
+    ONION_V2 = 2
+    ONION_V3 = 3
+
+
+class BaseHiddenServiceAddress(str):
+    """Base class for all hidden service addresses."""
+
+    #: Length of the address without the top-level domain.
+    ADDRESS_LENGTH: ClassVar[int]
+
+    #: Regular expression pattern used to match the address.
+    ADDRESS_PATTERN: ClassVar[str]
+
+    #: Suffix and top-level domain for onion addresses.
+    ADDRESS_SUFFIX: ClassVar[str] = '.onion'
+
+    #: Length of the onion suffix.
+    ADDRESS_SUFFIX_LENGTH: ClassVar[int] = len(ADDRESS_SUFFIX)
+
+    #: Hidden service version for the current address.
+    VERSION: ClassVar[HiddenServiceVersion]
+
+    @classmethod
+    def strip_suffix(cls, address: str) -> str:
+        """
+        Strip the domain suffix from the provided string.
+
+        Args:
+            address: a raw string encoding a hidden service address
+
+        Returns:
+            The address without its ``.onion`` suffix.
+
+        """
+        return address.removesuffix(cls.ADDRESS_SUFFIX)
+
+
+class HiddenServiceAddressV2(BaseHiddenServiceAddress):
+    """Represent a V2 hidden service."""
+
+    ADDRESS_LENGTH: ClassVar[int] = 16
+    ADDRESS_PATTERN: ClassVar[str] = '^[a-z2-7]{16}([.]onion)?$'
+    VERSION: ClassVar[HiddenServiceVersion] = HiddenServiceVersion.ONION_V2
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Declare schema and validator for a v2 hidden service address."""
+        return core_schema.no_info_wrap_validator_function(
+            cls._pydantic_wrap_validator,
+            core_schema.str_schema(
+                pattern=cls.ADDRESS_PATTERN,
+                min_length=cls.ADDRESS_LENGTH,
+                max_length=cls.ADDRESS_LENGTH + cls.ADDRESS_SUFFIX_LENGTH,
+                ref='onion_v2',
+                strict=True,
+            ),
+        )
+
+    @classmethod
+    def _pydantic_wrap_validator(
+        cls,
+        value: Any,
+        validator: ValidatorFunctionWrapHandler,
+    ) -> Self:
+        """Validate any input value provided by the user."""
+        if isinstance(value, cls):
+            return value
+        return cls.from_string(validator(value))
+
+    @classmethod
+    def from_string(cls, domain: str) -> Self:
+        """
+        Build from a user string.
+
+        Args:
+            domain: A valid ``.onion`` domain, with or without its TLD.
+
+        Returns:
+            A valid V2 domain without its ``.onion`` suffix.
+
+        """
+        return cls(cls.strip_suffix(domain))
+
+
+class HiddenServiceAddressV3(BaseHiddenServiceAddress):
+    """Represent a V3 hidden service."""
+
+    ADDRESS_CHECKSUM: ClassVar[bytes] = b'.onion checksum'
+    ADDRESS_LENGTH: ClassVar[int] = 56
+    ADDRESS_PATTERN: ClassVar[str] = '^[a-z2-7]{56}([.]onion)?$'
+    VERSION: ClassVar[HiddenServiceVersion] = HiddenServiceVersion.ONION_V3
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Declare schema and validator for a v3 hidden service address."""
+        return core_schema.no_info_wrap_validator_function(
+            cls._pydantic_wrap_validator,
+            core_schema.str_schema(
+                pattern=cls.ADDRESS_PATTERN,
+                min_length=cls.ADDRESS_LENGTH,
+                max_length=cls.ADDRESS_LENGTH + cls.ADDRESS_SUFFIX_LENGTH,
+                ref='onion_v3',
+                strict=True,
+            ),
+        )
+
+    @classmethod
+    def _pydantic_wrap_validator(
+        cls,
+        value: Any,
+        validator: ValidatorFunctionWrapHandler,
+    ) -> Self:
+        """Validate any input value provided by the user."""
+        if isinstance(value, cls):
+            return value
+        return cls.from_string(validator(value))
+
+    @classmethod
+    def from_string(cls, domain: str) -> Self:
+        """
+        Build from a user string.
+
+        Args:
+            domain: A valid ``.onion`` domain, with or without its TLD.
+
+        Raises:
+            PydanticCustomError: On invalid onion V3 domain.
+
+        Returns:
+            A valid V3 domain without its ``.onion`` suffix.
+
+        """
+        address = cls.strip_suffix(domain)
+        data = base64.b32decode(address, casefold=True)
+        pkey = data[00:32]
+        csum = data[32:34]
+        version = data[34]
+        if version == cls.VERSION:
+            blob = cls.ADDRESS_CHECKSUM + pkey + bytes([cls.VERSION])
+            digest = hashlib.sha3_256(blob).digest()
+            if digest.startswith(csum):
+                return cls(address)
+
+        raise PydanticCustomError(
+            'invalid_onion_v3',
+            'Invalid v3 hidden service address: "{address}"',
+            {'address': address},
+        )
+
+    @cached_property
+    def public_key(self) -> X25519PublicKey:
+        """
+        Get the x25519 public key for this domain.
+
+        Returns:
+            The x25519 public key associated with this v3 onion domain.
+
+        """
+        data = base64.b32decode(self, casefold=True)
+        return X25519PublicKey.from_public_bytes(data[00:32])
+
+
 class HsDescAction(StrEnum):
     """Possible actions in a :attr:`~.EventWord.HS_DESC` event."""
 
@@ -177,6 +352,61 @@ class LogSeverity(StrEnum):
     ERROR = 'ERROR'
 
 
+@dataclass(frozen=True, slots=True)
+class LongServerName:
+    """A Tor Server name and its optional nickname."""
+
+    #: Server fingerprint as a 20 bytes value.
+    fingerprint: Base16Bytes
+
+    #: Server nickname (optional).
+    nickname: str | None = None
+
+    def __str__(self) -> str:
+        """Get the string representation of this server."""
+        value = f'${self.fingerprint.hex().upper()}'
+        if self.nickname is not None:
+            value += f'~{self.nickname}'
+        return value
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Declare schema and validator for a long server name."""
+        return core_schema.no_info_after_validator_function(
+            function=cls.from_string,
+            schema=core_schema.str_schema(),
+            serialization=core_schema.to_string_ser_schema(when_used='always'),
+        )
+
+    @classmethod
+    def from_string(cls, server: str) -> Self:
+        """
+        Build a new instance from a single string.
+
+        See Also:
+            https://spec.torproject.org/control-spec/message-format.html#tokens
+
+        Returns:
+            An instance of this class properly parsed from the provided string.
+
+        """
+        if not server.startswith('$'):
+            msg = 'LongServerName does not start with a $'
+            raise ValueError(msg)
+
+        server = server[1:]
+        if '~' in server:
+            fingerprint, nickname = server.split('~', maxsplit=1)
+        else:
+            fingerprint, nickname = server, None
+
+        return cls(fingerprint=bytes.fromhex(fingerprint), nickname=nickname)
+
+
 class OnionClientAuthFlags(StrEnum):
     """List of flags attached to a running onion service."""
 
@@ -207,7 +437,7 @@ class OnionClientAuthKey:
     name: str | None = None
 
     #: Flags associated with this client.
-    flags: Annotated[AbstractSet[OnionClientAuthFlags], StringSplit()] = field(
+    flags: Annotated[AbstractSet[OnionClientAuthFlags], TrBeforeStringSplit()] = field(
         default_factory=set
     )
 
@@ -428,7 +658,7 @@ class StatusClientBootstrap:
     #: Tells how many bootstrap problems there have been so far at this phase.
     count: NonNegativeInt | None = None
     #: The identity digest of the node we're trying to connect to.
-    host: HexBytes | None = None
+    host: Base16Bytes | None = None
     #: An address and port combination, where 'address' is an ipv4 or ipv6 address.
     hostaddr: TcpAddressPort | None = None
     #: Lists one of the reasons allowed in the :attr:`~.EventWord.ORCONN` event.
@@ -514,7 +744,7 @@ class StatusGeneralDangerousVersion:
     #: Tell why is this a dangerous version.
     reason: StatusGeneralDangerousVersionReason
     #: List of recommended versions to use instead.
-    recommended: Annotated[set[str], StringSplit()]
+    recommended: Annotated[set[str], TrBeforeStringSplit()]
 
 
 @dataclass(kw_only=True, slots=True)
@@ -543,7 +773,7 @@ class StatusGeneralClockSkew:
     #: Source of the clock skew event.
     source: Annotated[
         ClockSkewSource,
-        StringSplit(
+        TrBeforeStringSplit(
             dict_keys=('name', 'address'),
             maxsplit=1,
             separator=':',
@@ -635,6 +865,53 @@ class StatusServerHibernationStatus:
     status: Literal['AWAKE', 'SOFT', 'HARD']
 
 
+@dataclass(frozen=True, slots=True)
+class TcpAddressPort:
+    """Describe a TCP target with a host and a port."""
+
+    #: Target host for the TCP connection.
+    host: AnyAddress
+    #: Target port for the TCP connection.
+    port: AnyPort
+
+    def __str__(self) -> str:
+        """Get the string representation of this connection."""
+        if isinstance(self.host, IPv6Address):
+            return f'[{self.host:s}]:{self.port:d}'
+        return f'{self.host:s}:{self.port:d}'
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Declare schema and validator for a TCP connection."""
+        return core_schema.no_info_after_validator_function(
+            function=cls.from_string,
+            schema=core_schema.str_schema(),
+            serialization=core_schema.to_string_ser_schema(when_used='always'),
+        )
+
+    @classmethod
+    def from_string(cls, string: str) -> Self:
+        """
+        Build a new instance from a single string.
+
+        Returns:
+            An instance of this class properly parsed from the provided string.
+
+        """
+        if string.startswith('['):
+            str_host, port = string.removeprefix('[').split(']:', maxsplit=1)
+            host = IPv6Address(str_host)  # type: AnyAddress
+        else:
+            str_host, port = string.split(':', maxsplit=1)
+            host = IPv4Address(str_host)
+
+        return cls(host=host, port=int(port))
+
+
 @dataclass(kw_only=True, slots=True)
 class VirtualPortTarget:
     """Target for an onion virtual port."""
@@ -645,13 +922,15 @@ class VirtualPortTarget:
     target: TcpAddressPort
 
 
+#: Any kind of onion service address.
+HiddenServiceAddress: TypeAlias = Union[HiddenServiceAddressV2 | HiddenServiceAddressV3]  # noqa: UP007
+
 #: A virtual port parser and serializer from/to a :class:`VirtualPortTarget`.
 VirtualPort: TypeAlias = Annotated[
     VirtualPortTarget,
-    StringSplit(
+    TrBeforeStringSplit(
         dict_keys=('port', 'target'),
         maxsplit=1,
         separator=',',
-        when_used='always',
     ),
 ]

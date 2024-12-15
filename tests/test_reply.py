@@ -8,10 +8,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 
 from aiostem.exceptions import ReplyError, ReplyStatusError
-from aiostem.protocol import (
-    AuthMethod,
-    Message,
-    OnionServiceKeyType,
+from aiostem.reply import (
     ReplyAddOnion,
     ReplyAuthChallenge,
     ReplyAuthenticate,
@@ -21,10 +18,11 @@ from aiostem.protocol import (
     ReplyMapAddress,
     ReplyOnionClientAuthView,
     ReplyProtocolInfo,
-    messages_from_stream,
 )
+from aiostem.structures import AuthMethod, OnionServiceKeyType
+from aiostem.utils import Message, messages_from_stream
 
-from .test_message import create_stream
+from .utils.test_message import create_stream
 
 # All test coroutines will be treated as marked for asyncio.
 pytestmark = pytest.mark.asyncio
@@ -237,7 +235,7 @@ class TestReplies:
             '250 OK',
         ]
         message = await create_message(lines)
-        with caplog.at_level(logging.INFO, logger='aiostem.protocol'):
+        with caplog.at_level(logging.INFO, logger='aiostem'):
             ReplyProtocolInfo.from_message(message)
         assert "No syntax handler for keyword 'TEST'" in caplog.text
 

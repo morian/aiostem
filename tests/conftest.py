@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING
 import pytest_asyncio
 
 from aiostem import Controller
+from aiostem.command import CommandWord
 from aiostem.exceptions import ReplyStatusError
-from aiostem.protocol import CommandWord, Message
+from aiostem.utils import Message
 
 if TYPE_CHECKING:
     from collections.abc import (
@@ -18,7 +19,7 @@ if TYPE_CHECKING:
     )
 
     from aiostem.controller import EventCallbackType
-    from aiostem.protocol import (
+    from aiostem.utils import (
         Command,
         EventWord,
         ReplyAuthChallenge,

@@ -6,9 +6,13 @@ Code reference
 .. toctree::
    :maxdepth: 2
 
+   command
    connector
    controller
+   event
    exceptions
    monitor
-   protocol/index
-   internal/index
+   reply
+   structures
+   types
+   utils/index

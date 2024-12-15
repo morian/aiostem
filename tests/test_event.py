@@ -7,8 +7,7 @@ from ipaddress import IPv4Address, IPv6Address
 import pytest
 from pydantic import ValidationError
 
-from aiostem.exceptions import MessageError, ReplySyntaxError
-from aiostem.protocol import (
+from aiostem.event import (
     EventDisconnect,
     EventHsDesc,
     EventHsDescContent,
@@ -16,12 +15,15 @@ from aiostem.protocol import (
     EventUnknown,
     EventWord,
     EventWordInternal,
+    event_from_message,
+)
+from aiostem.exceptions import MessageError, ReplySyntaxError
+from aiostem.structures import (
     HsDescAction,
     HsDescFailReason,
     LogSeverity,
     Signal,
     StatusActionGeneral,
-    event_from_message,
 )
 
 from .test_reply import create_message
@@ -163,7 +165,7 @@ class TestEvents:
         line = '650 STATUS_GENERAL NOTICE UNKNOWN_ACTION ARG=VAL'
         message = await create_message([line])
         with (
-            caplog.at_level(logging.INFO, logger='aiostem.protocol'),
+            caplog.at_level(logging.INFO, logger='aiostem'),
             pytest.raises(ValidationError, match='1 validation error for EventStatusGeneral'),
         ):
             event_from_message(message)

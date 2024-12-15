@@ -5,8 +5,8 @@ import logging
 import pytest
 
 from aiostem.exceptions import ReplySyntaxError
-from aiostem.protocol import Message, MessageData
-from aiostem.protocol.syntax import ReplySyntax, ReplySyntaxFlag
+from aiostem.utils import Message, MessageData
+from aiostem.utils.syntax import ReplySyntax, ReplySyntaxFlag
 
 
 class TestReplySyntax:
@@ -110,7 +110,7 @@ class TestReplySyntax:
             flags=ReplySyntaxFlag.KW_ENABLE,
         )
         message = Message(status=250, header='Server=127.0.0.1 Port=9051')
-        with caplog.at_level(logging.INFO, logger='aiostem.protocol'):
+        with caplog.at_level(logging.INFO, logger='aiostem.utils'):
             result = syntax.parse(message)
         assert len(result) == 1
         assert 'Found an unhandled keyword: Port=9051' in caplog.text

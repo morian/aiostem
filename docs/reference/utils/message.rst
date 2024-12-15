@@ -1,7 +1,7 @@
 Messages
 ========
 
-.. currentmodule:: aiostem.protocol.message
+.. currentmodule:: aiostem.utils.message
 
 This page describes how we parse all received data from the :class:`~asyncio.StreamReader`
 that lies under the :class:`.Controller`. These messages are then parsed either as a

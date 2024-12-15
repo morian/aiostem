@@ -10,13 +10,15 @@ from typing import Annotated, ClassVar, Literal, Self, Union
 
 from pydantic import NonNegativeInt, TypeAdapter
 
-from ..exceptions import CommandError
-from .argument import ArgumentKeyword, ArgumentString, QuoteStyle
 from .event import EventWord
+from .exceptions import CommandError
 from .structures import (
     CircuitPurpose,
     CloseStreamReason,
     Feature,
+    HiddenServiceAddress,
+    HiddenServiceAddressV3,
+    LongServerName,
     OnionClientAuthFlags,
     OnionClientAuthKeyType,
     OnionServiceFlags,
@@ -24,18 +26,16 @@ from .structures import (
     Signal,
     VirtualPort,
 )
-from .utils import (
+from .types import (
     AnyHost,
     AnyPort,
+    Base16Bytes,
     Base64Bytes,
-    HexBytes,
-    HiddenServiceAddress,
-    HiddenServiceAddressV3,
-    LongServerName,
-    StringSplit,
     X25519PrivateKeyBase64,
     X25519PublicKeyBase32,
 )
+from .utils.argument import ArgumentKeyword, ArgumentString, QuoteStyle
+from .utils.transformers import TrBeforeStringSplit
 
 
 class CommandWord(StrEnum):
@@ -537,7 +537,7 @@ class CommandAuthenticate(Command):
     command: ClassVar[CommandWord] = CommandWord.AUTHENTICATE
 
     #: Password or token used to authenticate with the server.
-    token: HexBytes | str | None = None
+    token: Base16Bytes | str | None = None
 
     def _serialize(self) -> CommandSerializer:
         """Append ``AUTHENTICATE`` specific arguments."""
@@ -637,7 +637,10 @@ class CommandMapAddress(Command):
         ser = super()._serialize()
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
-        for key, value in self.addresses.items():
+        adapter = self.adapter()
+        struct = adapter.dump_python(self)
+
+        for key, value in struct['addresses'].items():
             args.append(ArgumentKeyword(key, value, quotes=QuoteStyle.NEVER_ENSURE))
 
         ser.arguments.extend(args)
@@ -858,8 +861,11 @@ class CommandRedirectStream(Command):
         ser = super()._serialize()
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
+        adapter = self.adapter()
+        struct = adapter.dump_python(self)
+
         args.append(ArgumentString(self.stream, safe=True))
-        args.append(ArgumentString(self.address))
+        args.append(ArgumentString(struct['address']))
         if self.port is not None:
             args.append(ArgumentString(self.port, safe=True))
 
@@ -1014,9 +1020,12 @@ class CommandResolve(Command):
         ser = super()._serialize()
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
+        adapter = self.adapter()
+        struct = adapter.dump_python(self)
+
         if self.reverse:
             args.append(ArgumentKeyword('mode', 'reverse', quotes=QuoteStyle.NEVER))
-        for address in self.addresses:
+        for address in struct['addresses']:
             # These are marked as keywords in `src/feature/control/control_cmd.c`.
             args.append(ArgumentKeyword(address, None))
 
@@ -1192,8 +1201,12 @@ class CommandHsFetch(Command):
         """Append ``HSFETCH`` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
+
+        adapter = self.adapter()
+        struct = adapter.dump_python(self)
+
         args.append(ArgumentString(self.address, safe=True))
-        for server in self.servers:
+        for server in struct['servers']:
             args.append(ArgumentKeyword('SERVER', server, quotes=QuoteStyle.NEVER_ENSURE))
         ser.arguments.extend(args)
         return ser
@@ -1221,7 +1234,9 @@ class CommandAddOnion(Command):
     key: OnionServiceKeyType | Base64Bytes | Literal['BEST'] | str  # noqa: PYI051
 
     #: Set of boolean options to attach to this service.
-    flags: Annotated[set[OnionServiceFlags], StringSplit()] = field(default_factory=set)
+    flags: Annotated[set[OnionServiceFlags], TrBeforeStringSplit()] = field(
+        default_factory=set
+    )
 
     #: Optional number between 0 and 65535 which is the maximum streams that can be
     #: attached on a rendezvous circuit. Setting it to 0 means unlimited which is
@@ -1356,7 +1371,11 @@ class CommandHsPost(Command):
         """Append ``HSPOST`` specific arguments."""
         ser = super()._serialize()
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-        for server in self.servers:
+
+        adapter = self.adapter()
+        struct = adapter.dump_python(self)
+
+        for server in struct['servers']:
             args.append(ArgumentKeyword('SERVER', server, quotes=QuoteStyle.NEVER_ENSURE))
         if self.address is not None:
             kwarg = ArgumentKeyword('HSADDRESS', self.address, quotes=QuoteStyle.NEVER_ENSURE)
@@ -1392,7 +1411,9 @@ class CommandOnionClientAuthAdd(Command):
     #: An optional nickname for the client.
     nickname: str | None = None
     #: Whether this client's credentials should be stored on the file system.
-    flags: Annotated[set[OnionClientAuthFlags], StringSplit()] = field(default_factory=set)
+    flags: Annotated[set[OnionClientAuthFlags], TrBeforeStringSplit()] = field(
+        default_factory=set
+    )
 
     def _serialize(self) -> CommandSerializer:
         """Append ``ONION_CLIENT_AUTH_ADD`` specific arguments."""

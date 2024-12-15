@@ -8,17 +8,7 @@ from typing import TYPE_CHECKING, TypeAlias, cast
 
 from pydantic import RootModel
 
-from .connector import (
-    DEFAULT_CONTROL_HOST,
-    DEFAULT_CONTROL_PATH,
-    DEFAULT_CONTROL_PORT,
-    ControlConnector,
-    ControlConnectorPath,
-    ControlConnectorPort,
-)
-from .exceptions import CommandError, ControllerError
-from .protocol import (
-    AnyHost,
+from .command import (
     Command,
     CommandAuthChallenge,
     CommandAuthenticate,
@@ -39,12 +29,18 @@ from .protocol import (
     CommandSetEvents,
     CommandSignal,
     CommandTakeOwnership,
-    Event,
-    EventWord,
-    EventWordInternal,
-    HiddenServiceAddress,
-    LongServerName,
-    Message,
+)
+from .connector import (
+    DEFAULT_CONTROL_HOST,
+    DEFAULT_CONTROL_PATH,
+    DEFAULT_CONTROL_PORT,
+    ControlConnector,
+    ControlConnectorPath,
+    ControlConnectorPort,
+)
+from .event import Event, EventWord, EventWordInternal, event_from_message
+from .exceptions import CommandError, ControllerError
+from .reply import (
     ReplyAuthChallenge,
     ReplyAuthenticate,
     ReplyDropGuards,
@@ -64,10 +60,9 @@ from .protocol import (
     ReplySetEvents,
     ReplySignal,
     ReplyTakeOwnership,
-    Signal,
-    event_from_message,
-    messages_from_stream,
 )
+from .structures import HiddenServiceAddress, LongServerName, Signal
+from .utils import Message, messages_from_stream
 
 if TYPE_CHECKING:
     from collections.abc import (  # noqa: F401
@@ -78,6 +73,8 @@ if TYPE_CHECKING:
     )
     from types import TracebackType
     from typing import Self
+
+    from .types import AnyHost
 
 
 _EVENTS_TOR = frozenset(EventWord)
@@ -362,7 +359,7 @@ class Controller:
         Register a callback function to be called when an event message is received.
 
         Notes:
-            - A special event :attr:`~.protocol.event.EventWordInternal.DISCONNECT` is handled
+            - A special event :attr:`~.event.EventWordInternal.DISCONNECT` is handled
               internally by this library and can be registered here to be notified of any
               disconnection from the control socket.
             - Multiple callbacks can be set for a single event.
@@ -493,7 +490,7 @@ class Controller:
 
     async def auth_challenge(self, nonce: bytes | str | None = None) -> ReplyAuthChallenge:
         """
-        Start the authentication for :attr:`~.protocol.structures.AuthMethod.SAFECOOKIE`.
+        Start the authentication for :attr:`~.structures.AuthMethod.SAFECOOKIE`.
 
         When no ``nonce`` is provided, once is generated and provided back in the reply.
         While this is obviously not part of the original reply from the server, it is
@@ -534,11 +531,11 @@ class Controller:
                 - ``COOKIE``: provide the content of the cookie file
 
         See Also:
-            :class:`.protocol.structures.AuthMethod`
+            :class:`.structures.AuthMethod`
 
         Args:
             password: Optional password for method
-                :attr:`~.protocol.structures.AuthMethod.HASHEDPASSWORD`.
+                :attr:`~.structures.AuthMethod.HASHEDPASSWORD`.
 
         Raises:
             ControllerError: When no known authentication method was found.
@@ -763,7 +760,7 @@ class Controller:
         Get control protocol information from Tor.
 
         This command is performed as part of the authentication process in order to find out
-        all supported authentication methods (see :class:`~.protocol.structures.AuthMethod`).
+        all supported authentication methods (see :class:`~.structures.AuthMethod`).
 
         The ``version`` is supposed to set to ``1`` but Tor currently does not care.
 

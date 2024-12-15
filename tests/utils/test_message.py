@@ -5,7 +5,7 @@ from asyncio import StreamReader
 import pytest
 
 from aiostem.exceptions import ProtocolError
-from aiostem.protocol import MessageData, MessageLine, messages_from_stream
+from aiostem.utils import MessageData, MessageLine, messages_from_stream
 
 # All test coroutines will be treated as marked for asyncio.
 pytestmark = pytest.mark.asyncio

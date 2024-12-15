@@ -17,24 +17,19 @@ from collections.abc import (
 )
 from dataclasses import dataclass, field
 from functools import partial
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Optional, Self, TypeAlias, TypeVar
+from typing import Annotated, Any, ClassVar, Optional, Self, TypeAlias, TypeVar
 
 from pydantic import PositiveInt, TypeAdapter
 
-from ..exceptions import ReplyError, ReplyStatusError
-from .structures import AuthMethod, OnionClientAuthKey, OnionServiceKeyType
-from .syntax import ReplySyntax, ReplySyntaxFlag
-from .utils import (
-    AnyHost,
-    Base64Bytes,
-    HexBytes,
+from .exceptions import ReplyError, ReplyStatusError
+from .structures import (
+    AuthMethod,
     HiddenServiceAddress,
-    StringSplit,
-    X25519PublicKeyBase32,
+    OnionClientAuthKey,
+    OnionServiceKeyType,
 )
-
-if TYPE_CHECKING:
-    from .message import BaseMessage, Message
+from .types import AnyHost, Base16Bytes, Base64Bytes, X25519PublicKeyBase32
+from .utils import BaseMessage, Message, ReplySyntax, ReplySyntaxFlag, TrBeforeStringSplit
 
 logger = logging.getLogger(__package__)
 
@@ -455,7 +450,7 @@ class ReplyProtocolInfo(Reply):
     }
 
     #: List of available authentication methods.
-    auth_methods: Annotated[AbstractSet[AuthMethod], StringSplit()] = field(
+    auth_methods: Annotated[AbstractSet[AuthMethod], TrBeforeStringSplit()] = field(
         default_factory=set
     )
     #: Path on the server to the cookie file.
@@ -532,11 +527,11 @@ class ReplyAuthChallenge(Reply):
     )
 
     #: Not part of the real response, but very handy to have it here.
-    client_nonce: HexBytes | str | None = None
+    client_nonce: Base16Bytes | str | None = None
     #: Server hash as computed by the server.
-    server_hash: HexBytes | None = None
+    server_hash: Base16Bytes | None = None
     #: Server nonce as provided by the server.
-    server_nonce: HexBytes | None = None
+    server_nonce: Base16Bytes | None = None
 
     @classmethod
     def from_message(cls, message: Message) -> Self:

@@ -3,7 +3,7 @@
 Replies
 =======
 
-.. currentmodule:: aiostem.protocol.reply
+.. currentmodule:: aiostem.reply
 
 These reply structures are built from :class:`.Message` received by the controller
 and provided back by the :class:`.Controller` to the end-user.

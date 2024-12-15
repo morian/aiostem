@@ -7,17 +7,12 @@ from contextlib import AsyncExitStack, suppress
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar
 
+from pydantic import NonNegativeInt
+
+from .event import Event, EventNetworkLiveness, EventStatusClient, EventWord
 from .exceptions import ControllerError, ReplyStatusError
-from .protocol import (
-    Event,
-    EventNetworkLiveness,
-    EventStatusClient,
-    EventWord,
-    Message,
-    Signal,
-    StatusActionClient,
-    StatusClientBootstrap,
-)
+from .structures import Signal, StatusActionClient, StatusClientBootstrap
+from .utils import Message
 
 if TYPE_CHECKING:
     from types import TracebackType
@@ -37,7 +32,7 @@ class ControllerStatus:
     """
 
     #: Tor's bootstrap progress status (in percent).
-    bootstrap: int = 0
+    bootstrap: NonNegativeInt = 0
 
     #: Whether Tor has established circuits.
     has_circuits: bool = False

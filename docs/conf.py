@@ -70,10 +70,10 @@ autodoc_class_signature = 'separated'
 autodoc_preserve_defaults = False
 autodoc_type_aliases = {
     'EventCallbackType':  '~aiostem.controller.EventCallbackType',
-    'AnyHost': '~aiostem.protocol.utils.AnyHost',
-    'Argument': '~aiostem.protocol.argument.Argument',
-    'KeyTypes': '~aiostem.protocol.argument.KeyTypes',
-    'ValueTypes': '~aiostem.protocol.argument.ValueTypes',
+    'AnyHost': '~aiostem.types.AnyHost',
+    'Argument': '~aiostem.utils.argument.Argument',
+    'KeyTypes': '~aiostem.utils.argument.KeyTypes',
+    'ValueTypes': '~aiostem.utils.argument.ValueTypes',
 }
 autodoc_typehints = 'signature'
 autoclass_content = 'class'
@@ -105,20 +105,20 @@ _reftarget_fixmap = {
     'asyncio.locks.Condition': 'asyncio.Condition',
     'asyncio.streams.StreamReader': 'asyncio.StreamReader',
     'asyncio.streams.StreamWriter': 'asyncio.StreamWriter',
-    # Fixes for aiostem.protocol.argument.
-    'KeyTypes': 'aiostem.protocol.argument.KeyTypes',
-    'ValueTypes': 'aiostem.protocol.argument.ValueTypes',
+    # Fixes for aiostem.utils.argument.
+    'KeyTypes': 'aiostem.utils.argument.KeyTypes',
+    'ValueTypes': 'aiostem.utils.argument.ValueTypes',
 }
 # Map of known types that get badly requested to be a class.
 _reftype_fixmap = {
     'aiostem.controller.EventCallbackType': 'data',
-    'aiostem.protocol.argument.Argument': 'data',
-    'aiostem.protocol.argument.KeyTypes': 'data',
-    'aiostem.protocol.argument.ValueTypes': 'data',
-    'aiostem.protocol.reply._ReplyMapDefault': 'data',
-    'aiostem.protocol.utils.AnyHost': 'data',
-    'aiostem.protocol.utils.HiddenServiceAddress': 'data',
-    'aiostem.protocol.utils.T': 'data',
+    'aiostem.reply._ReplyMapDefault': 'data',
+    'aiostem.types.AnyHost': 'data',
+    'aiostem.types.HiddenServiceAddress': 'data',
+    'aiostem.utils.argument.Argument': 'data',
+    'aiostem.utils.argument.KeyTypes': 'data',
+    'aiostem.utils.argument.ValueTypes': 'data',
+    'aiostem.utils.encoding.T': 'data',
     # Sometimes these are looked up as classes.
     'typing.Annotated': 'obj',
     'typing.Final': 'obj',

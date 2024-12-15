@@ -4,20 +4,20 @@ import logging
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, field
-from datetime import datetime
 from enum import StrEnum
 from typing import Annotated, Any, ClassVar, Literal, Self, Union
 
 from pydantic import Discriminator, NonNegativeInt, Tag, TypeAdapter
 
-from ..exceptions import MessageError, ReplySyntaxError
-from .message import Message, MessageData
+from .exceptions import MessageError, ReplySyntaxError
 from .structures import (
+    HiddenServiceAddress,
     HsDescAction,
     HsDescAuthType,
     HsDescFailReason,
     LivenessStatus,
     LogSeverity,
+    LongServerName,
     Signal,
     StatusActionClient,
     StatusActionGeneral,
@@ -41,20 +41,23 @@ from .structures import (
     StatusServerReachabilityFailed,
     StatusServerReachabilitySucceeded,
 )
-from .syntax import ReplySyntax, ReplySyntaxFlag
-from .utils import (
+from .types import (
     AnyAddress,
     AnyHost,
     AnyPort,
-    AsTimezone,
+    Base16Bytes,
     Base32Bytes,
     Base64Bytes,
-    HexBytes,
-    HiddenServiceAddress,
-    LogSeverityTransformer,
-    LongServerName,
-    SetToNone,
+    DatetimeUTC,
     TimedeltaMilliseconds,
+)
+from .utils import (
+    Message,
+    MessageData,
+    ReplySyntax,
+    ReplySyntaxFlag,
+    TrBeforeLogSeverity,
+    TrBeforeSetToNone,
 )
 
 logger = logging.getLogger(__package__)
@@ -314,9 +317,9 @@ class EventAddrMap(EventSimple):
     # Union is used around AnyHost to fix a weird bug with typing.get_type_hints().
     original: Union[AnyHost]  # noqa: UP007
     #: Replacement address, ``<error>`` is mapped to None.
-    replacement: Annotated[Union[AnyHost, None], SetToNone({'<error>'})]  # noqa: UP007
+    replacement: Annotated[Union[AnyHost, None], TrBeforeSetToNone({'<error>'})]  # noqa: UP007
     #: When this entry expires as an UTC date.
-    expires: Annotated[datetime, AsTimezone()] | None = None
+    expires: DatetimeUTC | None = None
     #: Error message when replacement is :obj:`None`.
     error: str | None = None
     #: Whether this value has been kept in cache.
@@ -425,7 +428,7 @@ class EventHsDesc(EventSimple):
     #: Hidden service directory answering this request.
     hs_dir: LongServerName | Literal['UNKNOWN']
     #: Contains the computed index of the HsDir the descriptor was uploaded to or fetched from.
-    hs_dir_index: HexBytes | None = None
+    hs_dir_index: Base16Bytes | None = None
     #: If :attr:`action` is :attr:`~.HsDescAction.FAILED`, Tor SHOULD send a reason field.
     reason: HsDescFailReason | None = None
     #: Field is not used for the :attr:`~.HsDescAction.CREATED` event because v3 doesn't use
@@ -507,7 +510,7 @@ class EventLog(Event):
     )
 
     #: Log severity.
-    severity: Annotated[LogSeverity, LogSeverityTransformer()]
+    severity: Annotated[LogSeverity, TrBeforeLogSeverity()]
     #: Log message.
     message: str
 
@@ -629,7 +632,7 @@ class EventStatus(Event):
     #: Severity of the reported status.
     severity: Annotated[
         Literal[LogSeverity.NOTICE, LogSeverity.WARNING, LogSeverity.ERROR],
-        LogSeverityTransformer(),
+        TrBeforeLogSeverity(),
     ]
     #: Status action reported by this event (sub-classed).
     action: StrEnum
@@ -921,7 +924,7 @@ class EventPtLog(EventSimple):
     #: the ``STATUS`` string prefix.
     message: str
     #: Log severity.
-    severity: Annotated[LogSeverity, LogSeverityTransformer()]
+    severity: Annotated[LogSeverity, TrBeforeLogSeverity()]
 
 
 @dataclass(kw_only=True, slots=True)

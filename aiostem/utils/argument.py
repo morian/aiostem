@@ -3,7 +3,6 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from enum import IntEnum, StrEnum
-from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Any, TypeAlias, Union, overload
 
 if TYPE_CHECKING:
@@ -11,20 +10,16 @@ if TYPE_CHECKING:
 
 
 from ..exceptions import CommandError
-from .utils import LongServerName
 
 #: List of characters in a string that need an escape.
 _AUTO_CHARS: AbstractSet[str] = frozenset({' ', '"', '\\'})
 
 #: All types allowed as a key in a keyword argument.
-KeyTypes: TypeAlias = Union[IPv4Address, IPv6Address, str, None]  # noqa: UP007
+KeyTypes: TypeAlias = Union[str, None]  # noqa: UP007
 
 #: All types allowed as a value, either for a keyword or a simple string.
 ValueTypes: TypeAlias = Union[  # noqa: UP007
-    IPv4Address,
-    IPv6Address,
     IntEnum,
-    LongServerName,
     StrEnum,
     int,
     str,
@@ -46,7 +41,7 @@ def _serialize_value(value: Any, *, allow_none: bool = False) -> str | None:
     match value:
         case IntEnum() | StrEnum():
             result = str(value.value)
-        case IPv4Address() | IPv6Address() | LongServerName() | int() | str():
+        case int() | str():
             result = str(value)
         case None:
             if allow_none is False:

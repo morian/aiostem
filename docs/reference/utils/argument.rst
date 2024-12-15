@@ -1,7 +1,7 @@
 Arguments
 =========
 
-.. currentmodule:: aiostem.protocol.argument
+.. currentmodule:: aiostem.utils.argument
 
 These classes are used internally by :class:`.Command` and :class:`.CommandSerializer`
 to serialize its parameters to the format expected by Tor.
