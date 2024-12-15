@@ -9,7 +9,7 @@ from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Self, TypeAlias, Union
 
-from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from pydantic import NonNegativeInt
 from pydantic_core import PydanticCustomError, core_schema
 
@@ -271,16 +271,16 @@ class HiddenServiceAddressV3(BaseHiddenServiceAddress):
         )
 
     @cached_property
-    def public_key(self) -> X25519PublicKey:
+    def public_key(self) -> Ed25519PublicKey:
         """
-        Get the x25519 public key for this domain.
+        Get the ed25519 public key for this domain.
 
         Returns:
-            The x25519 public key associated with this v3 onion domain.
+            The ed25519 public key associated with this v3 onion domain.
 
         """
         data = base64.b32decode(self, casefold=True)
-        return X25519PublicKey.from_public_bytes(data[00:32])
+        return Ed25519PublicKey.from_public_bytes(data[00:32])
 
 
 class HsDescAction(StrEnum):

@@ -59,6 +59,8 @@ Common classes
    :undoc-members:
    :members:
 
+.. autodata:: VirtualPort
+
 
 Hidden services
 ---------------

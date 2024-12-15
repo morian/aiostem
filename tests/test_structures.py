@@ -4,7 +4,7 @@ from base64 import b32encode
 from ipaddress import IPv4Address, IPv6Address
 
 import pytest
-from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from aiostem.structures import (
@@ -72,15 +72,15 @@ class TestHiddenServiceV3:
         model = Model(v=address)
         assert model.v == 'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid'
 
-    def test_x25519_public_key(self):
-        """Check that the public x25519 key is correct."""
+    def test_ed25519_public_key(self):
+        """Check that the public ed25519 key is correct."""
         address = 'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid'
         adapter = TypeAdapter(HiddenServiceAddressV3)
         onion = adapter.validate_python(address)
         assert isinstance(onion, HiddenServiceAddressV3)
 
         pubkey = onion.public_key
-        assert isinstance(pubkey, X25519PublicKey)
+        assert isinstance(pubkey, Ed25519PublicKey)
 
         raw = pubkey.public_bytes_raw()
         prefix = b32encode(raw).decode('ascii').lower()[:31]
