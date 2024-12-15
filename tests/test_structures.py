@@ -10,6 +10,8 @@ from pydantic import BaseModel, TypeAdapter, ValidationError
 from aiostem.structures import (
     HiddenServiceAddressV2,
     HiddenServiceAddressV3,
+    HsDescAuthCookie,
+    HsDescAuthTypeInt,
     LongServerName,
     TcpAddressPort,
 )
@@ -119,6 +121,50 @@ class TestHiddenServiceV3:
         assert error['type'] == errtype, address
 
 
+HsDescAuthCookieAdapter = TypeAdapter(HsDescAuthCookie)
+
+
+class TestHsDescAuthCookie:
+    @pytest.mark.parametrize(
+        ('raw', 'encoded', 'auth_type'),
+        [
+            ('GmYIu0EKkd5H6blpIFg3jQ', 'GmYIu0EKkd5H6blpIFg3jQA=', 1),
+            ('GmYIu0EKkd5H6blpIFg3jQA=', 'GmYIu0EKkd5H6blpIFg3jQA=', 1),
+            (bytes.fromhex('1a6608bb410a91de47e9b9692058378d00'),  'GmYIu0EKkd5H6blpIFg3jQA=', 1),
+            (
+                HsDescAuthCookie(
+                    auth_type=HsDescAuthTypeInt.BASIC_AUTH,
+                    cookie=bytes.fromhex('1a6608bb410a91de47e9b9692058378d'),
+                ),
+                'GmYIu0EKkd5H6blpIFg3jQA=',
+                1,
+            ),
+            ('GmYIu0EKkd5H6blpIFg3jR', 'GmYIu0EKkd5H6blpIFg3jRA=', 2),
+            ('GmYIu0EKkd5H6blpIFg3jRA=', 'GmYIu0EKkd5H6blpIFg3jRA=', 2),
+        ],
+    )
+    def test_parse_then_encode(self, raw, encoded, auth_type):
+        auth = HsDescAuthCookieAdapter.validate_python(raw)
+        assert int(auth.auth_type) == auth_type
+        serial = HsDescAuthCookieAdapter.dump_python(auth)
+        assert serial == encoded
+
+    @pytest.mark.parametrize(
+        'auth_type',
+        [
+            HsDescAuthTypeInt.BASIC_AUTH,
+            HsDescAuthTypeInt.STEALTH_AUTH,
+        ],
+    )
+    def test_generate(self, auth_type):
+        auth = HsDescAuthCookie.generate(auth_type)
+        assert auth.auth_type == auth_type
+        assert len(auth.cookie) == 16
+
+
+LongServerNameAdapter = TypeAdapter(LongServerName)
+
+
 class TestLongServerName:
     @pytest.mark.parametrize(
         ('string', 'nickname'),
@@ -145,9 +191,8 @@ class TestLongServerName:
     )
     def test_serialize(self, string, nickname):
         fp = b'\xa4\xde\x83I\xc2\x08\x9c\xc4q\xec\x12\t\x9f\x87\xbd\xd7\x97\xeb\xda\x8e'
-        adapter = TypeAdapter(LongServerName)
         server = LongServerName(fingerprint=fp, nickname=nickname)
-        serial = adapter.dump_python(server)
+        serial = LongServerNameAdapter.dump_python(server)
         assert serial == string
 
 

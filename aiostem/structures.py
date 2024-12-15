@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import secrets
 from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
@@ -295,7 +296,81 @@ class HsDescAction(StrEnum):
     UPLOADED = 'UPLOADED'
 
 
-class HsDescAuthType(StrEnum):
+@dataclass(kw_only=True, slots=True)
+class HsDescAuthCookie:
+    """An authentication cookie used for onion v2."""
+
+    #: Length of the random key generated here.
+    REND_DESC_COOKIE_LEN: ClassVar[int] = 16
+    #: Length of the base64 value without the usefless padding.
+    REND_DESC_COOKIE_LEN_BASE64: ClassVar[int] = 22
+    #: Length of the base64 value with the usefless padding.
+    REND_DESC_COOKIE_LEN_EXT_BASE64: ClassVar[int] = 24
+
+    #: Allowed values describing the type of auth cookie we have.
+    auth_type: Literal[HsDescAuthTypeInt.BASIC_AUTH, HsDescAuthTypeInt.STEALTH_AUTH]
+
+    #: Raw cookie value as 16 random bytes.
+    cookie: bytes
+
+    def __str__(self) -> str:
+        """Get the string representation of this auth cookie."""
+        raw = list(self.cookie)
+        raw.append((int(self.auth_type) - 1) << 4)
+        # print(self.auth_type, raw)
+        return base64.b64encode(bytes(raw)).decode('ascii')
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Declare schema and validator for a TCP connection."""
+        return core_schema.no_info_before_validator_function(
+            function=cls.from_value,
+            schema=handler(source),
+            serialization=core_schema.to_string_ser_schema(when_used='always'),
+        )
+
+    @classmethod
+    def generate(
+        cls,
+        auth_type: Literal[HsDescAuthTypeInt.BASIC_AUTH, HsDescAuthTypeInt.STEALTH_AUTH],
+    ) -> Self:
+        """Generate a new auth cookie."""
+        return cls(auth_type=auth_type, cookie=secrets.token_bytes(cls.REND_DESC_COOKIE_LEN))
+
+    @classmethod
+    def from_value(cls, value: Any) -> Any:
+        """Build a new auth cookie from any value."""
+        if isinstance(value, str):
+            # Add the padding to make b64decode happy.
+            if len(value) == cls.REND_DESC_COOKIE_LEN_BASE64:
+                value += 'A='
+            value = base64.b64decode(value)
+
+        if isinstance(value, bytes):
+            auth_byte = value[cls.REND_DESC_COOKIE_LEN] >> 4
+            auth_type = (
+                HsDescAuthTypeInt.BASIC_AUTH
+                if auth_byte == 0
+                else HsDescAuthTypeInt.STEALTH_AUTH
+            )  # type: Literal[HsDescAuthTypeInt.BASIC_AUTH, HsDescAuthTypeInt.STEALTH_AUTH]
+            value = cls(auth_type=auth_type, cookie=value[: cls.REND_DESC_COOKIE_LEN])
+
+        return value
+
+
+class HsDescAuthTypeInt(IntEnum):
+    """Integer values for :class:`HsDescAuthTypeStr`."""
+
+    NO_AUTH = 0
+    BASIC_AUTH = 1
+    STEALTH_AUTH = 2
+
+
+class HsDescAuthTypeStr(StrEnum):
     """Possible values for AuthType in a :attr:`~.EventWord.HS_DESC` event."""
 
     BASIC_AUTH = 'BASIC_AUTH'

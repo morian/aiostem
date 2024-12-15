@@ -13,7 +13,7 @@ from .exceptions import MessageError, ReplySyntaxError
 from .structures import (
     HiddenServiceAddress,
     HsDescAction,
-    HsDescAuthType,
+    HsDescAuthTypeStr,
     HsDescFailReason,
     LivenessStatus,
     LogSeverity,
@@ -421,8 +421,8 @@ class EventHsDesc(EventSimple):
     action: HsDescAction
     #: Onion address the report status is for (without the ``.onion`` suffix).
     address: HiddenServiceAddress | Literal['UNKNOWN']
-    #: Client authentication is not implemented and is always :attr:`~.HsDescAuthType.NO_AUTH`.
-    auth_type: HsDescAuthType
+    #: Client authentication here is always :attr:`~.HsDescAuthTypeStr.NO_AUTH`.
+    auth_type: HsDescAuthTypeStr
     #: The descriptor blinded key used for the index value at the "HsDir".
     descriptor_id: Base32Bytes | Base64Bytes | None = None
     #: Hidden service directory answering this request.

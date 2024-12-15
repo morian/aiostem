@@ -86,7 +86,15 @@ Hidden Service structures
    :undoc-members:
    :members:
 
-.. autoclass:: HsDescAuthType
+.. autoclass:: HsDescAuthTypeInt
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescAuthTypeStr
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescAuthCookie
    :undoc-members:
    :members:
 
