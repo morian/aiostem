@@ -40,7 +40,6 @@ from aiostem.protocol import (
     CommandResetConf,
     CommandResolve,
     CommandSaveConf,
-    CommandSerializer,
     CommandSetCircuitPurpose,
     CommandSetConf,
     CommandSetEvents,
@@ -50,11 +49,13 @@ from aiostem.protocol import (
     CommandWord,
     EventWord,
     OnionClientAuthFlags,
+    OnionServiceFlags,
     OnionServiceKeyType,
-    QuoteStyle,
     Signal,
     VirtualPort,
 )
+from aiostem.protocol.argument import QuoteStyle
+from aiostem.protocol.command import CommandSerializer
 
 VirtualPortAdapter = TypeAdapter(VirtualPort)
 
@@ -319,6 +320,21 @@ class TestCommands:
         )
         assert cmd.serialize() == (
             'ADD_ONION ED25519-V3:5lBH9zSk/KNPqpWRWCuNGg Port=80,127.0.0.1:80\r\n'
+        )
+
+    def test_add_onion_with_client_auth(self):
+        port = VirtualPortAdapter.validate_python('80,127.0.0.1:80')
+        cmd = CommandAddOnion(
+            key_type='NEW',
+            key='BEST',
+            ports=[port],
+            flags={OnionServiceFlags.DISCARD_PK},
+            max_streams=2,
+            client_auth=['5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ'],
+        )
+        assert cmd.serialize() == (
+            'ADD_ONION NEW:BEST Flags=DiscardPK MaxStreams=2 Port=80,127.0.0.1:80 '
+            'ClientAuth=5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ\r\n'
         )
 
     def test_add_onion_with_client_auth_v3(self):
