@@ -179,8 +179,6 @@ Bridge commands
 Command serializer
 ------------------
 
-.. currentmodule:: aiostem.protocol.utils
-
 .. autoclass:: CommandSerializer
    :no-show-inheritance:
    :undoc-members:
@@ -191,8 +189,6 @@ Command serializer
 
 Command names
 -------------
-
-.. currentmodule:: aiostem.protocol.command
 
 .. autoclass:: CommandWord
    :undoc-members:

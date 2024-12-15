@@ -33,8 +33,6 @@ from pydantic import ConfigDict, Field, TypeAdapter
 from pydantic_core import PydanticCustomError, core_schema
 from pydantic_core.core_schema import CoreSchema, WhenUsed
 
-from ..exceptions import CommandError
-
 if TYPE_CHECKING:
     from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
     from pydantic.json_schema import JsonSchemaValue
@@ -43,9 +41,6 @@ if TYPE_CHECKING:
         SerializerFunctionWrapHandler,
         ValidatorFunctionWrapHandler,
     )
-
-    from .argument import ArgumentKeyword, ArgumentString
-    from .command import CommandWord
 
 
 #: Any IP address, either IPv4 or IPv6.
@@ -96,85 +91,6 @@ class AsTimezone:
         if value.tzinfo is None:
             return value.replace(tzinfo=self.timezone)
         return value.astimezone(self.timezone)
-
-
-class CommandSerializer:
-    """Helper class used to serialize an existing command."""
-
-    #: End of line to use while serializing a command.
-    END_OF_LINE: ClassVar[str] = '\r\n'
-
-    def __init__(self, name: CommandWord) -> None:
-        """
-        Create a new command serializer.
-
-        This is used internally by :meth:`.Command.serialize`.
-
-        Args:
-            name: The command name.
-
-        """
-        self._body = None  # type: str | None
-        self._command = name
-        self._arguments = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-
-    def serialize(self) -> str:
-        """
-        Serialize the arguments to a string.
-
-        Returns:
-            Text that can be pushed to the server.
-
-        """
-        # Build the header line.
-        args = [self._command.value]
-        for argument in self._arguments:
-            args.append(str(argument))
-
-        header = ' '.join(args)
-        # Check for command injection in case some user-controlled values went through.
-        if any(c in header for c in '\r\v\n'):
-            msg = 'Command injection was detected and prevented'
-            raise CommandError(msg)
-        lines = [header]
-
-        # Include the potential body, if applicable.
-        if self._body is None:
-            prefix = ''
-        else:
-            for line in self._body.splitlines():
-                if line.startswith('.'):
-                    line = '.' + line
-                lines.append(line)
-            lines.append('.')
-            prefix = '+'
-        return prefix + self.END_OF_LINE.join(lines) + self.END_OF_LINE
-
-    @property
-    def command(self) -> CommandWord:
-        """Get the command name for the underlying command."""
-        return self._command
-
-    @property
-    def arguments(self) -> MutableSequence[ArgumentKeyword | ArgumentString]:
-        """Get the list of command arguments."""
-        return self._arguments
-
-    @property
-    def body(self) -> str | None:
-        """Get the command body, if any."""
-        return self._body
-
-    @body.setter
-    def body(self, body: str) -> None:
-        """
-        Set the command body.
-
-        Args:
-            body: The new body content for the command.
-
-        """
-        self._body = body
 
 
 #: Generic type used for our encoders.
@@ -809,7 +725,7 @@ class StringSplit:
             mode=mode,
         )
 
-        values = []  # type: MutableSequence[Any]
+        values: MutableSequence[Any] = []
         if self.dict_keys is not None:
             for key in self.dict_keys:
                 values.append(dump[key])

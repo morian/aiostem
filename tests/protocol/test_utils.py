@@ -9,24 +9,13 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
-from aiostem.exceptions import CommandError
-from aiostem.protocol import (
-    ArgumentKeyword,
-    ArgumentString,
-    AuthMethod,
-    CommandWord,
-    LogSeverity,
-    LongServerName,
-    QuoteStyle,
-    TcpAddressPort,
-)
+from aiostem.protocol import AuthMethod, LogSeverity, LongServerName, TcpAddressPort
 from aiostem.protocol.utils import (
     AsTimezone,
     Base32Bytes,
     Base32Encoder,
     Base64Bytes,
     Base64Encoder,
-    CommandSerializer,
     EncodedBytes,
     HexBytes,
     HiddenServiceAddressV2,
@@ -68,39 +57,6 @@ class TestAsTimezone:
     def test_usage_error_on_source_type(self, type_):
         with pytest.raises(TypeError, match='source type is not a datetime'):
             TypeAdapter(type_)
-
-
-class TestCommandSerializer:
-    """Check that the command serializer works."""
-
-    def test_default_properties(self):
-        ser = CommandSerializer(CommandWord.SETCONF)
-        assert ser.command == CommandWord.SETCONF
-        assert len(ser.arguments) == 0
-        assert ser.body is None
-
-    def test_serialize_argument(self):
-        ser = CommandSerializer(CommandWord.SETCONF)
-        arg = ArgumentKeyword(None, 'hello', quotes=QuoteStyle.ALWAYS)
-        ser.arguments.append(arg)
-        assert len(ser.arguments) == 1
-        assert ser.serialize() == 'SETCONF "hello"\r\n'
-
-    def test_serialize_simple_body(self):
-        ser = CommandSerializer(CommandWord.SETCONF)
-        ser.body = 'Hello world'
-        assert ser.serialize() == '+SETCONF\r\nHello world\r\n.\r\n'
-
-    def test_serialize_multiline_body(self):
-        ser = CommandSerializer(CommandWord.SETCONF)
-        ser.body = 'Hello world\n.dot'
-        assert ser.serialize() == '+SETCONF\r\nHello world\r\n..dot\r\n.\r\n'
-
-    def test_line_injection(self):
-        ser = CommandSerializer(CommandWord.SETCONF)
-        ser.arguments.append(ArgumentString('\r\nQUIT'))
-        with pytest.raises(CommandError, match='Command injection was detected'):
-            ser.serialize()
 
 
 class BaseEncoderTest:
