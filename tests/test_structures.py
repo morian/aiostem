@@ -130,7 +130,11 @@ class TestHsDescAuthCookie:
         [
             ('GmYIu0EKkd5H6blpIFg3jQ', 'GmYIu0EKkd5H6blpIFg3jQA=', 1),
             ('GmYIu0EKkd5H6blpIFg3jQA=', 'GmYIu0EKkd5H6blpIFg3jQA=', 1),
-            (bytes.fromhex('1a6608bb410a91de47e9b9692058378d00'),  'GmYIu0EKkd5H6blpIFg3jQA=', 1),
+            (
+                bytes.fromhex('1a6608bb410a91de47e9b9692058378d00'),
+                'GmYIu0EKkd5H6blpIFg3jQA=',
+                1,
+            ),
             (
                 HsDescAuthCookie(
                     auth_type=HsDescAuthTypeInt.BASIC_AUTH,

@@ -317,7 +317,6 @@ class HsDescAuthCookie:
         """Get the string representation of this auth cookie."""
         raw = list(self.cookie)
         raw.append((int(self.auth_type) - 1) << 4)
-        # print(self.auth_type, raw)
         return base64.b64encode(bytes(raw)).decode('ascii')
 
     @classmethod
