@@ -125,7 +125,7 @@ class ReplySyntax:
     #: Correspondance map for keyword arguments.
     kwargs_map: Mapping[str | None, str] = field(default_factory=dict)
     #: These KW mapping keys can hold multiple values.
-    kwargs_multi: AbstractSet[str | None] = field(default_factory=set)
+    kwargs_multi: AbstractSet[str | None] = field(default_factory=frozenset)
     #: List of parsing flags.
     flags: ReplySyntaxFlag = field(default_factory=lambda: ReplySyntaxFlag(0))
 

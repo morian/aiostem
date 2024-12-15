@@ -871,7 +871,7 @@ class SetToNone:
     """Pre-validator that sets a value to :obj:`None`."""
 
     #: List of values mapped to None.
-    values: AbstractSet[Any] = field(default_factory=set)
+    values: AbstractSet[Any] = field(default_factory=frozenset)
 
     def __get_pydantic_core_schema__(
         self,

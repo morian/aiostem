@@ -1153,7 +1153,7 @@ class CommandAddOnion(Command):
     #: As in an arguments to config ``HiddenServicePort``, ``port,target``.
     ports: MutableSequence[VirtualPort] = field(default_factory=list)
 
-    #: Syntax is ``ClientName:ClientBlob``.
+    #: Syntax is ``ClientName[:ClientBlob]``.
     client_auth: MutableSequence[str] = field(default_factory=list)
 
     #: String syntax is a base32-encoded ``x25519`` public key with only the key part.
