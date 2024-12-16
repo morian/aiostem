@@ -98,6 +98,12 @@ Hidden Service structures
    :undoc-members:
    :members:
 
+.. autoclass:: HsDescClientAuth
+   :undoc-members:
+   :members:
+
+.. autodata:: HsDescClientAuthV2
+
 .. autoclass:: HsDescFailReason
    :undoc-members:
    :members:

@@ -662,13 +662,16 @@ class ReplyAddOnion(Reply):
 
     #: Called `ServiceID` in the documentation, this is the onion address.
     address: HiddenServiceAddress | None = None
+
     #: List of client authentication for a v2 address.
     client_auth: Sequence[str] = field(default_factory=list)
+
     #: List of client authentication for a v3 address.
     client_auth_v3: Sequence[X25519PublicKeyBase32] = field(default_factory=list)
 
     #: Onion service key type.
     key_type: OnionServiceKeyType | None = None
+
     #: Onion service key bytes.
     key: Base64Bytes | None = None
 

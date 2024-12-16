@@ -49,6 +49,9 @@ from aiostem.exceptions import CommandError
 from aiostem.structures import (
     CircuitPurpose,
     CloseStreamReason,
+    HsDescAuthCookie,
+    HsDescAuthTypeInt,
+    HsDescClientAuthV2,
     OnionClientAuthFlags,
     OnionServiceFlags,
     OnionServiceKeyType,
@@ -323,6 +326,13 @@ class TestCommands:
         )
 
     def test_add_onion_with_client_auth(self):
+        auth = HsDescClientAuthV2(
+            name='John',
+            cookie=HsDescAuthCookie(
+                auth_type=HsDescAuthTypeInt.BASIC_AUTH,
+                cookie=bytes.fromhex('1a6608bb410a91de47e9b9692058378d'),
+            ),
+        )
         port = VirtualPortAdapter.validate_python('80,127.0.0.1:80')
         cmd = CommandAddOnion(
             key_type='NEW',
@@ -330,11 +340,11 @@ class TestCommands:
             ports=[port],
             flags={OnionServiceFlags.DISCARD_PK},
             max_streams=2,
-            client_auth=['5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ'],
+            client_auth=[auth],
         )
         assert cmd.serialize() == (
             'ADD_ONION NEW:BEST Flags=DiscardPK MaxStreams=2 Port=80,127.0.0.1:80 '
-            'ClientAuth=5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ\r\n'
+            'ClientAuth=John:GmYIu0EKkd5H6blpIFg3jQA=\r\n'
         )
 
     def test_add_onion_with_client_auth_v3(self):

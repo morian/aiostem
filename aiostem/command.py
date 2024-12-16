@@ -18,6 +18,7 @@ from .structures import (
     Feature,
     HiddenServiceAddress,
     HiddenServiceAddressV3,
+    HsDescClientAuthV2,
     LongServerName,
     OnionClientAuthFlags,
     OnionClientAuthKeyType,
@@ -1246,8 +1247,8 @@ class CommandAddOnion(Command):
     #: As in an arguments to config ``HiddenServicePort``, ``port,target``.
     ports: MutableSequence[VirtualPort] = field(default_factory=list)
 
-    #: Syntax is ``ClientName[:ClientBlob]``.
-    client_auth: MutableSequence[str] = field(default_factory=list)
+    #: Client authentications for Onion V2, syntax is ``ClientName[:ClientBlob]``.
+    client_auth: MutableSequence[HsDescClientAuthV2] = field(default_factory=list)
 
     #: String syntax is a base32-encoded ``x25519`` public key with only the key part.
     client_auth_v3: MutableSequence[X25519PublicKeyBase32] = field(default_factory=list)
@@ -1307,8 +1308,8 @@ class CommandAddOnion(Command):
             args.append(ArgumentKeyword('Port', port, quotes=QuoteStyle.NEVER_ENSURE))
         for auth in struct['client_auth']:
             args.append(ArgumentKeyword('ClientAuth', auth, quotes=QuoteStyle.NEVER_ENSURE))
-        for auth_v3 in struct['client_auth_v3']:
-            args.append(ArgumentKeyword('ClientAuthV3', auth_v3, quotes=QuoteStyle.NEVER))
+        for auth in struct['client_auth_v3']:
+            args.append(ArgumentKeyword('ClientAuthV3', auth, quotes=QuoteStyle.NEVER))
         ser.arguments.extend(args)
         return ser
 
