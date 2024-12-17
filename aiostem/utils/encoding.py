@@ -10,7 +10,6 @@ from pydantic_core.core_schema import CoreSchema, WhenUsed
 if TYPE_CHECKING:
     from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
     from pydantic.json_schema import JsonSchemaValue
-    from pydantic_core.core_schema import ValidatorFunctionWrapHandler
 
 
 #: Generic type used for our encoders.
@@ -244,9 +243,22 @@ class EncodedBase(Generic[T]):
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Tell the core schema and how to validate the whole thing."""
-        return core_schema.no_info_wrap_validator_function(
-            function=self._pydantic_validator,
-            schema=self.CORE_SCHEMA,
+        return core_schema.union_schema(
+            choices=[
+                # We can already be made of bytes and skip all processing from here.
+                self.CORE_SCHEMA,
+                # Otherwise we have to be a string and follow the decoding path.
+                core_schema.chain_schema(
+                    [
+                        core_schema.str_schema(strict=True),
+                        core_schema.no_info_before_validator_function(
+                            function=self.from_string,
+                            schema=self.CORE_SCHEMA,
+                        ),
+                    ],
+                ),
+            ],
+            # We are bytes and will be returned as a string.
             serialization=core_schema.plain_serializer_function_ser_schema(
                 function=self.to_string,
                 when_used=self.when_used,
@@ -255,7 +267,7 @@ class EncodedBase(Generic[T]):
 
     def __get_pydantic_json_schema__(
         self,
-        core_schema: CoreSchema,
+        schema: CoreSchema,
         handler: GetJsonSchemaHandler,
     ) -> JsonSchemaValue:
         """
@@ -265,19 +277,10 @@ class EncodedBase(Generic[T]):
             https://json-schema.org/draft/2020-12/json-schema-validation#name-contentencoding
 
         """
-        field_schema = handler(core_schema)
-        field_schema.update(type='string', contentEncoding=self.encoder.get_json_format())
+        content_encoding = self.encoder.get_json_format()
+        field_schema = handler(core_schema.bytes_schema())
+        field_schema.update(contentEncoding=content_encoding, type='string')
         return field_schema
-
-    def _pydantic_validator(
-        self,
-        data: Any,
-        validator: ValidatorFunctionWrapHandler,
-    ) -> T:
-        """Decode the data using the specified encoder."""
-        if isinstance(data, str):
-            return validator(self.from_string(data))
-        return validator(data)
 
     def from_string(self, string: str) -> T:
         """Decode a string to the underlying type."""
@@ -293,7 +296,7 @@ class EncodedBytes(EncodedBase[bytes]):
     """Bytes that can be encoded and decoded from a string using an external encoder."""
 
     #: Our core schema is for :class:`bytes`.
-    CORE_SCHEMA = core_schema.bytes_schema()
+    CORE_SCHEMA = core_schema.bytes_schema(strict=True)
 
     def __hash__(self) -> int:
         """
