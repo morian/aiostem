@@ -51,14 +51,7 @@ from .types import (
     DatetimeUTC,
     TimedeltaMilliseconds,
 )
-from .utils import (
-    Message,
-    MessageData,
-    ReplySyntax,
-    ReplySyntaxFlag,
-    TrBeforeLogSeverity,
-    TrBeforeSetToNone,
-)
+from .utils import Message, MessageData, ReplySyntax, ReplySyntaxFlag, TrBeforeSetToNone
 
 logger = logging.getLogger(__package__)
 
@@ -510,7 +503,7 @@ class EventLog(Event):
     )
 
     #: Log severity.
-    severity: Annotated[LogSeverity, TrBeforeLogSeverity()]
+    severity: LogSeverity
     #: Log message.
     message: str
 
@@ -632,7 +625,7 @@ class EventStatus(Event):
     #: Severity of the reported status.
     severity: Annotated[
         Literal[LogSeverity.NOTICE, LogSeverity.WARNING, LogSeverity.ERROR],
-        TrBeforeLogSeverity(),
+        LogSeverity,
     ]
     #: Status action reported by this event (sub-classed).
     action: StrEnum
@@ -924,7 +917,7 @@ class EventPtLog(EventSimple):
     #: the ``STATUS`` string prefix.
     message: str
     #: Log severity.
-    severity: Annotated[LogSeverity, TrBeforeLogSeverity()]
+    severity: LogSeverity
 
 
 @dataclass(kw_only=True, slots=True)

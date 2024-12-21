@@ -3,33 +3,23 @@ from __future__ import annotations
 import typing
 from collections.abc import (
     Collection,
-    MutableSequence,
+    Mapping,
+    MutableSequence,  # noqa: F401
     Sequence,
     Set as AbstractSet,
 )
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, tzinfo
-from functools import partial
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    ClassVar,
-    Literal,  # noqa: F401
-)
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
-from pydantic import ConfigDict, TypeAdapter
+from pydantic import ConfigDict, PydanticSchemaGenerationError
 from pydantic_core import core_schema
 from pydantic_core.core_schema import CoreSchema, WhenUsed
 
 if TYPE_CHECKING:
-    from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
-    from pydantic.json_schema import JsonSchemaValue
-    from pydantic_core.core_schema import (
-        SerializationInfo,
-        SerializerFunctionWrapHandler,
-        ValidatorFunctionWrapHandler,
-    )
+    from pydantic import GetCoreSchemaHandler
+    from pydantic_core.core_schema import SerializerFunctionWrapHandler
 
 
 @dataclass(frozen=True, slots=True)
@@ -49,9 +39,14 @@ class TrAfterAsTimezone:
             msg = f"source type is not a datetime, got '{source.__name__}'"
             raise TypeError(msg)
 
-        return core_schema.no_info_after_validator_function(
-            function=self.from_value,
-            schema=handler(source),
+        return core_schema.chain_schema(
+            steps=[
+                core_schema.datetime_schema(),
+                core_schema.no_info_after_validator_function(
+                    function=self.from_value,
+                    schema=core_schema.datetime_schema(),
+                ),
+            ],
         )
 
     def from_value(self, value: datetime) -> datetime:
@@ -70,27 +65,27 @@ class TrAfterAsTimezone:
         return value.astimezone(self.timezone)
 
 
-class TrBeforeLogSeverity:
-    """Pre-validator for strings to build a valid :class:`.LogSeverity`."""
+@dataclass(frozen=True, slots=True)
+class TrCast:
+    """Pre-validator that converts to the target type."""
+
+    #: Type we want to cast this to!
+    target: type[Any]
 
     def __get_pydantic_core_schema__(
         self,
-        source: type[str],
+        source: type[Any],
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
-        """Set a custom validator used to transform the input string."""
-        return core_schema.no_info_before_validator_function(
-            self.from_value,
-            handler(source),
+        """Declare schema and validator to cast to the provided type."""
+        source_schema = handler(source)
+        target_schema = handler.generate_schema(self.target)
+        return core_schema.chain_schema(
+            steps=[
+                target_schema,
+                source_schema,
+            ],
         )
-
-    def from_value(self, value: Any) -> Any:
-        """Parse the input value, split it when it is a string."""
-        if isinstance(value, str):  # pragma: no branch
-            value = value.upper()
-            if value == 'ERR':
-                value = 'ERROR'
-        return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -107,8 +102,8 @@ class TrBeforeSetToNone:
     ) -> CoreSchema:
         """Declare schema and validator to replace values to None."""
         return core_schema.no_info_before_validator_function(
-            self.from_value,
-            handler(source),
+            function=self.from_value,
+            schema=handler(source),
         )
 
     def from_value(self, value: Any) -> Any:
@@ -153,71 +148,54 @@ class TrBeforeStringSplit:
     ) -> CoreSchema:
         """Tell the core schema and how to validate the whole thing."""
         if self.dict_keys is None:
-            # Check that we have a valid collection of something like a str, int, float, bool.
-            origin = typing.get_origin(source)
+            # Check that we have a valid collection of something else.
+            origin = typing.get_origin(source) or source
             if not isinstance(origin, type) or not issubclass(origin, Collection):
                 msg = f"source type is not a collection, got '{source.__name__}'"
                 raise TypeError(msg)
 
-        return core_schema.no_info_before_validator_function(
-            function=self.from_value,
-            schema=handler(source),
-            serialization=core_schema.plain_serializer_function_ser_schema(
-                function=partial(self.serialize, TypeAdapter(source)),
-                info_arg=True,
+        return core_schema.union_schema(
+            choices=[
+                handler(source),
+                core_schema.chain_schema(
+                    steps=[
+                        core_schema.str_schema(),
+                        core_schema.no_info_before_validator_function(
+                            function=self._pydantic_validator,
+                            schema=handler(source),
+                        ),
+                    ],
+                ),
+            ],
+            serialization=core_schema.wrap_serializer_function_ser_schema(
+                function=self._pydantic_serializer,
+                schema=handler(source),
                 return_schema=core_schema.str_schema(),
                 when_used=self.when_used,
             ),
         )
 
-    def __get_pydantic_json_schema__(
-        self,
-        core_schema: CoreSchema,
-        handler: GetJsonSchemaHandler,
-    ) -> JsonSchemaValue:
-        """Update JSON schema to tell about plain text and separator."""
-        field_schema = handler(core_schema)
-        field_schema.update(
-            type='string',
-            maxSplit=self.maxsplit,
-            separator=self.separator,
-        )
-        return field_schema
+    def _pydantic_validator(self, value: str) -> Sequence[str] | Mapping[str, str]:
+        """Parse the input string and convert it to a list or a dictionary."""
+        items = value.split(self.separator, maxsplit=self.maxsplit)
+        if self.dict_keys is not None:
+            return dict(zip(self.dict_keys, items, strict=False))
+        return items
 
-    def from_value(self, value: Any) -> Any:
-        """Parse the input value, split it when it is a string."""
-        if isinstance(value, bytes | bytearray):
-            value = value.decode()
-        if isinstance(value, str):
-            items = value.split(self.separator, maxsplit=self.maxsplit)
-            if self.dict_keys is not None:
-                return dict(zip(self.dict_keys, items, strict=False))
-            return items
-        return value
-
-    def serialize(
+    def _pydantic_serializer(
         self,
-        adapter: TypeAdapter[Any],
-        item: Any,
-        info: SerializationInfo,
+        value: Any,
+        serializer: SerializerFunctionWrapHandler,
     ) -> str:
         """Tells how we serialize this collection for JSON."""
-        mode = 'json' if info.mode_is_json() else 'python'  # type: Literal['json', 'python']
-        dump = adapter.dump_python(
-            item,
-            exclude_defaults=info.exclude_defaults,
-            exclude_none=info.exclude_none,
-            exclude_unset=info.exclude_unset,
-            mode=mode,
-        )
+        values = []  # type: MutableSequence[str]
+        parts = serializer(value)
 
-        values: MutableSequence[Any] = []
-        if self.dict_keys is not None:
+        if isinstance(parts, Mapping) and isinstance(self.dict_keys, Sequence):
             for key in self.dict_keys:
-                values.append(dump[key])
+                values.append(parts[key])
         else:
-            values.extend(dump)
-
+            values.extend(parts)
         return self.separator.join(map(str, values))
 
 
@@ -238,29 +216,46 @@ class TrBeforeTimedelta:
             msg = f"source type is not a timedelta, got '{source.__name__}'"
             raise TypeError(msg)
 
-        return core_schema.no_info_before_validator_function(
-            self.from_value,
-            handler(source),
+        return core_schema.union_schema(
+            choices=[
+                handler(source),
+                core_schema.chain_schema(
+                    steps=[
+                        core_schema.float_schema(),
+                        core_schema.no_info_before_validator_function(
+                            self.from_float,
+                            handler(source),
+                        ),
+                    ],
+                ),
+            ],
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                function=self.to_float,
+                return_schema=core_schema.float_schema(),
+            ),
         )
 
-    def from_value(self, value: Any) -> Any:
+    def from_float(self, value: float) -> timedelta:
         """Parse the input value as an integer or float timedelta."""
-        if isinstance(value, int | str):
-            value = float(value)
-        if isinstance(value, float):
-            if self.milliseconds:
-                value = value / 1000.0
-            value = timedelta(seconds=value)
+        if self.milliseconds:
+            value = value / 1000.0
+        return timedelta(seconds=value)
+
+    def to_float(self, delta: timedelta) -> float:
+        """Convert the timedelta value to a float."""
+        value = delta.total_seconds()
+        if self.milliseconds:
+            value = 1000.0 * value
         return value
 
 
 @dataclass(frozen=True, slots=True)
-class TrWrapX25519PrivateKey:
+class TrX25519PrivateKey:
     """Transform bytes into a X25519 private key."""
 
     def __get_pydantic_core_schema__(
         self,
-        source: type[X25519PrivateKey],
+        source: type[Any],
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Declare schema and validator for a X25519 private key."""
@@ -268,32 +263,29 @@ class TrWrapX25519PrivateKey:
             msg = f"source type is not a x25519 private key, got '{source.__name__}'"
             raise TypeError(msg)
 
-        return core_schema.no_info_wrap_validator_function(
-            function=self._pydantic_validator,
-            schema=handler(source),
-            serialization=core_schema.wrap_serializer_function_ser_schema(
-                function=self._pydantic_serializer,
-                schema=handler(source),
+        try:
+            source_schema = handler(source)
+        except PydanticSchemaGenerationError:
+            source_schema = core_schema.bytes_schema(strict=True)
+
+        return core_schema.union_schema(
+            choices=[
+                core_schema.is_instance_schema(X25519PrivateKey),
+                core_schema.chain_schema(
+                    steps=[
+                        source_schema,
+                        core_schema.no_info_after_validator_function(
+                            function=self.from_bytes,
+                            schema=core_schema.bytes_schema(strict=True),
+                        ),
+                    ],
+                ),
+            ],
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                function=self.to_bytes,
+                return_schema=source_schema,
             ),
         )
-
-    def _pydantic_serializer(
-        self,
-        key: X25519PrivateKey,
-        serialize: SerializerFunctionWrapHandler,
-    ) -> Any:
-        """Serialize the current key to bytes and beyond."""
-        return serialize(self.to_bytes(key))
-
-    def _pydantic_validator(
-        self,
-        data: Any,
-        validator: ValidatorFunctionWrapHandler,
-    ) -> X25519PrivateKey:
-        """Decode the underlying X25519 private key."""
-        if isinstance(data, str | bytes):
-            data = self.from_bytes(validator(data))
-        return data
 
     def from_bytes(self, data: bytes) -> X25519PrivateKey:
         """
@@ -317,12 +309,12 @@ class TrWrapX25519PrivateKey:
 
 
 @dataclass(frozen=True, slots=True)
-class TrWrapX25519PublicKey:
+class TrX25519PublicKey:
     """Transform bytes into a X25519 public key."""
 
     def __get_pydantic_core_schema__(
         self,
-        source: type[X25519PublicKey],
+        source: type[Any],
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Declare schema and validator for a X25519 public key."""
@@ -330,32 +322,29 @@ class TrWrapX25519PublicKey:
             msg = f"source type is not a x25519 public key, got '{source.__name__}'"
             raise TypeError(msg)
 
-        return core_schema.no_info_wrap_validator_function(
-            function=self._pydantic_validator,
-            schema=handler(source),
-            serialization=core_schema.wrap_serializer_function_ser_schema(
-                function=self._pydantic_serializer,
-                schema=handler(source),
+        try:
+            source_schema = handler(source)
+        except PydanticSchemaGenerationError:
+            source_schema = core_schema.bytes_schema(strict=True)
+
+        return core_schema.union_schema(
+            choices=[
+                core_schema.is_instance_schema(X25519PublicKey),
+                core_schema.chain_schema(
+                    steps=[
+                        source_schema,
+                        core_schema.no_info_after_validator_function(
+                            function=self.from_bytes,
+                            schema=core_schema.bytes_schema(strict=True),
+                        ),
+                    ],
+                ),
+            ],
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                function=self.to_bytes,
+                return_schema=source_schema,
             ),
         )
-
-    def _pydantic_serializer(
-        self,
-        key: X25519PublicKey,
-        serialize: SerializerFunctionWrapHandler,
-    ) -> Any:
-        """Serialize the current key to bytes and beyond."""
-        return serialize(self.to_bytes(key))
-
-    def _pydantic_validator(
-        self,
-        data: Any,
-        validator: ValidatorFunctionWrapHandler,
-    ) -> X25519PublicKey:
-        """Decode the underlying X25519 public key."""
-        if isinstance(data, str | bytes):
-            data = self.from_bytes(validator(data))
-        return data
 
     def from_bytes(self, data: bytes) -> X25519PublicKey:
         """

@@ -6,12 +6,12 @@ from .message import BaseMessage, Message, MessageData, MessageLine, messages_fr
 from .syntax import ReplySyntax, ReplySyntaxFlag
 from .transformers import (
     TrAfterAsTimezone,
-    TrBeforeLogSeverity,
     TrBeforeSetToNone,
     TrBeforeStringSplit,
     TrBeforeTimedelta,
-    TrWrapX25519PrivateKey,
-    TrWrapX25519PublicKey,
+    TrCast,
+    TrX25519PrivateKey,
+    TrX25519PublicKey,
 )
 
 __all__ = [
@@ -29,11 +29,11 @@ __all__ = [
     'ReplySyntax',
     'ReplySyntaxFlag',
     'TrAfterAsTimezone',
-    'TrBeforeLogSeverity',
     'TrBeforeSetToNone',
     'TrBeforeStringSplit',
     'TrBeforeTimedelta',
-    'TrWrapX25519PrivateKey',
-    'TrWrapX25519PublicKey',
+    'TrCast',
+    'TrX25519PrivateKey',
+    'TrX25519PublicKey',
     'messages_from_stream',
 ]

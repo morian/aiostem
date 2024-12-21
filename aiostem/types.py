@@ -14,8 +14,8 @@ from .utils import (
     EncodedBytes,
     TrAfterAsTimezone,
     TrBeforeTimedelta,
-    TrWrapX25519PrivateKey,
-    TrWrapX25519PublicKey,
+    TrX25519PrivateKey,
+    TrX25519PublicKey,
 )
 
 #: Any IP address, either IPv4 or IPv6.
@@ -57,12 +57,12 @@ TimedeltaSeconds: TypeAlias = Annotated[
 X25519PublicKeyBase32: TypeAlias = Annotated[
     X25519PublicKey,
     EncodedBytes(encoder=Base32Encoder),
-    TrWrapX25519PublicKey(),
+    TrX25519PublicKey(),
 ]
 
 #: Base64 encoded bytes parsed as a private x25519 key.
 X25519PrivateKeyBase64: TypeAlias = Annotated[
     X25519PrivateKey,
     EncodedBytes(encoder=Base64Encoder),
-    TrWrapX25519PrivateKey(),
+    TrX25519PrivateKey(),
 ]

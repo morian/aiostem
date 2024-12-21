@@ -11,15 +11,16 @@ from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Self, TypeAlias, Union
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
-from pydantic import NonNegativeInt
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
+from pydantic import BeforeValidator, Discriminator, NonNegativeInt, Tag, WrapSerializer
 from pydantic_core import PydanticCustomError, core_schema
 
-from .types import AnyAddress, AnyPort, Base16Bytes, TimedeltaSeconds, X25519PrivateKeyBase64
-from .utils import TrBeforeStringSplit
+from .types import AnyAddress, AnyPort, Base16Bytes, Base64Bytes, TimedeltaSeconds
+from .utils import TrBeforeStringSplit, TrCast, TrX25519PrivateKey
 
 if TYPE_CHECKING:
     from pydantic import GetCoreSchemaHandler
-    from pydantic_core.core_schema import CoreSchema, ValidatorFunctionWrapHandler
+    from pydantic_core.core_schema import CoreSchema, SerializerFunctionWrapHandler
 
 
 class AuthMethod(StrEnum):
@@ -165,27 +166,21 @@ class HiddenServiceAddressV2(BaseHiddenServiceAddress):
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Declare schema and validator for a v2 hidden service address."""
-        return core_schema.no_info_wrap_validator_function(
-            cls._pydantic_wrap_validator,
-            core_schema.str_schema(
-                pattern=cls.ADDRESS_PATTERN,
-                min_length=cls.ADDRESS_LENGTH,
-                max_length=cls.ADDRESS_LENGTH + cls.ADDRESS_SUFFIX_LENGTH,
-                ref='onion_v2',
-                strict=True,
-            ),
+        return core_schema.union_schema(
+            choices=[
+                core_schema.is_instance_schema(cls),
+                core_schema.no_info_after_validator_function(
+                    function=cls.from_string,
+                    schema=core_schema.str_schema(
+                        pattern=cls.ADDRESS_PATTERN,
+                        min_length=cls.ADDRESS_LENGTH,
+                        max_length=cls.ADDRESS_LENGTH + cls.ADDRESS_SUFFIX_LENGTH,
+                        ref='onion_v2',
+                        strict=True,
+                    ),
+                ),
+            ]
         )
-
-    @classmethod
-    def _pydantic_wrap_validator(
-        cls,
-        value: Any,
-        validator: ValidatorFunctionWrapHandler,
-    ) -> Self:
-        """Validate any input value provided by the user."""
-        if isinstance(value, cls):
-            return value
-        return cls.from_string(validator(value))
 
     @classmethod
     def from_string(cls, domain: str) -> Self:
@@ -217,27 +212,21 @@ class HiddenServiceAddressV3(BaseHiddenServiceAddress):
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Declare schema and validator for a v3 hidden service address."""
-        return core_schema.no_info_wrap_validator_function(
-            cls._pydantic_wrap_validator,
-            core_schema.str_schema(
-                pattern=cls.ADDRESS_PATTERN,
-                min_length=cls.ADDRESS_LENGTH,
-                max_length=cls.ADDRESS_LENGTH + cls.ADDRESS_SUFFIX_LENGTH,
-                ref='onion_v3',
-                strict=True,
-            ),
+        return core_schema.union_schema(
+            choices=[
+                core_schema.is_instance_schema(cls),
+                core_schema.no_info_after_validator_function(
+                    function=cls.from_string,
+                    schema=core_schema.str_schema(
+                        pattern=cls.ADDRESS_PATTERN,
+                        min_length=cls.ADDRESS_LENGTH,
+                        max_length=cls.ADDRESS_LENGTH + cls.ADDRESS_SUFFIX_LENGTH,
+                        ref='onion_v3',
+                        strict=True,
+                    ),
+                ),
+            ]
         )
-
-    @classmethod
-    def _pydantic_wrap_validator(
-        cls,
-        value: Any,
-        validator: ValidatorFunctionWrapHandler,
-    ) -> Self:
-        """Validate any input value provided by the user."""
-        if isinstance(value, cls):
-            return value
-        return cls.from_string(validator(value))
 
     @classmethod
     def from_string(cls, domain: str) -> Self:
@@ -325,12 +314,51 @@ class HsDescAuthCookie:
         source: type[Any],
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
-        """Declare schema and validator for a TCP connection."""
-        return core_schema.no_info_before_validator_function(
-            function=cls.from_value,
-            schema=handler(source),
+        """Declare schema and validator for an onion v2 auth cookie."""
+        return core_schema.union_schema(
+            choices=[
+                # Case were we already have a nice structure.
+                handler(source),
+                # Case where we are building from a base64-encoded string.
+                core_schema.chain_schema(
+                    steps=[
+                        core_schema.str_schema(strict=True),
+                        core_schema.no_info_before_validator_function(
+                            function=cls.from_string,
+                            schema=handler(source),
+                        ),
+                    ],
+                ),
+                # Case where we are building from raw bytes.
+                core_schema.chain_schema(
+                    steps=[
+                        core_schema.bytes_schema(strict=True),
+                        core_schema.no_info_before_validator_function(
+                            function=cls.from_bytes,
+                            schema=handler(source),
+                        ),
+                    ],
+                ),
+            ],
             serialization=core_schema.to_string_ser_schema(when_used='always'),
         )
+
+    @classmethod
+    def from_string(cls, value: str) -> Self:
+        """Get the bytes from a standard string."""
+        # Add the padding to make b64decode happy.
+        if len(value) == cls.REND_DESC_COOKIE_LEN_BASE64:
+            value += 'A='
+        return cls.from_bytes(base64.b64decode(value))
+
+    @classmethod
+    def from_bytes(cls, value: bytes) -> Self:
+        """Build a new instance from raw bytes."""
+        auth_byte = value[cls.REND_DESC_COOKIE_LEN] >> 4
+        auth_type = (
+            HsDescAuthTypeInt.BASIC_AUTH if auth_byte == 0 else HsDescAuthTypeInt.STEALTH_AUTH
+        )  # type: Literal[HsDescAuthTypeInt.BASIC_AUTH, HsDescAuthTypeInt.STEALTH_AUTH]
+        return cls(auth_type=auth_type, cookie=value[: cls.REND_DESC_COOKIE_LEN])
 
     @classmethod
     def generate(
@@ -339,26 +367,6 @@ class HsDescAuthCookie:
     ) -> Self:
         """Generate a new auth cookie."""
         return cls(auth_type=auth_type, cookie=secrets.token_bytes(cls.REND_DESC_COOKIE_LEN))
-
-    @classmethod
-    def from_value(cls, value: Any) -> Any:
-        """Build a new auth cookie from any value."""
-        if isinstance(value, str):
-            # Add the padding to make b64decode happy.
-            if len(value) == cls.REND_DESC_COOKIE_LEN_BASE64:
-                value += 'A='
-            value = base64.b64decode(value)
-
-        if isinstance(value, bytes):
-            auth_byte = value[cls.REND_DESC_COOKIE_LEN] >> 4
-            auth_type = (
-                HsDescAuthTypeInt.BASIC_AUTH
-                if auth_byte == 0
-                else HsDescAuthTypeInt.STEALTH_AUTH
-            )  # type: Literal[HsDescAuthTypeInt.BASIC_AUTH, HsDescAuthTypeInt.STEALTH_AUTH]
-            value = cls(auth_type=auth_type, cookie=value[: cls.REND_DESC_COOKIE_LEN])
-
-        return value
 
 
 class HsDescAuthTypeInt(IntEnum):
@@ -446,6 +454,39 @@ class LogSeverity(StrEnum):
     WARNING = 'WARN'
     ERROR = 'ERROR'
 
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Build a core schema to validate this value."""
+        return core_schema.union_schema(
+            choices=[
+                # In case we are already a LogSeverity.
+                handler(source),
+                # Otherwise execute the chain of validators.
+                core_schema.chain_schema(
+                    steps=[
+                        # First we require the input to be a string in upper case.
+                        core_schema.str_schema(to_upper=True),
+                        # Then we setup our own validator.
+                        core_schema.no_info_before_validator_function(
+                            function=cls._pydantic_validator,
+                            schema=handler(source),
+                        ),
+                    ]
+                ),
+            ]
+        )
+
+    @classmethod
+    def _pydantic_validator(cls, value: str) -> Self:
+        """Normalize the input value to a log severity."""
+        if value == 'ERR':
+            value = 'ERROR'
+        return cls(value)
+
 
 @dataclass(frozen=True, slots=True)
 class LongServerName:
@@ -471,9 +512,19 @@ class LongServerName:
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Declare schema and validator for a long server name."""
-        return core_schema.no_info_after_validator_function(
-            function=cls.from_string,
-            schema=core_schema.str_schema(),
+        return core_schema.union_schema(
+            choices=[
+                handler(source),
+                core_schema.chain_schema(
+                    steps=[
+                        core_schema.str_schema(strict=True),
+                        core_schema.no_info_before_validator_function(
+                            function=cls.from_string,
+                            schema=handler(source),
+                        ),
+                    ]
+                ),
+            ],
             serialization=core_schema.to_string_ser_schema(when_used='always'),
         )
 
@@ -515,18 +566,87 @@ class OnionClientAuthKeyType(StrEnum):
     X25519 = 'x25519'
 
 
+@dataclass(frozen=True, slots=True)
+class OnionClientAuthKeyStruct:
+    """Intermediate structure used to parse a key for an authorized client."""
+
+    #: Type of key we are about to parse.
+    auth_type: OnionClientAuthKeyType
+
+    #: Data bytes for the provided key.
+    data: Base64Bytes
+
+
+def _discriminate_private_key(v: Any) -> str:
+    """Find how to discriminate the provided key."""
+    match v:
+        case OnionClientAuthKeyStruct():
+            return v.auth_type.value
+        case X25519PrivateKey():
+            return 'x25519'
+
+    msg = 'Unknown discrimination type for client auth key!'
+    raise TypeError(msg)
+
+
+def _onion_client_auth_key_to_struct(
+    key: X25519PrivateKey,
+    serializer: SerializerFunctionWrapHandler,
+) -> OnionClientAuthKeyStruct:
+    """Build a OnionClientAuthKeyStruct from a raw key."""
+    match key:
+        case X25519PrivateKey():
+            return OnionClientAuthKeyStruct(
+                auth_type=OnionClientAuthKeyType.X25519,
+                data=serializer(key),
+            )
+
+        case _:
+            msg = 'Unhandled onion client auth key type.'
+            raise TypeError(msg)
+
+
+#: Validator used to extract the raw key material after discrimination.
+OnionClientAuthKeyExtractKeyBytes = BeforeValidator(lambda auth: auth.data)
+
+#: Build a OnionClientAuthKeyStruct structure from a real key.
+OnionClientAuthKeyFromKey = WrapSerializer(
+    func=_onion_client_auth_key_to_struct,
+    return_type=OnionClientAuthKeyStruct,
+)
+
+#: Parse and serialize any onion client auth key with format ``x25519:[base64]``.
+OnionClientAuthKey: TypeAlias = Annotated[
+    Union[  # noqa: UP007
+        Annotated[
+            X25519PrivateKey,
+            TrX25519PrivateKey(),
+            OnionClientAuthKeyExtractKeyBytes,
+            OnionClientAuthKeyFromKey,
+            Tag('x25519'),
+        ],
+        # Needed as we don't handle another type in this union (yet).
+        Annotated[OnionClientAuthKeyStruct, Tag('__default__')],
+    ],
+    Discriminator(_discriminate_private_key),
+    TrCast(OnionClientAuthKeyStruct),
+    TrBeforeStringSplit(
+        dict_keys=('auth_type', 'data'),
+        maxsplit=1,
+        separator=':',
+    ),
+]
+
+
 @dataclass(kw_only=True, slots=True)
-class OnionClientAuthKey:
+class OnionClientAuth:
     """A client key attached to a single onion domain."""
 
     #: Hidden service address without the ``.onion`` suffix.
     address: HiddenServiceAddress
 
-    #: Client's private key type (currently only :attr:`~OnionClientAuthKeyType.X25519`).
-    key_type: OnionClientAuthKeyType = OnionClientAuthKeyType.X25519
-
-    #: Client's private ``x25519`` key (32 bytes).
-    key: X25519PrivateKeyBase64
+    #: Client's private ``x25519`` key.
+    key: OnionClientAuthKey
 
     #: Client name (optional).
     name: str | None = None
@@ -776,10 +896,10 @@ class StatusClientCircuitNotEstablished:
 class StatusClientDangerousPort:
     """Arguments for action :attr:`StatusActionClient.DANGEROUS_PORT`."""
 
-    #: A stream was initiated and this port is commonly used for vulnerable protocols.
-    port: AnyPort
     #: When "reject", we refused the connection; whereas if it's "warn", we allowed it.
     reason: Literal['REJECT', 'WARN']
+    #: A stream was initiated and this port is commonly used for vulnerable protocols.
+    port: AnyPort
 
 
 @dataclass(kw_only=True, slots=True)
@@ -788,6 +908,7 @@ class StatusClientDangerousSocks:
 
     #: The protocol implied in this dangerous connection.
     protocol: Literal['SOCKS4', 'SOCKS5']
+
     #: The address and port implied in this connection.
     address: TcpAddressPort
 
@@ -982,14 +1103,17 @@ class TcpAddressPort:
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Declare schema and validator for a TCP connection."""
-        return core_schema.no_info_after_validator_function(
-            function=cls.from_string,
-            schema=core_schema.str_schema(),
+        # There is an issue here due to our complex handling or EventStatusClient.
+        # Our schema is not taken into account when used in a discrimated union...
+        # The only way we found to have this work is to use a before validation here.
+        return core_schema.no_info_before_validator_function(
+            function=cls._pydantic_validator,
+            schema=handler(source),
             serialization=core_schema.to_string_ser_schema(when_used='always'),
         )
 
     @classmethod
-    def from_string(cls, string: str) -> Self:
+    def _pydantic_validator(cls, value: Any) -> Any:
         """
         Build a new instance from a single string.
 
@@ -997,14 +1121,19 @@ class TcpAddressPort:
             An instance of this class properly parsed from the provided string.
 
         """
-        if string.startswith('['):
-            str_host, port = string.removeprefix('[').split(']:', maxsplit=1)
-            host = IPv6Address(str_host)  # type: AnyAddress
-        else:
-            str_host, port = string.split(':', maxsplit=1)
-            host = IPv4Address(str_host)
+        if isinstance(value, str):
+            host: AnyAddress
 
-        return cls(host=host, port=int(port))
+            if value.startswith('['):
+                str_host, port = value.removeprefix('[').split(']:', maxsplit=1)
+                host = IPv6Address(str_host)
+            else:
+                str_host, port = value.split(':', maxsplit=1)
+                host = IPv4Address(str_host)
+
+            value = cls(host=host, port=int(port))
+
+        return value
 
 
 @dataclass(kw_only=True, slots=True)

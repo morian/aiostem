@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from base64 import b32encode
 from ipaddress import IPv4Address, IPv6Address
+from typing import TYPE_CHECKING, ClassVar
 
+import pydantic
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
+from packaging.version import Version
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from aiostem.structures import (
@@ -12,9 +16,15 @@ from aiostem.structures import (
     HiddenServiceAddressV3,
     HsDescAuthCookie,
     HsDescAuthTypeInt,
+    LogSeverity,
     LongServerName,
+    OnionClientAuthKey,
     TcpAddressPort,
 )
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
 
 HiddenServiceAdapterV2 = TypeAdapter(HiddenServiceAddressV2)
 HiddenServiceAdapterV3 = TypeAdapter(HiddenServiceAddressV3)
@@ -51,8 +61,11 @@ class TestHiddenServiceV2:
         with pytest.raises(ValidationError, match=f'type={errtype}') as exc:
             Model(v=address)
 
-        assert len(exc.value.errors()) == 1, exc.value.errors()
+        # Here we have two errors since we are neither and instance nor compatible.
+        assert len(exc.value.errors()) == 2, exc.value.errors()
         error = exc.value.errors()[0]
+        assert error['type'] == 'is_instance_of', address
+        error = exc.value.errors()[1]
         assert error['type'] == errtype, address
 
 
@@ -116,8 +129,10 @@ class TestHiddenServiceV3:
         with pytest.raises(ValidationError, match=f'type={errtype}') as exc:
             Model(v=address)
 
-        assert len(exc.value.errors()) == 1, exc.value.errors()
+        assert len(exc.value.errors()) == 2, exc.value.errors()
         error = exc.value.errors()[0]
+        assert error['type'] == 'is_instance_of', address
+        error = exc.value.errors()[1]
         assert error['type'] == errtype, address
 
 
@@ -166,19 +181,44 @@ class TestHsDescAuthCookie:
         assert len(auth.cookie) == 16
 
 
+class TestLogSeverity:
+    ADAPTER = TypeAdapter(LogSeverity)
+    TEST_CASES: ClassVar[Sequence[str]] = [
+        LogSeverity.ERROR,
+        'ERR',
+        'ERROR',
+        'Error',
+        'err',
+    ]
+
+    @pytest.mark.parametrize('entry', TEST_CASES)
+    def test_log_severity_with_values(self, entry):
+        value = self.ADAPTER.validate_python(entry)
+        assert value == LogSeverity.ERROR
+
+
 LongServerNameAdapter = TypeAdapter(LongServerName)
 
 
 class TestLongServerName:
+    ADAPTER = TypeAdapter(LongServerName)
+
     @pytest.mark.parametrize(
-        ('string', 'nickname'),
+        ('entry', 'nickname'),
         [
+            (
+                LongServerName(
+                    fingerprint=bytes.fromhex('14AE2154A26F1D42C3C3BEDC10D05FDD9F8545BB'),
+                    nickname='Test',
+                ),
+                'Test',
+            ),
             ('$14AE2154A26F1D42C3C3BEDC10D05FDD9F8545BB~Test', 'Test'),
             ('$14AE2154A26F1D42C3C3BEDC10D05FDD9F8545BB', None),
         ],
     )
-    def test_parse(self, string, nickname):
-        server = LongServerName.from_string(string)
+    def test_parse(self, entry, nickname):
+        server = self.ADAPTER.validate_python(entry)
         assert len(server.fingerprint) == 20
         assert server.nickname == nickname
 
@@ -201,15 +241,25 @@ class TestLongServerName:
 
 
 class TestTcpAddressPort:
+    ADAPTER = TypeAdapter(TcpAddressPort)
+
     @pytest.mark.parametrize(
-        ('string', 'host', 'port'),
+        ('entry', 'host', 'port'),
         [
+            (
+                TcpAddressPort(
+                    host=IPv4Address('127.0.0.1'),
+                    port=445,
+                ),
+                IPv4Address('127.0.0.1'),
+                445,
+            ),
             ('127.0.0.1:445', IPv4Address('127.0.0.1'), 445),
             ('[::1]:65432', IPv6Address('::1'), 65432),
         ],
     )
-    def test_parse(self, string, host, port):
-        target = TcpAddressPort.from_string(string)
+    def test_parse(self, entry, host, port):
+        target = self.ADAPTER.validate_python(entry)
         assert target.host == host
         assert target.port == port
 
@@ -221,7 +271,26 @@ class TestTcpAddressPort:
         ],
     )
     def test_serialize(self, string, host, port):
-        adapter = TypeAdapter(TcpAddressPort)
         target = TcpAddressPort(host=host, port=port)
-        serial = adapter.dump_python(target)
+        serial = self.ADAPTER.dump_python(target)
         assert serial == string
+
+
+class TestOnionClientAuthKey:
+    ADAPTER = TypeAdapter(OnionClientAuthKey)
+
+    def test_parse_and_encode(self):
+        value = 'x25519:jPshnLNf+mpeEaBq/xEWjY5A/rnN7El8mRZmA0IyVwc'
+        key = self.ADAPTER.validate_python(value)
+        assert isinstance(key, X25519PrivateKey)
+
+        serial = self.ADAPTER.dump_python(key)
+        assert serial == value
+
+    @pytest.mark.skipif(
+        Version(pydantic.__version__) < Version('2.9.0'),
+        reason='No UserWarning is emitted on pydantic < 2.9',
+    )
+    def test_user_warning(self):
+        with pytest.warns(UserWarning, match='Unhandled onion client auth key type'):
+            self.ADAPTER.dump_python('xxxx')

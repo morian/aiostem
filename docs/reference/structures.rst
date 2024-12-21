@@ -108,12 +108,17 @@ Hidden Service structures
    :undoc-members:
    :members:
 
-.. autoclass:: OnionClientAuthFlags
+.. autoclass:: OnionClientAuthKeyStruct
+   :no-show-inheritance:
    :undoc-members:
    :members:
 
-.. autoclass:: OnionClientAuthKey
+.. autoclass:: OnionClientAuth
    :no-show-inheritance:
+   :undoc-members:
+   :members:
+
+.. autoclass:: OnionClientAuthFlags
    :undoc-members:
    :members:
 

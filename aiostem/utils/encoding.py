@@ -249,7 +249,7 @@ class EncodedBase(Generic[T]):
                 self.CORE_SCHEMA,
                 # Otherwise we have to be a string and follow the decoding path.
                 core_schema.chain_schema(
-                    [
+                    steps=[
                         core_schema.str_schema(strict=True),
                         core_schema.no_info_before_validator_function(
                             function=self.from_string,

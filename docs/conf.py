@@ -105,6 +105,8 @@ _reftarget_fixmap = {
     'asyncio.locks.Condition': 'asyncio.Condition',
     'asyncio.streams.StreamReader': 'asyncio.StreamReader',
     'asyncio.streams.StreamWriter': 'asyncio.StreamWriter',
+    # Fixes for aiostem.structures.
+    'OnionClientAuthKey': 'aiostem.structures.OnionClientAuthKey',
     # Fixes for aiostem.utils.argument.
     'KeyTypes': 'aiostem.utils.argument.KeyTypes',
     'ValueTypes': 'aiostem.utils.argument.ValueTypes',
@@ -119,6 +121,7 @@ _reftype_fixmap = {
     'aiostem.utils.argument.KeyTypes': 'data',
     'aiostem.utils.argument.ValueTypes': 'data',
     'aiostem.utils.encoding.T': 'data',
+    'aiostem.structures.OnionClientAuthKey': 'data',
     # Sometimes these are looked up as classes.
     'typing.Annotated': 'obj',
     'typing.Final': 'obj',

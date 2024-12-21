@@ -39,7 +39,7 @@ class BaseEncoderTest:
         model = self.TEST_MODEL_OR_NONE(v=123)
         assert model.model_dump_json() == '{"v":123}'
 
-    def test_schema(self):
+    def test_json_schema(self):
         schema = self.TEST_MODEL.model_json_schema()
         if self.SCHEMA_FORMAT is not None:
             assert schema['properties']['v'] == {

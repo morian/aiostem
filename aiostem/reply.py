@@ -22,12 +22,7 @@ from typing import Annotated, Any, ClassVar, Optional, Self, TypeAlias, TypeVar
 from pydantic import PositiveInt, TypeAdapter
 
 from .exceptions import ReplyError, ReplyStatusError
-from .structures import (
-    AuthMethod,
-    HiddenServiceAddress,
-    OnionClientAuthKey,
-    OnionServiceKeyType,
-)
+from .structures import AuthMethod, HiddenServiceAddress, OnionClientAuth, OnionServiceKeyType
 from .types import AnyHost, Base16Bytes, Base64Bytes, X25519PublicKeyBase32
 from .utils import BaseMessage, Message, ReplySyntax, ReplySyntaxFlag, TrBeforeStringSplit
 
@@ -746,7 +741,7 @@ class ReplyOnionClientAuthView(Reply):
     #: Onion address minus the ``.onion`` suffix.
     address: HiddenServiceAddress | None = None
     #: List of authorized clients and their private key.
-    clients: Sequence[OnionClientAuthKey] = field(default_factory=list)
+    clients: Sequence[OnionClientAuth] = field(default_factory=list)
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
@@ -764,13 +759,7 @@ class ReplyOnionClientAuthView(Reply):
                 if syntax is not None:  # pragma: no branch
                     update = syntax.parse(item)
                     if keyword == 'CLIENT':
-                        client = dict(update)
-                        key_blob = client.pop('key', None)
-                        if isinstance(key_blob, str):  # pragma: no branch
-                            key_type, key_data = key_blob.split(':', maxsplit=1)
-                            client['key_type'] = key_type
-                            client['key'] = key_data
-                        clients.append(client)
+                        clients.append(update)
                     else:
                         for key, val in update.items():
                             if key is not None:  # pragma: no branch

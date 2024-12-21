@@ -21,20 +21,13 @@ from .structures import (
     HsDescClientAuthV2,
     LongServerName,
     OnionClientAuthFlags,
-    OnionClientAuthKeyType,
+    OnionClientAuthKey,
     OnionServiceFlags,
     OnionServiceKeyType,
     Signal,
     VirtualPort,
 )
-from .types import (
-    AnyHost,
-    AnyPort,
-    Base16Bytes,
-    Base64Bytes,
-    X25519PrivateKeyBase64,
-    X25519PublicKeyBase32,
-)
+from .types import AnyHost, AnyPort, Base16Bytes, Base64Bytes, X25519PublicKeyBase32
 from .utils.argument import ArgumentKeyword, ArgumentString, QuoteStyle
 from .utils.transformers import TrBeforeStringSplit
 
@@ -1405,12 +1398,12 @@ class CommandOnionClientAuthAdd(Command):
     #: V3 onion address without the ``.onion`` suffix.
     address: HiddenServiceAddressV3
 
-    #: Key type is currently set to :attr:`~.OnionClientAuthKeyType.X25519`.
-    key_type: OnionClientAuthKeyType = OnionClientAuthKeyType.X25519
     #: The private ``x25519`` key used to authenticate to :attr:`address`.
-    key: X25519PrivateKeyBase64
+    key: OnionClientAuthKey
+
     #: An optional nickname for the client.
     nickname: str | None = None
+
     #: Whether this client's credentials should be stored on the file system.
     flags: Annotated[set[OnionClientAuthFlags], TrBeforeStringSplit()] = field(
         default_factory=set
@@ -1426,9 +1419,7 @@ class CommandOnionClientAuthAdd(Command):
         adapter = self.adapter()
         struct = adapter.dump_python(self)
 
-        # TODO: build a custom serializer so we get rid of `key_type`.
-        key_data = struct['key']
-        args.append(ArgumentString(f'{self.key_type.value}:{key_data}'))
+        args.append(ArgumentString(struct['key']))
 
         if self.nickname is not None:
             kwarg = ArgumentKeyword(

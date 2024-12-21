@@ -13,10 +13,6 @@ handle the heavy lifting.
    :no-show-inheritance:
    :members:
 
-.. autoclass:: TrBeforeLogSeverity
-   :no-show-inheritance:
-   :members:
-
 .. autoclass:: TrBeforeSetToNone
    :no-show-inheritance:
    :members:
@@ -29,10 +25,14 @@ handle the heavy lifting.
    :no-show-inheritance:
    :members:
 
-.. autoclass:: TrWrapX25519PrivateKey
+.. autoclass:: TrCast
    :no-show-inheritance:
    :members:
 
-.. autoclass:: TrWrapX25519PublicKey
+.. autoclass:: TrX25519PrivateKey
+   :no-show-inheritance:
+   :members:
+
+.. autoclass:: TrX25519PublicKey
    :no-show-inheritance:
    :members:
