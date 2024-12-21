@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import typing
+from abc import ABC, abstractmethod
 from collections.abc import (
     Collection,
     Mapping,
@@ -10,7 +11,7 @@ from collections.abc import (
 )
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, tzinfo
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
 
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from pydantic import ConfigDict, PydanticSchemaGenerationError
@@ -249,9 +250,11 @@ class TrBeforeTimedelta:
         return value
 
 
-@dataclass(frozen=True, slots=True)
-class TrX25519PrivateKey:
-    """Transform bytes into a X25519 private key."""
+KeyType = TypeVar('KeyType')
+
+
+class TrAnyKey(ABC, Generic[KeyType]):
+    """Transform bytes in a key."""
 
     def __get_pydantic_core_schema__(
         self,
@@ -259,8 +262,10 @@ class TrX25519PrivateKey:
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Declare schema and validator for a X25519 private key."""
-        if not issubclass(source, X25519PrivateKey):
-            msg = f"source type is not a x25519 private key, got '{source.__name__}'"
+        key_type = self._get_type()
+
+        if not issubclass(source, key_type):
+            msg = f"source type is not a {key_type.__name__}, got '{source.__name__}'"
             raise TypeError(msg)
 
         try:
@@ -270,7 +275,7 @@ class TrX25519PrivateKey:
 
         return core_schema.union_schema(
             choices=[
-                core_schema.is_instance_schema(X25519PrivateKey),
+                core_schema.is_instance_schema(key_type),
                 core_schema.chain_schema(
                     steps=[
                         source_schema,
@@ -286,6 +291,27 @@ class TrX25519PrivateKey:
                 return_schema=source_schema,
             ),
         )
+
+    @abstractmethod
+    def _get_type(self) -> type[KeyType]:
+        """Get the key type used by this generic class."""
+
+    @abstractmethod
+    def from_bytes(self, data: bytes) -> KeyType:
+        """Build a key from the provided bytes."""
+
+    @abstractmethod
+    def to_bytes(self, key: KeyType) -> bytes:
+        """Serialize a key to its corresponding bytes."""
+
+
+@dataclass(frozen=True, slots=True)
+class TrX25519PrivateKey(TrAnyKey[X25519PrivateKey]):
+    """Transform bytes into a X25519 private key."""
+
+    def _get_type(self) -> type[X25519PrivateKey]:
+        """Get the key type used by this generic class."""
+        return X25519PrivateKey
 
     def from_bytes(self, data: bytes) -> X25519PrivateKey:
         """
@@ -309,42 +335,12 @@ class TrX25519PrivateKey:
 
 
 @dataclass(frozen=True, slots=True)
-class TrX25519PublicKey:
+class TrX25519PublicKey(TrAnyKey[X25519PublicKey]):
     """Transform bytes into a X25519 public key."""
 
-    def __get_pydantic_core_schema__(
-        self,
-        source: type[Any],
-        handler: GetCoreSchemaHandler,
-    ) -> CoreSchema:
-        """Declare schema and validator for a X25519 public key."""
-        if not issubclass(source, X25519PublicKey):
-            msg = f"source type is not a x25519 public key, got '{source.__name__}'"
-            raise TypeError(msg)
-
-        try:
-            source_schema = handler(source)
-        except PydanticSchemaGenerationError:
-            source_schema = core_schema.bytes_schema(strict=True)
-
-        return core_schema.union_schema(
-            choices=[
-                core_schema.is_instance_schema(X25519PublicKey),
-                core_schema.chain_schema(
-                    steps=[
-                        source_schema,
-                        core_schema.no_info_after_validator_function(
-                            function=self.from_bytes,
-                            schema=core_schema.bytes_schema(strict=True),
-                        ),
-                    ],
-                ),
-            ],
-            serialization=core_schema.plain_serializer_function_ser_schema(
-                function=self.to_bytes,
-                return_schema=source_schema,
-            ),
-        )
+    def _get_type(self) -> type[X25519PublicKey]:
+        """Get the key type used by this generic class."""
+        return X25519PublicKey
 
     def from_bytes(self, data: bytes) -> X25519PublicKey:
         """

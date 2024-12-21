@@ -19,6 +19,7 @@ from .structures import (
     HiddenServiceAddress,
     HiddenServiceAddressV3,
     HsDescClientAuthV2,
+    HsDescClientAuthV3,
     LongServerName,
     OnionClientAuthFlags,
     OnionClientAuthKey,
@@ -27,7 +28,7 @@ from .structures import (
     Signal,
     VirtualPort,
 )
-from .types import AnyHost, AnyPort, Base16Bytes, Base64Bytes, X25519PublicKeyBase32
+from .types import AnyHost, AnyPort, Base16Bytes, Base64Bytes
 from .utils.argument import ArgumentKeyword, ArgumentString, QuoteStyle
 from .utils.transformers import TrBeforeStringSplit
 
@@ -1244,7 +1245,7 @@ class CommandAddOnion(Command):
     client_auth: MutableSequence[HsDescClientAuthV2] = field(default_factory=list)
 
     #: String syntax is a base32-encoded ``x25519`` public key with only the key part.
-    client_auth_v3: MutableSequence[X25519PublicKeyBase32] = field(default_factory=list)
+    client_auth_v3: MutableSequence[HsDescClientAuthV3] = field(default_factory=list)
 
     def _serialize_service_key(self) -> str:
         """Serialize the service key to a string."""

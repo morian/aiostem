@@ -15,7 +15,14 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 from pydantic import BeforeValidator, Discriminator, NonNegativeInt, Tag, WrapSerializer
 from pydantic_core import PydanticCustomError, core_schema
 
-from .types import AnyAddress, AnyPort, Base16Bytes, Base64Bytes, TimedeltaSeconds
+from .types import (
+    AnyAddress,
+    AnyPort,
+    Base16Bytes,
+    Base64Bytes,
+    TimedeltaSeconds,
+    X25519PublicKeyBase32,
+)
 from .utils import TrBeforeStringSplit, TrCast, TrX25519PrivateKey
 
 if TYPE_CHECKING:
@@ -405,6 +412,7 @@ HsDescClientAuthV2: TypeAlias = Annotated[
         separator=':',
     ),
 ]
+HsDescClientAuthV3: TypeAlias = X25519PublicKeyBase32
 
 
 class HsDescFailReason(StrEnum):
@@ -577,7 +585,7 @@ class OnionClientAuthKeyStruct:
     data: Base64Bytes
 
 
-def _discriminate_private_key(v: Any) -> str:
+def _discriminate_client_auth_private_key(v: Any) -> str:
     """Find how to discriminate the provided key."""
     match v:
         case OnionClientAuthKeyStruct():
@@ -628,7 +636,7 @@ OnionClientAuthKey: TypeAlias = Annotated[
         # Needed as we don't handle another type in this union (yet).
         Annotated[OnionClientAuthKeyStruct, Tag('__default__')],
     ],
-    Discriminator(_discriminate_private_key),
+    Discriminator(_discriminate_client_auth_private_key),
     TrCast(OnionClientAuthKeyStruct),
     TrBeforeStringSplit(
         dict_keys=('auth_type', 'data'),

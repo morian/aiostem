@@ -22,8 +22,15 @@ from typing import Annotated, Any, ClassVar, Optional, Self, TypeAlias, TypeVar
 from pydantic import PositiveInt, TypeAdapter
 
 from .exceptions import ReplyError, ReplyStatusError
-from .structures import AuthMethod, HiddenServiceAddress, OnionClientAuth, OnionServiceKeyType
-from .types import AnyHost, Base16Bytes, Base64Bytes, X25519PublicKeyBase32
+from .structures import (
+    AuthMethod,
+    HiddenServiceAddress,
+    HsDescClientAuthV2,
+    HsDescClientAuthV3,
+    OnionClientAuth,
+    OnionServiceKeyType,
+)
+from .types import AnyHost, Base16Bytes, Base64Bytes
 from .utils import BaseMessage, Message, ReplySyntax, ReplySyntaxFlag, TrBeforeStringSplit
 
 logger = logging.getLogger(__package__)
@@ -659,10 +666,10 @@ class ReplyAddOnion(Reply):
     address: HiddenServiceAddress | None = None
 
     #: List of client authentication for a v2 address.
-    client_auth: Sequence[str] = field(default_factory=list)
+    client_auth: Sequence[HsDescClientAuthV2] = field(default_factory=list)
 
     #: List of client authentication for a v3 address.
-    client_auth_v3: Sequence[X25519PublicKeyBase32] = field(default_factory=list)
+    client_auth_v3: Sequence[HsDescClientAuthV3] = field(default_factory=list)
 
     #: Onion service key type.
     key_type: OnionServiceKeyType | None = None

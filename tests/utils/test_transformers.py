@@ -285,7 +285,7 @@ class TestTrX25519PrivateKey:
         ],
     )
     def test_usage_error_on_source_type(self, type_):
-        with pytest.raises(TypeError, match='source type is not a x25519 private key'):
+        with pytest.raises(TypeError, match='source type is not a X25519PrivateKey'):
             TypeAdapter(type_)
 
 
@@ -335,5 +335,5 @@ class TestTrX25519PublicKey:
         ],
     )
     def test_usage_error_on_source_type(self, type_):
-        with pytest.raises(TypeError, match='source type is not a x25519 public key'):
+        with pytest.raises(TypeError, match='source type is not a X25519PublicKey'):
             TypeAdapter(type_)
