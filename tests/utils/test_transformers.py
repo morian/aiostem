@@ -1,20 +1,28 @@
 from __future__ import annotations
 
-from base64 import b64decode
+from base64 import b32decode, b64decode
 from datetime import UTC, datetime, timedelta
 from typing import Annotated, Any
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from pydantic import BaseModel, TypeAdapter
 
 from aiostem.structures import AuthMethod
-from aiostem.types import X25519PrivateKeyBase64, X25519PublicKeyBase32
 from aiostem.utils import (
+    Base32Encoder,
+    Base64Encoder,
+    EncodedBytes,
     TrAfterAsTimezone,
     TrBeforeSetToNone,
     TrBeforeStringSplit,
     TrBeforeTimedelta,
+    TrEd25519PrivateKey,
+    TrEd25519PublicKey,
     TrX25519PrivateKey,
     TrX25519PublicKey,
 )
@@ -242,40 +250,109 @@ class TestTimedelta:
             TypeAdapter(type_)
 
 
-class TestTrX25519PrivateKey:
-    ADAPTER_BASE64 = TypeAdapter(X25519PrivateKeyBase64)
-
-    @pytest.mark.parametrize(
-        ('raw', 'encoded'),
-        [
-            (
-                'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o',
-                'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o',
-            ),
-            (
-                b64decode('yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o='),
-                'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o',
-            ),
-            (
-                X25519PrivateKey.from_private_bytes(
-                    b64decode('yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o='),
-                ),
-                'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o',
-            ),
+class TestTrEd25519PrivateKey:
+    KEY_TYPE = Ed25519PrivateKey
+    ADAPTER_RAW = TypeAdapter(Annotated[Ed25519PrivateKey, TrEd25519PrivateKey()])
+    ADAPTER_ENC = TypeAdapter(
+        Annotated[
+            Ed25519PrivateKey,
+            EncodedBytes(encoder=Base64Encoder),
+            TrEd25519PrivateKey(),
         ],
     )
-    def test_decode_encode_base64(self, raw, encoded):
-        key = self.ADAPTER_BASE64.validate_python(raw)
-        assert isinstance(key, X25519PrivateKey)
+    TEST_KEY = 'czJbjz9SLJqx6DVIRe1cWTSWXM4UeYiRNTnAPYGDlMU='
+    EXPECTED = TEST_KEY.rstrip('=')
 
-        serial = self.ADAPTER_BASE64.dump_python(key)
-        assert serial == encoded
+    @pytest.mark.parametrize(
+        'raw',
+        [
+            EXPECTED,
+            TEST_KEY,
+            b64decode(TEST_KEY),
+            Ed25519PrivateKey.from_private_bytes(b64decode(TEST_KEY)),
+        ],
+    )
+    def test_decode_encode(self, raw):
+        key = self.ADAPTER_ENC.validate_python(raw)
+        assert isinstance(key, self.KEY_TYPE)
+
+        serial = self.ADAPTER_ENC.dump_python(key)
+        assert serial == self.EXPECTED
 
     def test_using_raw_bytes(self):
-        adapter = TypeAdapter(Annotated[X25519PrivateKey, TrX25519PrivateKey()])
-        raw = b64decode('yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o=')
-        key = adapter.validate_python(raw)
-        assert adapter.dump_python(key) == raw
+        raw = b64decode(self.TEST_KEY)
+        key = self.ADAPTER_RAW.validate_python(raw)
+        assert self.ADAPTER_RAW.dump_python(key) == raw
+
+
+class TestTrEd25519PublicKey:
+    KEY_TYPE = Ed25519PublicKey
+    ADAPTER_RAW = TypeAdapter(Annotated[Ed25519PublicKey, TrEd25519PublicKey()])
+    ADAPTER_ENC = TypeAdapter(
+        Annotated[
+            Ed25519PublicKey,
+            EncodedBytes(encoder=Base32Encoder),
+            TrEd25519PublicKey(),
+        ],
+    )
+    TEST_KEY = 'LQGMCX7HKXJZ52KH2U5KABXIUTN6MGIYIVCNQQGMJBRF24QT5UOA===='
+    EXPECTED = TEST_KEY.rstrip('=')
+
+    @pytest.mark.parametrize(
+        'raw',
+        [
+            TEST_KEY,
+            EXPECTED,
+            b32decode(TEST_KEY),
+            Ed25519PublicKey.from_public_bytes(b32decode(TEST_KEY)),
+        ],
+    )
+    def test_decode_encode(self, raw):
+        key = self.ADAPTER_ENC.validate_python(raw)
+        assert isinstance(key, self.KEY_TYPE)
+
+        serial = self.ADAPTER_ENC.dump_python(key)
+        assert serial == self.EXPECTED
+
+    def test_using_raw_bytes(self):
+        raw = b32decode(self.TEST_KEY)
+        key = self.ADAPTER_RAW.validate_python(raw)
+        assert self.ADAPTER_RAW.dump_python(key) == raw
+
+
+class TestTrX25519PrivateKey:
+    KEY_TYPE = X25519PrivateKey
+    ADAPTER_RAW = TypeAdapter(Annotated[X25519PrivateKey, TrX25519PrivateKey()])
+    ADAPTER_ENC = TypeAdapter(
+        Annotated[
+            X25519PrivateKey,
+            EncodedBytes(encoder=Base64Encoder),
+            TrX25519PrivateKey(),
+        ],
+    )
+    TEST_KEY = 'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o='
+    EXPECTED = TEST_KEY.rstrip('=')
+
+    @pytest.mark.parametrize(
+        'raw',
+        [
+            EXPECTED,
+            TEST_KEY,
+            b64decode(TEST_KEY),
+            X25519PrivateKey.from_private_bytes(b64decode(TEST_KEY)),
+        ],
+    )
+    def test_decode_encode(self, raw):
+        key = self.ADAPTER_ENC.validate_python(raw)
+        assert isinstance(key, self.KEY_TYPE)
+
+        serial = self.ADAPTER_ENC.dump_python(key)
+        assert serial == self.EXPECTED
+
+    def test_using_raw_bytes(self):
+        raw = b64decode(self.TEST_KEY)
+        key = self.ADAPTER_RAW.validate_python(raw)
+        assert self.ADAPTER_RAW.dump_python(key) == raw
 
     @pytest.mark.parametrize(
         'type_',
@@ -290,50 +367,35 @@ class TestTrX25519PrivateKey:
 
 
 class TestTrX25519PublicKey:
-    @pytest.mark.parametrize(
-        ('raw', 'encoded'),
-        [
-            (
-                '5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ',
-                '5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ',
-            ),
-            (
-                bytes.fromhex(
-                    '88b613a7d69860f8c64cafbb730b3596130cb6c18236b5965fdd5fe69e4800f5'
-                ),
-                'RC3BHJ6WTBQPRRSMV65XGCZVSYJQZNWBQI3LLFS73VP6NHSIAD2Q',
-            ),
-            (
-                X25519PublicKey.from_public_bytes(
-                    bytes.fromhex(
-                        '5588fdbfea963654702043b7672f78437400b3bf5f6086e557f0d55edaaeecf3'
-                    )
-                ),
-                'KWEP3P7KSY3FI4BAIO3WOL3YIN2ABM57L5QINZKX6DKV5WVO5TZQ',
-            ),
+    KEY_TYPE = X25519PublicKey
+    ADAPTER_RAW = TypeAdapter(Annotated[X25519PublicKey, TrX25519PublicKey()])
+    ADAPTER_ENC = TypeAdapter(
+        Annotated[
+            X25519PublicKey,
+            EncodedBytes(encoder=Base32Encoder),
+            TrX25519PublicKey(),
         ],
     )
-    def test_decode_encode(self, raw, encoded):
-        adapter = TypeAdapter(X25519PublicKeyBase32)
-        key = adapter.validate_python(raw)
-        assert isinstance(key, X25519PublicKey)
+    TEST_KEY = 'K2MLQ4S2DS4YCZXDOTOVC45LCLAKKCKN7QVAXPDMOSSYPZBGQSLA===='
+    EXPECTED = TEST_KEY.rstrip('=')
 
-        serial = adapter.dump_python(key)
-        assert serial == encoded
+    @pytest.mark.parametrize(
+        'raw',
+        [
+            TEST_KEY,
+            EXPECTED,
+            b32decode(TEST_KEY),
+            X25519PublicKey.from_public_bytes(b32decode(TEST_KEY)),
+        ],
+    )
+    def test_decode_encode(self, raw):
+        key = self.ADAPTER_ENC.validate_python(raw)
+        assert isinstance(key, self.KEY_TYPE)
+
+        serial = self.ADAPTER_ENC.dump_python(key)
+        assert serial == self.EXPECTED
 
     def test_using_raw_bytes(self):
-        adapter = TypeAdapter(Annotated[X25519PublicKey, TrX25519PublicKey()])
-        raw = bytes.fromhex('88b613a7d69860f8c64cafbb730b3596130cb6c18236b5965fdd5fe69e4800f5')
-        key = adapter.validate_python(raw)
-        assert adapter.dump_python(key) == raw
-
-    @pytest.mark.parametrize(
-        'type_',
-        [
-            Annotated[int, TrX25519PublicKey()],
-            Annotated[None, TrX25519PublicKey()],
-        ],
-    )
-    def test_usage_error_on_source_type(self, type_):
-        with pytest.raises(TypeError, match='source type is not a X25519PublicKey'):
-            TypeAdapter(type_)
+        raw = b32decode(self.TEST_KEY)
+        key = self.ADAPTER_RAW.validate_python(raw)
+        assert self.ADAPTER_RAW.dump_python(key) == raw

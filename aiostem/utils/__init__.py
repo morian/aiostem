@@ -10,6 +10,8 @@ from .transformers import (
     TrBeforeStringSplit,
     TrBeforeTimedelta,
     TrCast,
+    TrEd25519PrivateKey,
+    TrEd25519PublicKey,
     TrX25519PrivateKey,
     TrX25519PublicKey,
 )
@@ -33,6 +35,8 @@ __all__ = [
     'TrBeforeStringSplit',
     'TrBeforeTimedelta',
     'TrCast',
+    'TrEd25519PrivateKey',
+    'TrEd25519PublicKey',
     'TrX25519PrivateKey',
     'TrX25519PublicKey',
     'messages_from_stream',

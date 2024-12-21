@@ -13,6 +13,10 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, tzinfo
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
 
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from pydantic import ConfigDict, PydanticSchemaGenerationError
 from pydantic_core import core_schema
@@ -253,7 +257,7 @@ class TrBeforeTimedelta:
 KeyType = TypeVar('KeyType')
 
 
-class TrAnyKey(ABC, Generic[KeyType]):
+class TrGenericKey(ABC, Generic[KeyType]):
     """Transform bytes in a key."""
 
     def __get_pydantic_core_schema__(
@@ -306,7 +310,65 @@ class TrAnyKey(ABC, Generic[KeyType]):
 
 
 @dataclass(frozen=True, slots=True)
-class TrX25519PrivateKey(TrAnyKey[X25519PrivateKey]):
+class TrEd25519PrivateKey(TrGenericKey[Ed25519PrivateKey]):
+    """Transform bytes into an ed25519 private key."""
+
+    def _get_type(self) -> type[Ed25519PrivateKey]:
+        """Get the key type used by this generic class."""
+        return Ed25519PrivateKey
+
+    def from_bytes(self, data: bytes) -> Ed25519PrivateKey:
+        """
+        Build an ed25519 private key out of the provided bytes.
+
+        Returns:
+            An instance of an ed25519 private key.
+
+        """
+        return Ed25519PrivateKey.from_private_bytes(data)
+
+    def to_bytes(self, key: Ed25519PrivateKey) -> bytes:
+        """
+        Serialize the provided private key to bytes.
+
+        Returns:
+            32 bytes corresponding to the private key.
+
+        """
+        return key.private_bytes_raw()
+
+
+@dataclass(frozen=True, slots=True)
+class TrEd25519PublicKey(TrGenericKey[Ed25519PublicKey]):
+    """Transform bytes into a ed25519 public key."""
+
+    def _get_type(self) -> type[Ed25519PublicKey]:
+        """Get the key type used by this generic class."""
+        return Ed25519PublicKey
+
+    def from_bytes(self, data: bytes) -> Ed25519PublicKey:
+        """
+        Build an ed25519 public key out of the provided bytes.
+
+        Returns:
+            An instance of an ed25519 public key.
+
+        """
+        return Ed25519PublicKey.from_public_bytes(data)
+
+    def to_bytes(self, key: Ed25519PublicKey) -> bytes:
+        """
+        Serialize the provided public key to bytes.
+
+        Returns:
+            32 bytes corresponding to the public key.
+
+        """
+        return key.public_bytes_raw()
+
+
+@dataclass(frozen=True, slots=True)
+class TrX25519PrivateKey(TrGenericKey[X25519PrivateKey]):
     """Transform bytes into a X25519 private key."""
 
     def _get_type(self) -> type[X25519PrivateKey]:
@@ -335,7 +397,7 @@ class TrX25519PrivateKey(TrAnyKey[X25519PrivateKey]):
 
 
 @dataclass(frozen=True, slots=True)
-class TrX25519PublicKey(TrAnyKey[X25519PublicKey]):
+class TrX25519PublicKey(TrGenericKey[X25519PublicKey]):
     """Transform bytes into a X25519 public key."""
 
     def _get_type(self) -> type[X25519PublicKey]:
