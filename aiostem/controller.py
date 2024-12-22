@@ -513,7 +513,8 @@ class Controller:
         command = CommandAuthChallenge(nonce=nonce)
         message = await self.request(command)
         reply = ReplyAuthChallenge.from_message(message)
-        reply.client_nonce = command.nonce
+        if reply.data is not None:
+            reply.data.client_nonce = command.nonce
         return reply
 
     async def authenticate(self, password: str | None = None) -> ReplyAuthenticate:
@@ -546,7 +547,10 @@ class Controller:
         """
         protoinfo = await self.protocol_info()
         protoinfo.raise_for_status()
-        methods = set(protoinfo.auth_methods)  # type: set[str]
+
+        methods = set()  # type: set[str]
+        if protoinfo.data is not None:  # pragma: no branch
+            methods.update(protoinfo.data.auth_methods)
 
         # No password was provided, we can't authenticate with this method.
         if password is None:
@@ -778,7 +782,7 @@ class Controller:
             A completed protocol info reply from Tor.
 
         """
-        if self.authenticated or not self._protoinfo:
+        if self.authenticated or self._protoinfo is None:
             command = CommandProtocolInfo(version=version)
             message = await self.request(command)
             self._protoinfo = ReplyProtocolInfo.from_message(message)

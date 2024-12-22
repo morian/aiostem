@@ -101,13 +101,21 @@ class TestReplies:
         ]
         message = await create_message(lines)
         reply = ReplyMapAddress.from_message(message)
+
         assert reply.status == 250
         assert reply.status_text is None
+
         assert len(reply.items) == 2
-        assert reply.items[0].original == IPv4Address('127.218.108.43')
-        assert reply.items[0].replacement == 'bogus1.google.com'
-        assert reply.items[1].original == 'one.one.one.one'
-        assert reply.items[1].replacement == IPv4Address('1.1.1.1')
+
+        data = reply.items[0].data
+        assert data is not None
+        assert data.original == IPv4Address('127.218.108.43')
+        assert data.replacement == 'bogus1.google.com'
+
+        data = reply.items[1].data
+        assert data is not None
+        assert data.original == 'one.one.one.one'
+        assert data.replacement == IPv4Address('1.1.1.1')
 
     async def test_map_address_error(self):
         lines = [
@@ -119,12 +127,16 @@ class TestReplies:
         assert reply.status == 512
         assert reply.status_text == "syntax error: invalid address '@@@'"
         assert len(reply.items) == 2
-        assert reply.items[0].status == 512
-        assert reply.items[0].original is None
-        assert reply.items[0].replacement is None
-        assert reply.items[1].status == 250
-        assert reply.items[1].original == 'one.one.one.one'
-        assert reply.items[1].replacement == IPv4Address('1.1.1.1')
+
+        item = reply.items[0]
+        assert item.status == 512
+        assert item.data is None
+
+        item = reply.items[1]
+        assert item.status == 250
+        assert item.data is not None
+        assert item.data.original == 'one.one.one.one'
+        assert item.data.replacement == IPv4Address('1.1.1.1')
 
     async def test_get_info(self):
         lines = [
@@ -154,7 +166,9 @@ class TestReplies:
         lines = ['250 EXTENDED 56832']
         message = await create_message(lines)
         reply = ReplyExtendCircuit.from_message(message)
-        assert reply.circuit == 56832
+        reply.raise_for_status()
+
+        assert reply.data.circuit == 56832
 
     async def test_extend_circuit_error(self):
         lines = ['552 Unknown circuit "12"']
@@ -162,7 +176,7 @@ class TestReplies:
         reply = ReplyExtendCircuit.from_message(message)
         assert reply.status == 552
         assert reply.status_text == 'Unknown circuit "12"'
-        assert reply.circuit is None
+        assert reply.data is None
 
     async def test_authenticate(self):
         lines = ['250 OK']
@@ -185,9 +199,10 @@ class TestReplies:
         reply = ReplyProtocolInfo.from_message(message)
         # Is not supposed to raise anything.
         reply.raise_for_status()
-        assert reply.protocol_version == 1
-        assert reply.tor_version == '0.4.8.12'
-        assert AuthMethod.COOKIE in reply.auth_methods
+
+        assert reply.data.protocol_version == 1
+        assert reply.data.tor_version == '0.4.8.12'
+        assert AuthMethod.COOKIE in reply.data.auth_methods
 
     async def test_protocol_info_read_cookie(self, tmp_path):
         cookie_data = secrets.token_bytes(32)
@@ -204,6 +219,8 @@ class TestReplies:
 
         message = await create_message(lines)
         reply = ReplyProtocolInfo.from_message(message)
+        reply.raise_for_status()
+
         cookie = await reply.read_cookie_file()
         assert cookie == cookie_data
 
@@ -216,7 +233,9 @@ class TestReplies:
         ]
         message = await create_message(lines)
         reply = ReplyProtocolInfo.from_message(message)
-        assert reply.auth_cookie_file is None
+        reply.raise_for_status()
+
+        assert reply.data.auth_cookie_file is None
         with pytest.raises(FileNotFoundError, match='No cookie file found'):
             await reply.read_cookie_file()
 
@@ -247,8 +266,10 @@ class TestReplies:
         reply = ReplyAuthChallenge.from_message(message)
         assert reply.status == 250
         assert reply.status_text is None
-        assert reply.server_hash == bytes.fromhex(server_hash)
-        assert reply.server_nonce == bytes.fromhex(server_nonce)
+
+        assert reply.data is not None
+        assert reply.data.server_hash == bytes.fromhex(server_hash)
+        assert reply.data.server_nonce == bytes.fromhex(server_nonce)
 
         cookie = b'e8a05005deb487f5d9a0db9a026d28ad'
         with pytest.raises(ReplyError, match='No client_nonce was found or provided.'):
@@ -330,9 +351,13 @@ class TestReplies:
         ]
         message = await create_message(lines)
         reply = ReplyAddOnion.from_message(message)
-        assert isinstance(reply.key, OnionServiceKeyStruct)
-        assert reply.key.key_type == OnionServiceKeyType.ED25519_V3
-        assert reply.key.data.hex() == (
+        reply.raise_for_status()
+
+        data = reply.data
+        assert data is not None
+        assert isinstance(data.key, OnionServiceKeyStruct)
+        assert data.key.key_type == OnionServiceKeyType.ED25519_V3
+        assert data.key.data.hex() == (
             'c02b82ab1a29b9b1b486eed6c9e5ac66f4daee2a6a4420272159e0861734a45b'
             'cfe82614cec64908dc376c172e8ad6bc0ebe7dc5a52a3369c9045651b612d3b7'
         )
@@ -344,7 +369,8 @@ class TestReplies:
         ]
         message = await create_message(lines)
         reply = ReplyAddOnion.from_message(message)
-        assert reply.key is None
+        assert reply.data is not None
+        assert reply.data.key is None
 
     async def test_add_onion_with_client_auth_v3(self):
         lines = [
@@ -357,8 +383,8 @@ class TestReplies:
         ]
         message = await create_message(lines)
         reply = ReplyAddOnion.from_message(message)
-        assert len(reply.client_auth_v3) == 2
-        for client_auth in reply.client_auth_v3:
+        assert len(reply.data.client_auth_v3) == 2
+        for client_auth in reply.data.client_auth_v3:
             assert isinstance(client_auth, X25519PublicKey)
 
     async def test_add_onion_error(self):
@@ -382,9 +408,11 @@ class TestReplies:
         ]
         message = await create_message(lines)
         reply = ReplyOnionClientAuthView.from_message(message)
-        assert len(reply.clients) == 1
 
-        client = reply.clients[0]
+        assert reply.data is not None
+        assert len(reply.data.clients) == 1
+
+        client = reply.data.clients[0]
         assert client.address == 'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
         assert client.name == 'Peter'
         assert isinstance(client.key, X25519PrivateKey)

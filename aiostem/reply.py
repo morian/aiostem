@@ -12,26 +12,24 @@ from collections.abc import (
     KeysView,
     Mapping,
     Sequence,
-    Set as AbstractSet,
     ValuesView,
 )
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Annotated, Any, ClassVar, Optional, Self, TypeAlias, TypeVar
+from typing import Any, ClassVar, Self, TypeAlias, TypeVar
 
 from pydantic import PositiveInt, TypeAdapter
 
 from .exceptions import ReplyError, ReplyStatusError
 from .structures import (
-    AuthMethod,
-    HiddenServiceAddress,
-    HsDescClientAuthV2,
-    HsDescClientAuthV3,
-    OnionClientAuth,
-    OnionServiceKey,
+    ReplyDataAddOnion,
+    ReplyDataAuthChallenge,
+    ReplyDataExtendCircuit,
+    ReplyDataMapAddressItem,
+    ReplyDataOnionClientAuthView,
+    ReplyDataProtocolInfo,
 )
-from .types import AnyHost, Base16Bytes
-from .utils import BaseMessage, Message, ReplySyntax, ReplySyntaxFlag, TrBeforeStringSplit
+from .utils import BaseMessage, Message, ReplySyntax, ReplySyntaxFlag
 
 logger = logging.getLogger(__package__)
 
@@ -153,7 +151,7 @@ class ReplyGetMap(Reply, ReplyMapType):
     SYNTAX: ClassVar[ReplySyntax]
 
     #: Map of values received on this reply.
-    _values: ReplyMapType = field(default_factory=dict)
+    data: ReplyMapType = field(default_factory=dict)
 
     @classmethod
     def _key_value_extract(cls, messages: Iterable[BaseMessage]) -> ReplyMapType:
@@ -175,19 +173,19 @@ class ReplyGetMap(Reply, ReplyMapType):
 
     def __contains__(self, key: Any) -> bool:
         """Whether the reply contains the provided key."""
-        return self._values.__contains__(key)
+        return self.data.__contains__(key)
 
     def __getitem__(self, key: str) -> ReplyMapValueType:
         """Get the content of the provided item (if any)."""
-        return self._values.__getitem__(key)
+        return self.data.__getitem__(key)
 
     def __iter__(self) -> Iterator[str]:
         """Iterate on our keys."""
-        return self._values.__iter__()
+        return self.data.__iter__()
 
     def __len__(self) -> int:
         """Get the number of items we have in our reply."""
-        return self._values.__len__()
+        return self.data.__len__()
 
     def get(
         self,
@@ -196,19 +194,19 @@ class ReplyGetMap(Reply, ReplyMapType):
         default: _ReplyMapDefaultType | ReplyMapValueType = None,
     ) -> _ReplyMapDefaultType | ReplyMapValueType:
         """Get the value for the provided ``key`` or a default one."""
-        return self._values.get(key, default)
+        return self.data.get(key, default)
 
     def items(self) -> ItemsView[str, ReplyMapValueType]:
         """Get the pairs of keys and values."""
-        return self._values.items()
+        return self.data.items()
 
     def keys(self) -> KeysView[str]:
         """Get the list of all keys."""
-        return self._values.keys()
+        return self.data.keys()
 
     def values(self) -> ValuesView[ReplyMapValueType]:
         """Get all values."""
-        return self._values.values()
+        return self.data.values()
 
 
 @dataclass(kw_only=True, slots=True)
@@ -245,7 +243,7 @@ class ReplyGetConf(ReplyGetMap):
         }  # type: dict[str, Any]
 
         if has_data:
-            result['_values'] = cls._key_value_extract([*message.items, message])
+            result['data'] = cls._key_value_extract([*message.items, message])
         return result
 
 
@@ -277,11 +275,8 @@ class ReplyMapAddressItem(BaseReply):
         flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_EXTRA,
     )
 
-    #: Original address to replace with another one.
-    original: Optional[AnyHost] = None  # noqa: UP007
-
-    #: Replacement item for the corresponding :attr:`original` address.
-    replacement: Optional[AnyHost] = None  # noqa: UP007
+    #: The reply data associated with this single item.
+    data: ReplyDataMapAddressItem | None = None
 
     @classmethod
     def from_message_item(cls, message: BaseMessage) -> Self:
@@ -290,7 +285,7 @@ class ReplyMapAddressItem(BaseReply):
         if message.is_success:
             values = cls.SYNTAX.parse(message)
             key, val = next(iter(values.items()))
-            result.update({'original': key, 'replacement': val})
+            result['data'] = {'original': key, 'replacement': val}
         else:
             result['status_text'] = message.header
         return cls.adapter().validate_python(result)
@@ -315,7 +310,7 @@ class ReplyMapAddress(Reply):
     def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
         """Build a map from a received message."""
         status_max = 0
-        result: dict[str, Any] = {'items': []}
+        result = {'items': []}  # type: dict[str, Any]
         for item in (*message.items, message):
             sub = ReplyMapAddressItem.from_message_item(item)
             if sub.status > status_max:
@@ -353,7 +348,7 @@ class ReplyGetInfo(ReplyGetMap):
             'status_text': message.header,
         }
         if message.is_success:
-            result['_values'] = cls._key_value_extract(message.items)
+            result['data'] = cls._key_value_extract(message.items)
         return result
 
 
@@ -363,18 +358,20 @@ class ReplyExtendCircuit(Reply):
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(args_min=2, args_map=(None, 'circuit'))
 
-    #: Built or extended circuit (:obj:`None` on error).
-    circuit: int | None = None
+    #: Received data when successful.
+    data: ReplyDataExtendCircuit | None = None
 
     @classmethod
     def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
         """Build a map from a received message."""
         result = {'status': message.status}  # type: dict[str, Any]
         if message.is_success:
+            data = {}  # type: dict[str, ReplyMapValueType]
             update = cls.SYNTAX.parse(message)
             for key, val in update.items():
                 if key is not None:  # pragma: no branch
-                    result[key] = val
+                    data[key] = val
+            result['data'] = data
         else:
             result['status_text'] = message.header
         return result
@@ -463,16 +460,8 @@ class ReplyProtocolInfo(Reply):
         ),
     }
 
-    #: List of available authentication methods.
-    auth_methods: Annotated[AbstractSet[AuthMethod], TrBeforeStringSplit()] = field(
-        default_factory=set
-    )
-    #: Path on the server to the cookie file.
-    auth_cookie_file: str | None = None
-    #: Version of the Tor control protocol in use.
-    protocol_version: int | None = None
-    #: Version of Tor.
-    tor_version: str | None = None
+    #: Reply data when this command was successful.
+    data: ReplyDataProtocolInfo | None = None
 
     async def read_cookie_file(self) -> bytes:
         """
@@ -485,28 +474,35 @@ class ReplyProtocolInfo(Reply):
             The content of the cookie file.
 
         """
-        if self.auth_cookie_file is None:
+        if self.data is None or self.data.auth_cookie_file is None:
             msg = 'No cookie file found in this reply.'
             raise FileNotFoundError(msg)
 
         loop = asyncio.get_running_loop()
-        func = partial(_read_auth_cookie_file, self.auth_cookie_file)
+        func = partial(_read_auth_cookie_file, self.data.auth_cookie_file)
         return await loop.run_in_executor(None, func)
 
     @classmethod
     def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
         """Build a map from a received message."""
-        result: dict[str, Any] = {'status': message.status, 'status_text': message.header}
-        for item in message.items:
-            keyword = item.keyword
-            syntax = cls.SYNTAXES.get(keyword)
-            if syntax is not None:
-                update = syntax.parse(item)
-                for key, val in update.items():
-                    if key is not None:  # pragma: no branch
-                        result[key] = val
-            else:
-                logger.info("No syntax handler for keyword '%s'", keyword)
+        result = {
+            'status': message.status,
+            'status_text': message.header,
+        }  # type: dict[str, Any]
+
+        if message.is_success:
+            data = {}  # type: dict[str, ReplyMapValueType]
+            for item in message.items:
+                keyword = item.keyword
+                syntax = cls.SYNTAXES.get(keyword)
+                if syntax is not None:
+                    update = syntax.parse(item)
+                    for key, val in update.items():
+                        if key is not None:  # pragma: no branch
+                            data[key] = val
+                else:
+                    logger.info("No syntax handler for keyword '%s'", keyword)
+            result['data'] = data
         return result
 
 
@@ -539,22 +535,20 @@ class ReplyAuthChallenge(Reply):
         flags=ReplySyntaxFlag.KW_ENABLE,
     )
 
-    #: Not part of the real response, but very handy to have it here.
-    client_nonce: Base16Bytes | str | None = None
-    #: Server hash as computed by the server.
-    server_hash: Base16Bytes | None = None
-    #: Server nonce as provided by the server.
-    server_nonce: Base16Bytes | None = None
+    #: Reply content when this command was successful.
+    data: ReplyDataAuthChallenge | None = None
 
     @classmethod
     def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
         """Build a map from a received message."""
         result = {'status': message.status}  # type: dict[str, Any]
         if message.is_success:
+            data = {}  # type: dict[str, ReplyMapValueType]
             update = cls.SYNTAX.parse(message)
             for key, val in update.items():
                 if key is not None and isinstance(val, str):  # pragma: no branch
-                    result[key] = val
+                    data[key] = val
+            result['data'] = data
         else:
             result['status_text'] = message.header
         return result
@@ -578,18 +572,18 @@ class ReplyAuthChallenge(Reply):
             A value that you can authenticate with.
 
         """
-        client_nonce = client_nonce or self.client_nonce
+        if self.data is None or self.data.server_nonce is None:
+            msg = 'No server_nonce has been set.'
+            raise ReplyError(msg)
+
+        client_nonce = client_nonce or self.data.client_nonce
         if client_nonce is None:
             msg = 'No client_nonce was found or provided.'
             raise ReplyError(msg)
 
-        if self.server_nonce is None:
-            msg = 'No server_nonce has been set.'
-            raise ReplyError(msg)
-
         if isinstance(client_nonce, str):
             client_nonce = client_nonce.encode('ascii')
-        data = cookie + client_nonce + self.server_nonce
+        data = cookie + client_nonce + self.data.server_nonce
         return hmac.new(self.CLIENT_HASH_CONSTANT, data, hashlib.sha256).digest()
 
     def build_server_hash(
@@ -611,18 +605,18 @@ class ReplyAuthChallenge(Reply):
             The same value as in `server_hash` if everything went well.
 
         """
-        client_nonce = client_nonce or self.client_nonce
+        if self.data is None or self.data.server_nonce is None:
+            msg = 'No server_nonce has been set.'
+            raise ReplyError(msg)
+
+        client_nonce = client_nonce or self.data.client_nonce
         if client_nonce is None:
             msg = 'No client_nonce was found or provided.'
             raise ReplyError(msg)
 
-        if self.server_nonce is None:
-            msg = 'No server_nonce has been set.'
-            raise ReplyError(msg)
-
         if isinstance(client_nonce, str):
             client_nonce = client_nonce.encode('ascii')
-        data = cookie + client_nonce + self.server_nonce
+        data = cookie + client_nonce + self.data.server_nonce
         return hmac.new(self.SERVER_HASH_CONSTANT, data, hashlib.sha256).digest()
 
     def raise_for_server_hash_error(
@@ -642,7 +636,7 @@ class ReplyAuthChallenge(Reply):
 
         """
         computed = self.build_server_hash(cookie, client_nonce)
-        if computed != self.server_hash:
+        if self.data is None or computed != self.data.server_hash:
             msg = 'Server hash provided by Tor is invalid.'
             raise ReplyError(msg)
 
@@ -672,17 +666,8 @@ class ReplyAddOnion(Reply):
         flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_RAW,
     )
 
-    #: Called `ServiceID` in the documentation, this is the onion address.
-    address: HiddenServiceAddress | None = None
-
-    #: List of client authentication for a v2 address.
-    client_auth: Sequence[HsDescClientAuthV2] = field(default_factory=list)
-
-    #: List of client authentication for a v3 address.
-    client_auth_v3: Sequence[HsDescClientAuthV3] = field(default_factory=list)
-
-    #: Onion service key.
-    key: OnionServiceKey | None = None
+    #: Reply for a successful command.
+    data: ReplyDataAddOnion | None = None
 
     @classmethod
     def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
@@ -693,16 +678,16 @@ class ReplyAddOnion(Reply):
         }  # type: dict[str, Any]
 
         if message.is_success:
-            keywords = {}  # type: dict[str, Any]
+            data = {}  # type: dict[str, Any]
             for sub in message.items:
                 update = cls.SYNTAX.parse(sub)
                 for key, val in update.items():
                     if key is not None:  # pragma: no branch
-                        if key in cls.SYNTAX.kwargs_multi and key in keywords:
-                            keywords[key].extend(val)
+                        if key in cls.SYNTAX.kwargs_multi and key in data:
+                            data[key].extend(val)
                         else:
-                            keywords[key] = val
-            result.update(keywords)
+                            data[key] = val
+            result['data'] = data
         else:
             result['status_text'] = message.header
         return result
@@ -745,10 +730,8 @@ class ReplyOnionClientAuthView(Reply):
         ),
     }
 
-    #: Onion address minus the ``.onion`` suffix.
-    address: HiddenServiceAddress | None = None
-    #: List of authorized clients and their private key.
-    clients: Sequence[OnionClientAuth] = field(default_factory=list)
+    #: Data for a successful command.
+    data: ReplyDataOnionClientAuthView | None = None
 
     @classmethod
     def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
@@ -759,20 +742,19 @@ class ReplyOnionClientAuthView(Reply):
         }  # type: dict[str, Any]
 
         if message.is_success:
-            clients = []  # type: list[Mapping[str | None, Any]]
+            data = {'clients': []}  # type: dict[str, Any]
             for item in message.items:
                 keyword = item.keyword
                 syntax = cls.SYNTAXES.get(keyword)
                 if syntax is not None:  # pragma: no branch
                     update = syntax.parse(item)
                     if keyword == 'CLIENT':
-                        clients.append(update)
+                        data['clients'].append(update)
                     else:
                         for key, val in update.items():
                             if key is not None:  # pragma: no branch
-                                result[key] = val
-
-            result['clients'] = clients
+                                data[key] = val
+            result['data'] = data
         return result
 
 

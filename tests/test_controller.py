@@ -133,11 +133,18 @@ class TestController:
         assert len(token) == 32
 
     @pytest.mark.timeout(2)
+    async def test_cmd_auth_challenge_error(self, controller_unauth):
+        res = await controller_unauth.auth_challenge(b'')
+        with pytest.raises(ReplyStatusError, match='Wrong number of arguments'):
+            res.raise_for_status()
+
+    @pytest.mark.timeout(2)
     async def test_cmd_auth_challenge_no_nonce(self, controller_unauth):
         # This means that the nonce is generated locally by `auth_challenge`.
         res = await controller_unauth.auth_challenge()
-        assert len(res.client_nonce) == 32
-        assert len(res.server_nonce) == 32
+        res.raise_for_status()
+        assert len(res.data.client_nonce) == 32
+        assert len(res.data.server_nonce) == 32
 
     async def test_authenticated_controller(self, controller):
         assert controller.connected
@@ -210,9 +217,11 @@ class TestController:
 
     async def test_cmd_protocol_info(self, controller):
         res1 = await controller.protocol_info()
-        assert res1.auth_cookie_file is not None
-        assert res1.protocol_version == 1
-        assert isinstance(res1.tor_version, str)
+        res1.raise_for_status()
+
+        assert res1.data.auth_cookie_file is not None
+        assert res1.data.protocol_version == 1
+        assert isinstance(res1.data.tor_version, str)
 
     async def test_cmd_protocol_info_read_cookie_file_error(self, controller):
         res1 = await controller.protocol_info()

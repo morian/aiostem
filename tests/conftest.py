@@ -52,17 +52,18 @@ class CustomController(Controller):
     async def protocol_info(self, version: int | None = None) -> ReplyProtocolInfo:
         """Filter out some auth_methods when asked to."""
         reply = await super().protocol_info(version)
-        if self.enabled_auth_methods:
-            reply.auth_methods = self.enabled_auth_methods
-        if self.auth_cookie_file is not None:
-            reply.auth_cookie_file = self.auth_cookie_file
+        if reply.data is not None:
+            if self.enabled_auth_methods:
+                reply.data.auth_methods = self.enabled_auth_methods
+            if self.auth_cookie_file is not None:
+                reply.data.auth_cookie_file = self.auth_cookie_file
         return reply
 
     async def auth_challenge(self, nonce: bytes | str | None = None) -> ReplyAuthChallenge:
         """Fix the auth challenge a little bit when needed."""
         reply = await super().auth_challenge(nonce)
         if self.auth_cookie_data is not None:
-            reply.server_hash = reply.build_server_hash(self.auth_cookie_data)
+            reply.data.server_hash = reply.build_server_hash(self.auth_cookie_data)
         return reply
 
     async def push_event_message(self, message: Message) -> None:

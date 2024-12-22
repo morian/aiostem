@@ -3,12 +3,25 @@ from __future__ import annotations
 import base64
 import hashlib
 import secrets
-from collections.abc import Set as AbstractSet
+from collections.abc import (
+    Sequence,
+    Set as AbstractSet,
+)
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Self, TypeAlias, Union
+from typing import (
+    TYPE_CHECKING,
+    Annotated,
+    Any,
+    ClassVar,
+    Literal,
+    Optional,
+    Self,
+    TypeAlias,
+    Union,
+)
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
@@ -21,6 +34,7 @@ from pydantic_core import PydanticCustomError, core_schema
 
 from .types import (
     AnyAddress,
+    AnyHost,
     AnyPort,
     Base16Bytes,
     Base64Bytes,
@@ -1148,6 +1162,123 @@ class ExternalAddressResolveMethod(StrEnum):
     GETHOSTNAME = 'GETHOSTNAME'
     INTERFACE = 'INTERFACE'
     RESOLVED = 'RESOLVED'
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyDataMapAddressItem:
+    """
+    A single reply data associated for a successful :attr:`~.CommandWord.MAPADDRESS` command.
+
+    See Also:
+        - :class:`.ReplyMapAddressItem`
+        - :class:`.ReplyMapAddress`
+
+    """
+
+    #: Original address to replace with another one.
+    original: Optional[AnyHost] = None  # noqa: UP007
+
+    #: Replacement item for the corresponding :attr:`original` address.
+    replacement: Optional[AnyHost] = None  # noqa: UP007
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyDataExtendCircuit:
+    """
+    Reply data linked to a successful :attr:`~.CommandWord.EXTENDCIRCUIT` command.
+
+    See Also:
+        - :class:`.ReplyExtendCircuit`
+
+    """
+
+    #: Build or extended circuit.
+    circuit: int
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyDataProtocolInfo:
+    """
+    Reply data linked to a successful :attr:`~.CommandWord.PROTOCOLINFO` command.
+
+    See Also:
+        - :class:`.ReplyProtocolInfo`
+
+    """
+
+    #: List of available authentication methods.
+    auth_methods: Annotated[AbstractSet[AuthMethod], TrBeforeStringSplit()] = field(
+        default_factory=set
+    )
+
+    #: Path on the server to the cookie file.
+    auth_cookie_file: str | None = None
+
+    #: Version of the Tor control protocol in use.
+    protocol_version: int
+
+    #: Version of Tor.
+    tor_version: str
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyDataAuthChallenge:
+    """
+    Reply data linked to a successful :attr:`~.CommandWord.AUTHCHALLENGE` command.
+
+    See Also:
+        - :class:`.ReplyAuthChallenge`
+
+    """
+
+    #: Not part of the real response, but very handy to have it here.
+    client_nonce: Base16Bytes | str | None = None
+
+    #: Server hash as computed by the server.
+    server_hash: Base16Bytes
+
+    #: Server nonce as provided by the server.
+    server_nonce: Base16Bytes
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyDataAddOnion:
+    """
+    Reply data linked to a successful :attr:`~.CommandWord.ADD_ONION` command.
+
+    See Also:
+        - :class:`.ReplyAddOnion`
+
+    """
+
+    #: Called `ServiceID` in the documentation, this is the onion address.
+    address: HiddenServiceAddress
+
+    #: List of client authentication for a v2 address.
+    client_auth: Sequence[HsDescClientAuthV2] = field(default_factory=list)
+
+    #: List of client authentication for a v3 address.
+    client_auth_v3: Sequence[HsDescClientAuthV3] = field(default_factory=list)
+
+    #: Onion service key.
+    key: OnionServiceKey | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class ReplyDataOnionClientAuthView:
+    """
+    Reply data linked to a successful :attr:`~.CommandWord.ONION_CLIENT_AUTH_VIEW` command.
+
+    See Also:
+        - :class:`.ReplyOnionClientAuthView`
+
+    """
+
+    #: Onion address minus the ``.onion`` suffix.
+    address: HiddenServiceAddress | None = None
+
+    #: List of authorized clients and their private key.
+    clients: Sequence[OnionClientAuth] = field(default_factory=list)
 
 
 @dataclass(kw_only=True, slots=True)

@@ -184,6 +184,36 @@ These :func:`~dataclasses.dataclass` structures are specific for each action of 
    :members:
 
 
+Reply data
+----------
+
+These are directly part of the replies when a command has been successful.
+
+.. autoclass:: ReplyDataAddOnion
+   :no-show-inheritance:
+   :members:
+
+.. autoclass:: ReplyDataAuthChallenge
+   :no-show-inheritance:
+   :members:
+
+.. autoclass:: ReplyDataExtendCircuit
+   :no-show-inheritance:
+   :members:
+
+.. autoclass:: ReplyDataMapAddressItem
+   :no-show-inheritance:
+   :members:
+
+.. autoclass:: ReplyDataOnionClientAuthView
+   :no-show-inheritance:
+   :members:
+
+.. autoclass:: ReplyDataProtocolInfo
+   :no-show-inheritance:
+   :members:
+
+
 Server status
 -------------
 
