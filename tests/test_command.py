@@ -334,7 +334,7 @@ class TestCommands:
                     'znA0P0ZZKoLzYbJyURXRs0GNUz5aon9y+I3x3GauWJEXymSA'
                 ),
                 OnionServiceKeyStruct,
-            )
+            ),
         ],
     )
     def test_add_onion_from_struct(self, value, type_):
