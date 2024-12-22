@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PublicKey,
 )
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
-from pydantic import BaseModel, TypeAdapter
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from aiostem.structures import AuthMethod
 from aiostem.utils import (
@@ -257,10 +257,21 @@ class TestTrEd25519PrivateKey:
         Annotated[
             Ed25519PrivateKey,
             EncodedBytes(encoder=Base64Encoder),
-            TrEd25519PrivateKey(),
+            TrEd25519PrivateKey(expanded=False),
         ],
     )
+    ADAPTER_EXP = TypeAdapter(
+        Annotated[
+            Ed25519PrivateKey,
+            EncodedBytes(encoder=Base64Encoder),
+            TrEd25519PrivateKey(expanded=True),
+        ]
+    )
     TEST_KEY = 'czJbjz9SLJqx6DVIRe1cWTSWXM4UeYiRNTnAPYGDlMU='
+    EXPANDED = (
+        '0EqCqB0L1FnKrZwu6ovSwCD3gEfWVxVAAlJiToTI3Ea6fC2IxwcKJt4MCEuc9oQo'
+        'kYK+HdXtbc3jIvySyLaNMg'
+    )
     EXPECTED = TEST_KEY.rstrip('=')
 
     @pytest.mark.parametrize(
@@ -278,6 +289,15 @@ class TestTrEd25519PrivateKey:
 
         serial = self.ADAPTER_ENC.dump_python(key)
         assert serial == self.EXPECTED
+
+    def test_expanded_key_parse(self):
+        with pytest.raises(ValidationError, match='An Ed25519 private key is 32 bytes long'):
+            self.ADAPTER_EXP.validate_python(self.EXPANDED)
+
+    def test_expanded_key_serialize(self):
+        key = Ed25519PrivateKey.from_private_bytes(b64decode(self.TEST_KEY))
+        ser = self.ADAPTER_EXP.dump_python(key)
+        assert ser == self.EXPANDED
 
     def test_using_raw_bytes(self):
         raw = b64decode(self.TEST_KEY)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import typing
 from abc import ABC, abstractmethod
 from collections.abc import (
@@ -311,7 +312,22 @@ class TrGenericKey(ABC, Generic[KeyType]):
 
 @dataclass(frozen=True, slots=True)
 class TrEd25519PrivateKey(TrGenericKey[Ed25519PrivateKey]):
-    """Transform bytes into an ed25519 private key."""
+    """
+    Transform bytes into an ed25519 private key.
+
+    Note:
+        Tor's implementation of Ed25519 is donna-ed25519 and uses the expanded
+        form as the private key (64 bytes). Unfortunately ``cryptography`` does
+        not provide such interface, which means that we are left with this
+        implementation.
+
+    """
+
+    #: Whether to generate the expanded form while serializing.
+    #:
+    #: Note:
+    #:     This makes parsing impossible...
+    expanded: bool = False
 
     def _get_type(self) -> type[Ed25519PrivateKey]:
         """Get the key type used by this generic class."""
@@ -320,6 +336,9 @@ class TrEd25519PrivateKey(TrGenericKey[Ed25519PrivateKey]):
     def from_bytes(self, data: bytes) -> Ed25519PrivateKey:
         """
         Build an ed25519 private key out of the provided bytes.
+
+        Args:
+            data: a 32 bytes seed representing a secret key.
 
         Returns:
             An instance of an ed25519 private key.
@@ -330,6 +349,37 @@ class TrEd25519PrivateKey(TrGenericKey[Ed25519PrivateKey]):
     def to_bytes(self, key: Ed25519PrivateKey) -> bytes:
         """
         Serialize the provided private key to bytes.
+
+        See Also:
+            - :meth:`to_expanded_bytes`
+            - :meth:`to_seed_bytes`
+
+        Returns:
+            32 or 64 bytes corresponding to the private key.
+
+        """
+        if self.expanded:
+            return self.to_expanded_bytes(key)
+        return self.to_seed_bytes(key)
+
+    def to_expanded_bytes(self, key: Ed25519PrivateKey) -> bytes:
+        """
+        Serialize to the expanded form.
+
+        Returns:
+            64 bytes corresponding to the expanded private key.
+
+        """
+        seed = self.to_seed_bytes(key)
+        extsk = list(hashlib.sha512(seed).digest())
+        extsk[0] &= 248
+        extsk[31] &= 127
+        extsk[31] |= 64
+        return bytes(extsk)
+
+    def to_seed_bytes(self, key: Ed25519PrivateKey) -> bytes:
+        """
+        Serialize the seed bytes, which is the default behavior.
 
         Returns:
             32 bytes corresponding to the private key.

@@ -29,6 +29,14 @@ handle the heavy lifting.
    :no-show-inheritance:
    :members:
 
+.. autoclass:: TrEd25519PrivateKey
+   :no-show-inheritance:
+   :members:
+
+.. autoclass:: TrEd25519PublicKey
+   :no-show-inheritance:
+   :members:
+
 .. autoclass:: TrX25519PrivateKey
    :no-show-inheritance:
    :members:
