@@ -1,12 +1,17 @@
 from __future__ import annotations
 
-from base64 import b32encode
+import secrets
+from base64 import b32encode, b64encode
 from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, ClassVar
 
 import pydantic
 import pytest
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 from packaging.version import Version
 from pydantic import BaseModel, TypeAdapter, ValidationError
@@ -19,8 +24,11 @@ from aiostem.structures import (
     LogSeverity,
     LongServerName,
     OnionClientAuthKey,
+    OnionServiceKey,
+    OnionServiceKeyStruct,
     TcpAddressPort,
 )
+from aiostem.utils import TrEd25519PrivateKey
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
@@ -293,4 +301,56 @@ class TestOnionClientAuthKey:
     )
     def test_user_warning(self):
         with pytest.warns(UserWarning, match='Unhandled onion client auth key type'):
+            self.ADAPTER.dump_python('xxxx')
+
+
+class TestOnionServiceKey:
+    ADAPTER = TypeAdapter(OnionServiceKey)
+
+    def test_parse_with_ed25519(self):
+        value = (
+            'ED25519-V3:ECum/PYnCBIHwWWmn6AaO29uY4Eq/hDEz6pLUGznA0P0ZZKoLzYbJ'
+            'yURXRs0GNUz5aon9y+I3x3GauWJEXymSA=='
+        )
+        key = self.ADAPTER.validate_python(value)
+        assert isinstance(key, OnionServiceKeyStruct)
+
+        serial = self.ADAPTER.dump_python(key)
+        assert serial == value.rstrip('=')
+
+    def test_parse_with_rsa1024(self):
+        value = (
+            'RSA1024:MIICXAIBAAKBgQCdgZ2RL9T2OvYCQ6dDmiWuaxZPsL111BEDEc6HOKDw'
+            'E9f9Mu4Oybd48TVMgm9/xSYLBN4gBca75fZX9oqB+umy7gNdRZyeat81YwNZUOb0'
+            'Bko6Gfo6nrhssrvGETk6rRjMMRKVkeMDUQYDTF4bo2dKNxEhkmfEUbnZvjPs5E1Z'
+            'RQIDAQABAoGAPVXJN02qH8zsGgugainv/JEFGjlYPjc7/LcFdxDtUzBXDumzXJze'
+            'zsEXoVi19MqgOvBFU7EMKAWwPabrXxyHvqKCNoR8Iwlz7yozXchre5l87EhgReNR'
+            'vGnFaUYYSrJ9vb92ytI9ZDdbf6pxd1cWxzbUghFCxpUZ4k+GmkzNka0CQQDQhLbc'
+            'OOS+gc4iAa83XyXD/iJO/gYfNuObI9FOnTKVwxA6Al/TaTGp0Mk35IL1wh07EHxN'
+            '7oxSGieqWriGm5ZnAkEAwV85CYRkEC7kxRlMLAjxqyVD8jh/nSvakYqqJRZ2JJdn'
+            'jXO20nICowciaFKJvJSC4iU/4w3wcu9beed9ialPcwJAKYy4b0t68ScmbwpM4si3'
+            '2sUSCxF9IM0sL2bEt1iFkugKnLSKabMFbWQoJFYJbnUeo/1V96V4GogRrVVkfZYV'
+            'MwJAS95BcaN44wSTC2XWhfxoXR683t8d6puXIL1H7k82wTqKDWyWEVFcCXy2Gjow'
+            'AkY+Z933h+0jJuUUfeq+TXGZUwJBAL5V289moEjRsqwXn8Eaw5aU/+IRBgnWxXKZ'
+            '6mXD8gb5OQ7TLkcfehNHHy3JYEgfrLjZafol/9IGA7tisfp2vPs='
+        )
+        key = self.ADAPTER.validate_python(value)
+        assert isinstance(key, RSAPrivateKey)
+
+        serial = self.ADAPTER.dump_python(key)
+        assert serial == value.rstrip('=')
+
+    def test_serialize_ed25519(self):
+        key = Ed25519PrivateKey.from_private_bytes(secrets.token_bytes(32))
+        expanded = TrEd25519PrivateKey().to_expanded_bytes(key)
+        expected = b64encode(expanded).decode().rstrip('=')
+        result = self.ADAPTER.dump_python(key)
+        assert result == f'ED25519-V3:{expected}'
+
+    @pytest.mark.skipif(
+        Version(pydantic.__version__) < Version('2.9.0'),
+        reason='No UserWarning is emitted on pydantic < 2.9',
+    )
+    def test_user_warning(self):
+        with pytest.warns(UserWarning, match='Unhandled onion service key type'):
             self.ADAPTER.dump_python('xxxx')

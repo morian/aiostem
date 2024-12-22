@@ -12,6 +12,8 @@ from .transformers import (
     TrCast,
     TrEd25519PrivateKey,
     TrEd25519PublicKey,
+    TrRSAPrivateKey,
+    TrRSAPublicKey,
     TrX25519PrivateKey,
     TrX25519PublicKey,
 )
@@ -37,6 +39,8 @@ __all__ = [
     'TrCast',
     'TrEd25519PrivateKey',
     'TrEd25519PublicKey',
+    'TrRSAPrivateKey',
+    'TrRSAPublicKey',
     'TrX25519PrivateKey',
     'TrX25519PublicKey',
     'messages_from_stream',

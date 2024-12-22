@@ -28,7 +28,7 @@ classifiers = [
 ]
 dependencies = [
 	'cryptography >= 44.0, < 45.0',
-	'pydantic >= 2.7, < 3.0',
+	'pydantic >= 2.9, < 3.0',
 ]
 requires-python = '>=3.11'
 

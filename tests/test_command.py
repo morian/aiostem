@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import secrets
-from base64 import b32decode, b64decode
+from base64 import b32decode, b64decode, b64encode
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from pydantic import TypeAdapter
 
@@ -54,11 +55,13 @@ from aiostem.structures import (
     HsDescClientAuthV2,
     OnionClientAuthFlags,
     OnionServiceFlags,
+    OnionServiceKeyStruct,
     OnionServiceKeyType,
+    OnionServiceNewKeyStruct,
     Signal,
     VirtualPort,
 )
-from aiostem.utils import ArgumentKeyword, ArgumentString, QuoteStyle
+from aiostem.utils import ArgumentKeyword, ArgumentString, QuoteStyle, TrEd25519PrivateKey
 
 VirtualPortAdapter = TypeAdapter(VirtualPort)
 
@@ -307,23 +310,39 @@ class TestCommands:
     def test_add_onion(self):
         port = VirtualPortAdapter.validate_python('80,127.0.0.1:80')
         cmd = CommandAddOnion(
-            key_type='NEW',
-            key=OnionServiceKeyType.ED25519_V3,
+            key=OnionServiceNewKeyStruct(OnionServiceKeyType.ED25519_V3),
             ports=[port],
         )
         assert cmd.serialize() == 'ADD_ONION NEW:ED25519-V3 Port=80,127.0.0.1:80\r\n'
 
     def test_add_onion_bytes(self):
-        key = b'\xe6PG\xf74\xa4\xfc\xa3O\xaa\x95\x91X+\x8d\x1a'
+        key = Ed25519PrivateKey.from_private_bytes(secrets.token_bytes(32))
+        expanded = TrEd25519PrivateKey().to_expanded_bytes(key)
+        expected = b64encode(expanded).decode().rstrip('=')
+
         port = VirtualPortAdapter.validate_python('80,127.0.0.1:80')
-        cmd = CommandAddOnion(
-            key_type=OnionServiceKeyType.ED25519_V3,
-            key=key,
-            ports=[port],
-        )
-        assert cmd.serialize() == (
-            'ADD_ONION ED25519-V3:5lBH9zSk/KNPqpWRWCuNGg Port=80,127.0.0.1:80\r\n'
-        )
+        cmd = CommandAddOnion(key=key, ports=[port])
+        assert cmd.serialize() == (f'ADD_ONION ED25519-V3:{expected} Port=80,127.0.0.1:80\r\n')
+
+    @pytest.mark.parametrize(
+        ('value', 'type_'),
+        [
+            ('NEW:BEST', OnionServiceNewKeyStruct),
+            (
+                (
+                    'ED25519-V3:ECum/PYnCBIHwWWmn6AaO29uY4Eq/hDEz6pLUG'
+                    'znA0P0ZZKoLzYbJyURXRs0GNUz5aon9y+I3x3GauWJEXymSA'
+                ),
+                OnionServiceKeyStruct,
+            )
+        ],
+    )
+    def test_add_onion_from_struct(self, value, type_):
+        struct = {'key': value}
+        adapter = CommandAddOnion.adapter()
+        cmd = adapter.validate_python(struct)
+        assert isinstance(cmd, CommandAddOnion)
+        assert isinstance(cmd.key, type_)
 
     def test_add_onion_with_client_auth(self):
         auth = HsDescClientAuthV2(
@@ -335,8 +354,7 @@ class TestCommands:
         )
         port = VirtualPortAdapter.validate_python('80,127.0.0.1:80')
         cmd = CommandAddOnion(
-            key_type='NEW',
-            key='BEST',
+            key=OnionServiceNewKeyStruct('BEST'),
             ports=[port],
             flags={OnionServiceFlags.DISCARD_PK},
             max_streams=2,
@@ -359,8 +377,7 @@ class TestCommands:
 
         port = VirtualPortAdapter.validate_python('80,127.0.0.1:80')
         cmd = CommandAddOnion(
-            key_type='NEW',
-            key='BEST',
+            key=OnionServiceNewKeyStruct('BEST'),
             ports=[port],
             client_auth_v3=auth_v3,
         )
@@ -370,27 +387,8 @@ class TestCommands:
             'ClientAuthV3=RC3BHJ6WTBQPRRSMV65XGCZVSYJQZNWBQI3LLFS73VP6NHSIAD2Q\r\n'
         )
 
-    def test_add_onion_key_error_1(self):
-        key = 'MC4CAQAwBQYDK2VwBCIEIKK7usustM7o4IjJCPp0zQZpjNKHi42e3phc4VgWt08V'
-        cmd = CommandAddOnion(
-            key_type='NEW',
-            key=key,
-            ports=['80,127.0.0.1:80'],
-        )
-        with pytest.raises(CommandError, match='Incompatible options for'):
-            cmd.serialize()
-
-    def test_add_onion_key_error_2(self):
-        cmd = CommandAddOnion(
-            key_type=OnionServiceKeyType.RSA1024,
-            key='BEST',
-            ports=['80,127.0.0.1:80'],
-        )
-        with pytest.raises(CommandError, match='Incompatible options for'):
-            cmd.serialize()
-
     def test_add_onion_key_no_port(self):
-        cmd = CommandAddOnion(key_type='NEW', key='BEST')
+        cmd = CommandAddOnion(key=OnionServiceNewKeyStruct('BEST'))
         with pytest.raises(CommandError, match='You must specify one or more virtual ports'):
             cmd.serialize()
 

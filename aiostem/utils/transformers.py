@@ -18,7 +18,16 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
     Ed25519PublicKey,
 )
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
+from cryptography.hazmat.primitives.serialization import (
+    Encoding,
+    NoEncryption,
+    PrivateFormat,
+    PublicFormat,
+    load_der_private_key,
+    load_der_public_key,
+)
 from pydantic import ConfigDict, PydanticSchemaGenerationError
 from pydantic_core import core_schema
 from pydantic_core.core_schema import CoreSchema, WhenUsed
@@ -415,6 +424,72 @@ class TrEd25519PublicKey(TrGenericKey[Ed25519PublicKey]):
 
         """
         return key.public_bytes_raw()
+
+
+@dataclass(frozen=True, slots=True)
+class TrRSAPrivateKey(TrGenericKey[RSAPrivateKey]):
+    """Transform bytes into a RSA private key."""
+
+    #: Encoding format for the public RSA key.
+    encoding: Encoding = Encoding.DER
+
+    #: Key format used while serializing.
+    format: PrivateFormat = PrivateFormat.TraditionalOpenSSL
+
+    def _get_type(self) -> type[RSAPrivateKey]:
+        """Get the key type used by this generic class."""
+        return RSAPrivateKey
+
+    def from_bytes(self, data: bytes) -> RSAPrivateKey:
+        """
+        Build a RSA private key out of the provided bytes.
+
+        Returns:
+            An instance of a RSA private key.
+
+        """
+        key = load_der_private_key(data, password=None)
+        if not isinstance(key, RSAPrivateKey):
+            msg = 'Loaded key is not a valid RSA private key.'
+            raise TypeError(msg)
+        return key
+
+    def to_bytes(self, key: RSAPrivateKey) -> bytes:
+        """Serialize the provided private key to bytes."""
+        return key.private_bytes(self.encoding, self.format, NoEncryption())
+
+
+@dataclass(frozen=True, slots=True)
+class TrRSAPublicKey(TrGenericKey[RSAPublicKey]):
+    """Transform bytes into a RSA public key."""
+
+    #: Encoding format for the public RSA key.
+    encoding: Encoding = Encoding.DER
+
+    #: Key format used while serializing.
+    format: PublicFormat = PublicFormat.PKCS1
+
+    def _get_type(self) -> type[RSAPublicKey]:
+        """Get the key type used by this generic class."""
+        return RSAPublicKey
+
+    def from_bytes(self, data: bytes) -> RSAPublicKey:
+        """
+        Build a RSA public key out of the provided bytes.
+
+        Returns:
+            An instance of a RSA public key.
+
+        """
+        key = load_der_public_key(data)
+        if not isinstance(key, RSAPublicKey):
+            msg = f'Loaded key is not a valid RSA public key: got {type(key)}.'
+            raise TypeError(msg)
+        return key
+
+    def to_bytes(self, key: RSAPublicKey) -> bytes:
+        """Serialize the provided public key to bytes."""
+        return key.public_bytes(self.encoding, self.format)
 
 
 @dataclass(frozen=True, slots=True)

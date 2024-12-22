@@ -134,6 +134,16 @@ Hidden Service structures
    :undoc-members:
    :members:
 
+.. autoclass:: OnionServiceKeyStruct
+   :no-show-inheritance:
+   :undoc-members:
+   :members:
+
+.. autoclass:: OnionServiceNewKeyStruct
+   :no-show-inheritance:
+   :undoc-members:
+   :members:
+
 
 Client status
 -------------

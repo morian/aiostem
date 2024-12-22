@@ -28,9 +28,9 @@ from .structures import (
     HsDescClientAuthV2,
     HsDescClientAuthV3,
     OnionClientAuth,
-    OnionServiceKeyType,
+    OnionServiceKey,
 )
-from .types import AnyHost, Base16Bytes, Base64Bytes
+from .types import AnyHost, Base16Bytes
 from .utils import BaseMessage, Message, ReplySyntax, ReplySyntaxFlag, TrBeforeStringSplit
 
 logger = logging.getLogger(__package__)
@@ -656,7 +656,7 @@ class ReplyAddOnion(Reply):
             'ServiceID': 'address',
             'ClientAuth': 'client_auth',
             'ClientAuthV3': 'client_auth_v3',
-            'PrivateKey': 'priv',
+            'PrivateKey': 'key',
         },
         kwargs_multi={'client_auth', 'client_auth_v3'},
         flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_RAW,
@@ -671,11 +671,8 @@ class ReplyAddOnion(Reply):
     #: List of client authentication for a v3 address.
     client_auth_v3: Sequence[HsDescClientAuthV3] = field(default_factory=list)
 
-    #: Onion service key type.
-    key_type: OnionServiceKeyType | None = None
-
-    #: Onion service key bytes.
-    key: Base64Bytes | None = None
+    #: Onion service key.
+    key: OnionServiceKey | None = None
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
@@ -695,12 +692,6 @@ class ReplyAddOnion(Reply):
                             keywords[key].extend(val)
                         else:
                             keywords[key] = val
-
-            key_spec = keywords.pop('priv', None)
-            if key_spec is not None:
-                key_type, key_blob = key_spec.split(':', maxsplit=1)
-                keywords['key_type'] = key_type
-                keywords['key'] = key_blob
             result.update(keywords)
         else:
             result['status_text'] = message.header

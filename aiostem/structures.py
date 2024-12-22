@@ -10,7 +10,11 @@ from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Self, TypeAlias, Union
 
-from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.ed25519 import (
+    Ed25519PrivateKey,
+    Ed25519PublicKey,
+)
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 from pydantic import BeforeValidator, Discriminator, NonNegativeInt, Tag, WrapSerializer
 from pydantic_core import PydanticCustomError, core_schema
@@ -23,7 +27,13 @@ from .types import (
     TimedeltaSeconds,
     X25519PublicKeyBase32,
 )
-from .utils import TrBeforeStringSplit, TrCast, TrX25519PrivateKey
+from .utils import (
+    TrBeforeStringSplit,
+    TrCast,
+    TrEd25519PrivateKey,
+    TrRSAPrivateKey,
+    TrX25519PrivateKey,
+)
 
 if TYPE_CHECKING:
     from pydantic import GetCoreSchemaHandler
@@ -590,8 +600,9 @@ def _discriminate_client_auth_private_key(v: Any) -> str:
     match v:
         case OnionClientAuthKeyStruct():
             return v.auth_type.value
+
         case X25519PrivateKey():
-            return 'x25519'
+            return OnionClientAuthKeyType.X25519.value
 
     msg = 'Unknown discrimination type for client auth key!'
     raise TypeError(msg)
@@ -634,7 +645,7 @@ OnionClientAuthKey: TypeAlias = Annotated[
             Tag('x25519'),
         ],
         # Needed as we don't handle another type in this union (yet).
-        Annotated[OnionClientAuthKeyStruct, Tag('__default__')],
+        Annotated[OnionClientAuthKeyStruct, Tag('fallback')],
     ],
     Discriminator(_discriminate_client_auth_private_key),
     TrCast(OnionClientAuthKeyStruct),
@@ -689,6 +700,129 @@ class OnionServiceKeyType(StrEnum):
     RSA1024 = 'RSA1024'
     #: The server should use the ed25519 v3 key provided in as KeyBlob (v3).
     ED25519_V3 = 'ED25519-V3'
+
+
+@dataclass(frozen=True, slots=True)
+class OnionServiceNewKeyStruct:
+    """Structure used to parse any new KEY."""
+
+    #: Type of key we want to generate.
+    key_type: OnionServiceKeyType | Literal['BEST']
+
+    #: Common prefix for all new keys.
+    prefix: Literal['NEW'] = 'NEW'
+
+
+OnionServiceNewKey: TypeAlias = Annotated[
+    OnionServiceNewKeyStruct,
+    TrBeforeStringSplit(
+        dict_keys=('prefix', 'key_type'),
+        maxsplit=1,
+        separator=':',
+    ),
+]
+
+
+@dataclass(frozen=True, slots=True)
+class OnionServiceKeyStruct:
+    """Intermediate structure used to parse a key for an onion service."""
+
+    #: Type of key we are about to use.
+    key_type: OnionServiceKeyType
+
+    #: Data bytes for the provided key.
+    data: Base64Bytes
+
+
+def _discriminate_service_private_key(v: Any) -> str:
+    """
+    Find how to discriminate the provided key.
+
+    Note:
+        Ed25519PrivateKey does not handle the expanded key provided by Tor.
+        This is why a :class:`OnionServiceKeyStruct` is provided here instead.
+
+    """
+    # This is used while serializing.
+    match v:
+        case OnionServiceKeyStruct():
+            key = v.key_type.value
+            if key == 'ED25519-V3':
+                key = 'fallback'
+            return key
+
+        case RSAPrivateKey():
+            return OnionServiceKeyType.RSA1024.value
+
+        case Ed25519PrivateKey():
+            return OnionServiceKeyType.ED25519_V3.value
+
+    msg = 'Unknown discrimination type for onion service key!'
+    raise TypeError(msg)
+
+
+def _onion_service_key_to_struct(
+    key: Ed25519PrivateKey | RSAPrivateKey,
+    serializer: SerializerFunctionWrapHandler,
+) -> OnionServiceKeyStruct:
+    """Build a OnionClientAuthKeyStruct from a raw key."""
+    match key:
+        case Ed25519PrivateKey():
+            return OnionServiceKeyStruct(
+                key_type=OnionServiceKeyType.ED25519_V3,
+                data=serializer(key),
+            )
+
+        case RSAPrivateKey():
+            return OnionServiceKeyStruct(
+                key_type=OnionServiceKeyType.RSA1024,
+                data=serializer(key),
+            )
+
+        case _:
+            msg = 'Unhandled onion service key type.'
+            raise TypeError(msg)
+
+
+#: Validator used to extract the raw key material after discrimination.
+OnionServiceKeyExtractKeyBytes = BeforeValidator(lambda key: key.data)
+
+#: Build a OnionClientAuthKeyStruct structure from a real key.
+OnionServiceStructFromKey = WrapSerializer(
+    func=_onion_service_key_to_struct,
+    return_type=OnionServiceKeyStruct,
+)
+
+#: Parse and serialize any onion service key with format ``RSA1024:[base64]``.
+OnionServiceKey: TypeAlias = Annotated[
+    Union[  # noqa: UP007
+        Annotated[
+            RSAPrivateKey,
+            TrRSAPrivateKey(),
+            OnionServiceKeyExtractKeyBytes,
+            OnionServiceStructFromKey,
+            Tag('RSA1024'),
+        ],
+        Annotated[
+            Ed25519PrivateKey,
+            TrEd25519PrivateKey(expanded=True),
+            OnionServiceKeyExtractKeyBytes,
+            OnionServiceStructFromKey,
+            Tag('ED25519-V3'),
+        ],
+        Annotated[
+            OnionServiceKeyStruct,
+            Tag('fallback'),
+        ],
+    ],
+    Discriminator(_discriminate_service_private_key),
+    TrCast(OnionServiceKeyStruct),
+    TrBeforeStringSplit(
+        dict_keys=('key_type', 'data'),
+        maxsplit=1,
+        separator=':',
+    ),
+]
 
 
 class Signal(StrEnum):

@@ -9,6 +9,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
     Ed25519PublicKey,
 )
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
@@ -23,6 +24,8 @@ from aiostem.utils import (
     TrBeforeTimedelta,
     TrEd25519PrivateKey,
     TrEd25519PublicKey,
+    TrRSAPrivateKey,
+    TrRSAPublicKey,
     TrX25519PrivateKey,
     TrX25519PublicKey,
 )
@@ -338,6 +341,105 @@ class TestTrEd25519PublicKey:
         raw = b32decode(self.TEST_KEY)
         key = self.ADAPTER_RAW.validate_python(raw)
         assert self.ADAPTER_RAW.dump_python(key) == raw
+
+
+class TestTrRSAPrivateKey:
+    KEY_TYPE = RSAPrivateKey
+    ADAPTER_RAW = TypeAdapter(Annotated[RSAPrivateKey, TrRSAPrivateKey()])
+    ADAPTER_ENC = TypeAdapter(
+        Annotated[
+            RSAPrivateKey,
+            EncodedBytes(encoder=Base64Encoder),
+            TrRSAPrivateKey(),
+        ],
+    )
+    # This key was generated using ADD_ONION NEW:RSA1024 on Tor 0.4.5.9
+    TEST_STRING = (
+        'MIICWwIBAAKBgQCkRs9KZFlgLhts7ASor0dUb9RlpKlTNJarif+n041xhCEqGxEt'
+        'U23G9SOsYS8L6cIWWw53YJkAzzHc/2qVB8Yxv9dLPT/YwDswHLgUbD6XP1TRtu0i'
+        '3jLURDv9tc3tWn7esoMpezs5TPgvwLOxAfTXN332GnDiek+bwvcMxHPBSwIDAQAB'
+        'AoGAOWJW1Mi7A8L3Z5QGiJo504AA9MSRNXSAUUmyWYCnvwiFwTyVQn0LMt286WFF'
+        'Wub8Gm0SX5cJu2OlKmq6Y3bEv1raLw/MPWEViV8bI9AqttUCDAHGlrFhS3anq8it'
+        'ZZpuillaffz+AUX4Od0HUbFaGSnOG89CbAlyq2qTYfyiqTkCQQDO4qGcsH9P/ZNi'
+        'kwM+MK+MvkdaKx+dME+lYMbcU/BRfKzTH9ie5y1J6SaA+rMnvMN8uYP/C8D39zwk'
+        'J2dnylM/AkEAy0anQbfZqf++6ng7YQpZW/V6uFXlPZaQeXjK4+KnMHslj9lSDUBr'
+        'MoLxtP2zIonQqIO52XupBQbVIlGuMiZq9QJAILURqcz5g7LqLyZg198okc6vRyEU'
+        'MWym2tVu+vxGPQvB4urg+1Y/AbVbgf6gfkLIgRpvNM4t5sXueyTDo1QITwJASG2B'
+        'NMpEFO1Z4gM67QWZ90kNE9cPGhWmnpFqgS4F8iE+rfV55dzZFSNQ6fMnO5wtK43b'
+        'z2DfRTo9AMBnt9i2bQJAc3vZmNbslZsiUXp20jmNWzWov+q8Yk5ZP9AZFWJeLCKt'
+        'VgSw4x1yEH1Y+pI+3V4arQxaoQ00iNbK3Ticdg0DIw=='
+    )
+    TEST_BYTES = b64decode(TEST_STRING)
+    EXPECTED = TEST_STRING.rstrip('=')
+
+    @pytest.mark.parametrize(
+        'raw',
+        [
+            TEST_STRING,
+            TEST_BYTES,
+            EXPECTED,
+            TrRSAPrivateKey().from_bytes(TEST_BYTES),
+        ],
+    )
+    def test_decode_encode(self, raw):
+        key = self.ADAPTER_ENC.validate_python(raw)
+        assert isinstance(key, self.KEY_TYPE)
+
+        serial = self.ADAPTER_ENC.dump_python(key)
+        assert serial == self.EXPECTED
+
+    def test_using_raw_bytes(self):
+        key = self.ADAPTER_RAW.validate_python(self.TEST_BYTES)
+        assert self.ADAPTER_RAW.dump_python(key) == self.TEST_BYTES
+
+    def test_using_ed25519_private_key(self):
+        key = 'MC4CAQAwBQYDK2VwBCIEIOt6WDTJqbRry3WJ30ZNynCPwLaFQ114NaYr3spHpvVi'
+        with pytest.raises(TypeError, match='Loaded key is not a valid RSA private key.'):
+            self.ADAPTER_ENC.validate_python(key)
+
+
+class TestTrRSAPublicKey:
+    KEY_TYPE = RSAPublicKey
+    ADAPTER_RAW = TypeAdapter(Annotated[RSAPublicKey, TrRSAPublicKey()])
+    ADAPTER_ENC = TypeAdapter(
+        Annotated[
+            RSAPublicKey,
+            EncodedBytes(encoder=Base64Encoder),
+            TrRSAPublicKey(),
+        ],
+    )
+    TEST_STRING = (
+        'MIGJAoGBAN87FeyffLsjGGgd6qxVLLoKWG1GXfyu4o6OrRi1a5Mv0bgRmwqfo1O5'
+        'g/c7/6JqhNFYd0UNIzyGB2LBHgQJwYTcPTW//Gpn8Dfcysl0gjA4+MLU/xQ/24Vi'
+        'bbkL05YLK0AabiedS3Pmm5bzy05xAdRFitK22BeXLYDuRBGrIVejAgMBAAE='
+    )
+    TEST_BYTES = b64decode(TEST_STRING)
+    EXPECTED = TEST_STRING.rstrip('=')
+
+    @pytest.mark.parametrize(
+        'raw',
+        [
+            TEST_STRING,
+            TEST_BYTES,
+            EXPECTED,
+            TrRSAPublicKey().from_bytes(TEST_BYTES),
+        ],
+    )
+    def test_decode_encode(self, raw):
+        key = self.ADAPTER_ENC.validate_python(raw)
+        assert isinstance(key, self.KEY_TYPE)
+
+        serial = self.ADAPTER_ENC.dump_python(key)
+        assert serial == self.EXPECTED
+
+    def test_using_raw_bytes(self):
+        key = self.ADAPTER_RAW.validate_python(self.TEST_BYTES)
+        assert self.ADAPTER_RAW.dump_python(key) == self.TEST_BYTES
+
+    def test_using_ed25519_private_key(self):
+        key = 'MCowBQYDK2VwAyEA5AcvvI6f7k6+VGVxr9KLRrjoHE9CZQGDSj5XnAXDUeY'
+        with pytest.raises(TypeError, match='Loaded key is not a valid RSA public key.'):
+            self.ADAPTER_ENC.validate_python(key)
 
 
 class TestTrX25519PrivateKey:

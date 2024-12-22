@@ -19,7 +19,7 @@ from aiostem.reply import (
     ReplyOnionClientAuthView,
     ReplyProtocolInfo,
 )
-from aiostem.structures import AuthMethod, OnionServiceKeyType
+from aiostem.structures import AuthMethod, OnionServiceKeyStruct, OnionServiceKeyType
 from aiostem.utils import Message, messages_from_stream
 
 from .utils.test_message import create_stream
@@ -330,8 +330,9 @@ class TestReplies:
         ]
         message = await create_message(lines)
         reply = ReplyAddOnion.from_message(message)
-        assert reply.key_type == OnionServiceKeyType.ED25519_V3
-        assert reply.key.hex() == (
+        assert isinstance(reply.key, OnionServiceKeyStruct)
+        assert reply.key.key_type == OnionServiceKeyType.ED25519_V3
+        assert reply.key.data.hex() == (
             'c02b82ab1a29b9b1b486eed6c9e5ac66f4daee2a6a4420272159e0861734a45b'
             'cfe82614cec64908dc376c172e8ad6bc0ebe7dc5a52a3369c9045651b612d3b7'
         )
@@ -343,7 +344,6 @@ class TestReplies:
         ]
         message = await create_message(lines)
         reply = ReplyAddOnion.from_message(message)
-        assert reply.key_type is None
         assert reply.key is None
 
     async def test_add_onion_with_client_auth_v3(self):
