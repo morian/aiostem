@@ -90,13 +90,27 @@ class Reply(BaseReply):
     """Base interface class for all replies."""
 
     @classmethod
-    @abstractmethod
     def from_message(cls, message: Message) -> Self:
         """
         Build a reply structure from a received message.
 
         Args:
             message: The received message to build a reply from.
+
+        """
+        return cls.adapter().validate_python(cls._message_to_mapping(message))
+
+    @classmethod
+    @abstractmethod
+    def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
+        """
+        Convert the provided message to a map suitable for our adapter.
+
+        Args:
+            message: The received message to build a dictionary from.
+
+        Returns:
+            A map of things to validate this structure from.
 
         """
 
@@ -106,10 +120,9 @@ class ReplySimple(Reply):
     """Any simple reply with only a :attr:`status` and :attr:`status_text`."""
 
     @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build a structure from a received message."""
-        result = {'status': message.status, 'status_text': message.header}
-        return cls.adapter().validate_python(result)
+    def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
+        """Build a map from a received message."""
+        return {'status': message.status, 'status_text': message.header}
 
 
 #: Type of values received in ``GETCONF`` or ``GETINFO``.
@@ -222,8 +235,8 @@ class ReplyGetConf(ReplyGetMap):
     )
 
     @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build a structure from a received message."""
+    def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
+        """Build a map from a received message."""
         has_data = message.is_success and (len(message.items) > 0 or message.header != 'OK')
         status_text = None if has_data else message.header
         result = {
@@ -233,7 +246,7 @@ class ReplyGetConf(ReplyGetMap):
 
         if has_data:
             result['_values'] = cls._key_value_extract([*message.items, message])
-        return cls.adapter().validate_python(result)
+        return result
 
 
 @dataclass(kw_only=True, slots=True)
@@ -299,8 +312,8 @@ class ReplyMapAddress(Reply):
     items: Sequence[ReplyMapAddressItem] = field(default_factory=list)
 
     @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build a structure from a received message."""
+    def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
+        """Build a map from a received message."""
         status_max = 0
         result: dict[str, Any] = {'items': []}
         for item in (*message.items, message):
@@ -315,7 +328,7 @@ class ReplyMapAddress(Reply):
                 status_max = sub.status
 
             result['items'].append(sub)
-        return cls.adapter().validate_python(result)
+        return result
 
 
 @dataclass(kw_only=True, slots=True)
@@ -333,15 +346,15 @@ class ReplyGetInfo(ReplyGetMap):
     )
 
     @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build a structure from a received message."""
+    def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
+        """Build a map from a received message."""
         result = {
             'status': message.status,
             'status_text': message.header,
         }
         if message.is_success:
             result['_values'] = cls._key_value_extract(message.items)
-        return cls.adapter().validate_python(result)
+        return result
 
 
 @dataclass(kw_only=True, slots=True)
@@ -354,8 +367,8 @@ class ReplyExtendCircuit(Reply):
     circuit: int | None = None
 
     @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build a structure from a received message."""
+    def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
+        """Build a map from a received message."""
         result = {'status': message.status}  # type: dict[str, Any]
         if message.is_success:
             update = cls.SYNTAX.parse(message)
@@ -364,8 +377,7 @@ class ReplyExtendCircuit(Reply):
                     result[key] = val
         else:
             result['status_text'] = message.header
-
-        return cls.adapter().validate_python(result)
+        return result
 
 
 @dataclass(kw_only=True, slots=True)
@@ -482,8 +494,8 @@ class ReplyProtocolInfo(Reply):
         return await loop.run_in_executor(None, func)
 
     @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build a structure from a received message."""
+    def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
+        """Build a map from a received message."""
         result: dict[str, Any] = {'status': message.status, 'status_text': message.header}
         for item in message.items:
             keyword = item.keyword
@@ -495,8 +507,7 @@ class ReplyProtocolInfo(Reply):
                         result[key] = val
             else:
                 logger.info("No syntax handler for keyword '%s'", keyword)
-
-        return cls.adapter().validate_python(result)
+        return result
 
 
 @dataclass(kw_only=True, slots=True)
@@ -536,8 +547,8 @@ class ReplyAuthChallenge(Reply):
     server_nonce: Base16Bytes | None = None
 
     @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build a structure from a received message."""
+    def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
+        """Build a map from a received message."""
         result = {'status': message.status}  # type: dict[str, Any]
         if message.is_success:
             update = cls.SYNTAX.parse(message)
@@ -546,8 +557,7 @@ class ReplyAuthChallenge(Reply):
                     result[key] = val
         else:
             result['status_text'] = message.header
-
-        return cls.adapter().validate_python(result)
+        return result
 
     def build_client_hash(
         self,
@@ -675,8 +685,8 @@ class ReplyAddOnion(Reply):
     key: OnionServiceKey | None = None
 
     @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build a structure from a received message."""
+    def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
+        """Build a map from a received message."""
         result = {
             'status': message.status,
             'status_text': message.header,
@@ -695,8 +705,7 @@ class ReplyAddOnion(Reply):
             result.update(keywords)
         else:
             result['status_text'] = message.header
-
-        return cls.adapter().validate_python(result)
+        return result
 
 
 @dataclass(kw_only=True, slots=True)
@@ -742,8 +751,8 @@ class ReplyOnionClientAuthView(Reply):
     clients: Sequence[OnionClientAuth] = field(default_factory=list)
 
     @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build a structure from a received message."""
+    def _message_to_mapping(cls, message: Message) -> Mapping[str, Any]:
+        """Build a map from a received message."""
         result = {
             'status': message.status,
             'status_text': message.header,
@@ -764,8 +773,7 @@ class ReplyOnionClientAuthView(Reply):
                                 result[key] = val
 
             result['clients'] = clients
-
-        return cls.adapter().validate_python(result)
+        return result
 
 
 @dataclass(kw_only=True, slots=True)
