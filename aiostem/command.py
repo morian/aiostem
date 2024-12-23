@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 import secrets
-from abc import ABC, abstractmethod
-from collections.abc import MutableMapping, MutableSequence
+from collections.abc import Mapping, MutableMapping, MutableSequence
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Annotated, Any, ClassVar, Self, Union
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Self, Union
 
 from pydantic import Discriminator, NonNegativeInt, Tag, TypeAdapter
+from pydantic_core import core_schema
 
 from .event import EventWord
 from .exceptions import CommandError
@@ -32,6 +32,10 @@ from .structures import (
 from .types import AnyHost, AnyPort, Base16Bytes
 from .utils.argument import ArgumentKeyword, ArgumentString, QuoteStyle
 from .utils.transformers import TrBeforeStringSplit
+
+if TYPE_CHECKING:
+    from pydantic import GetCoreSchemaHandler
+    from pydantic_core.core_schema import CoreSchema, SerializerFunctionWrapHandler
 
 
 class CommandWord(StrEnum):
@@ -370,7 +374,7 @@ class CommandSerializer:
         self._body = body
 
 
-class Command(ABC):
+class Command:
     """Base class for all commands."""
 
     #: Cached adapter used while serializing the command.
@@ -380,33 +384,60 @@ class Command(ABC):
     command: ClassVar[CommandWord]
 
     @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Create a pydantic validator and serializer for this structure."""
+        # Is there another way to simply wrap an existing schema?
+        # We simply need to add a custom serializer on top of the existing one.
+        return core_schema.union_schema(
+            choices=[handler(source)],
+            serialization=core_schema.wrap_serializer_function_ser_schema(
+                function=cls._pydantic_serialize,
+                schema=handler(source),
+                return_schema=core_schema.str_schema(),
+            ),
+        )
+
+    @classmethod
+    def _pydantic_serialize(cls, item: Self, to_dict: SerializerFunctionWrapHandler) -> str:
+        """
+        Serialize the provided command to a nice string.
+
+        This method is the one used by pydantic during serialization.
+        Here ``to_dict`` is a function used to call the inner (original) serializer,
+        which provides a nice dictionary with all of our fields already serializer.
+
+        """
+        return item.serialize_from_struct(to_dict(item))
+
+    @classmethod
     def adapter(cls) -> TypeAdapter[Self]:
         """Get a cached type adapter to serialize a command."""
         if cls.ADAPTER is None:
             cls.ADAPTER = TypeAdapter(cls)
         return cls.ADAPTER
 
-    @abstractmethod
-    def _serialize(self) -> CommandSerializer:
-        """
-        Create a new serializer for this command.
-
-        Returns:
-            A basic command serializer for this command.
-
-        """
-        return CommandSerializer(self.command)
-
-    def serialize(self) -> str:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """
         Serialize the command to text.
+
+        This command is not intended to be called by the end user.
+
+        Args:
+            struct: a dictionary serialization for this structure.
 
         Returns:
             Text that can be sent to Tor's control port.
 
         """
-        ser = self._serialize()
-        return ser.serialize()
+        return CommandSerializer(self.command).serialize()
+
+    def serialize(self) -> str:
+        """Serialize this command to a string."""
+        return self.adapter().dump_python(self)
 
 
 @dataclass(kw_only=True)
@@ -428,22 +459,23 @@ class CommandSetConf(Command):
         default_factory=dict,
     )
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``SETCONF`` specific arguments."""
-        if len(self.values) == 0:
+        values = struct['values']
+        if len(values) == 0:
             msg = f"No value provided for command '{self.command.value}'"
             raise CommandError(msg)
 
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-        for key, value in self.values.items():
+        for key, value in values.items():
             if isinstance(value, MutableSequence):
                 for item in value:
                     args.append(ArgumentKeyword(key, item))
             else:
                 args.append(ArgumentKeyword(key, value))
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -479,14 +511,14 @@ class CommandGetConf(Command):
     #: List of configuration keys to request (duplicates mean duplicate answers).
     keywords: MutableSequence[str] = field(default_factory=list)
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``GETCONF`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-        for keyword in self.keywords:
+        for keyword in struct['keywords']:
             args.append(ArgumentString(keyword))
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -507,14 +539,14 @@ class CommandSetEvents(Command):
     #: Set of event names to receive the corresponding events.
     events: set[EventWord] = field(default_factory=set)
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``SETEVENTS`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-        for evt in self.events:
+        for evt in struct['events']:
             args.append(ArgumentString(evt, safe=True))
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -535,17 +567,20 @@ class CommandAuthenticate(Command):
     #: Password or token used to authenticate with the server.
     token: Base16Bytes | str | None = None
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``AUTHENTICATE`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
+
+        # Here we need to have the original type for serialization.
+        token = struct['token']
         match self.token:
             case bytes():
-                args.append(ArgumentKeyword(None, self.token.hex(), quotes=QuoteStyle.NEVER))
+                args.append(ArgumentKeyword(None, token, quotes=QuoteStyle.NEVER))
             case str():
-                args.append(ArgumentKeyword(None, self.token, quotes=QuoteStyle.ALWAYS))
+                args.append(ArgumentKeyword(None, token, quotes=QuoteStyle.ALWAYS))
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -568,15 +603,15 @@ class CommandSaveConf(Command):
     #: :class:`CommandGetInfo`.
     force: bool = False
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``SAVECONF`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-        if self.force:
+        if struct['force'] is True:
             # Flags are treated as keywords with no value.
             args.append(ArgumentKeyword('FORCE', None))
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -596,13 +631,13 @@ class CommandSignal(Command):
     #: The signal to send to Tor.
     signal: Signal
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``SIGNAL`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-        args.append(ArgumentString(self.signal, safe=True))
+        args.append(ArgumentString(struct['signal'], safe=True))
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -624,23 +659,20 @@ class CommandMapAddress(Command):
     #: Map of addresses to remap on socks requests.
     addresses: MutableMapping[Union[AnyHost], Union[AnyHost]] = field(default_factory=dict)  # noqa: UP007
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``MAPADDRESS`` specific arguments."""
         if len(self.addresses) == 0:
             msg = "No address provided for command 'MAPADDRESS'"
             raise CommandError(msg)
 
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-
-        adapter = self.adapter()
-        struct = adapter.dump_python(self)
 
         for key, value in struct['addresses'].items():
             args.append(ArgumentKeyword(key, value, quotes=QuoteStyle.NEVER_ENSURE))
 
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -661,20 +693,21 @@ class CommandGetInfo(Command):
     #: List of keywords to request the value from. One or more must be provided.
     keywords: MutableSequence[str] = field(default_factory=list)
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``GETINFO`` specific arguments."""
-        if len(self.keywords) == 0:
+        keywords = struct['keywords']
+        if len(keywords) == 0:
             msg = "No keyword provided for command 'GETINFO'"
             raise CommandError(msg)
 
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
-        for keyword in self.keywords:
+        for keyword in keywords:
             args.append(ArgumentString(keyword))
 
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -696,25 +729,33 @@ class CommandExtendCircuit(Command):
 
     #: Circuit identifier to extend, ``0`` to create a new circuit.
     circuit: int
-    #: Optional list of servers to extend the circuit onto.
-    server_spec: MutableSequence[str] = field(default_factory=list)
+
+    #: List of servers to extend the circuit onto (or no server).
+    server_spec: Annotated[
+        MutableSequence[str],
+        TrBeforeStringSplit(),
+    ] = field(default_factory=list)
+
     #: Circuit purpose or :obj:`None` to use a default purpose.
     purpose: CircuitPurpose | None = None
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``EXTENDCIRCUIT`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
-        args.append(ArgumentString(self.circuit, safe=True))
+        circuit = struct['circuit']
+        args.append(ArgumentString(circuit, safe=True))
         if len(self.server_spec):
             text = ','.join(self.server_spec)
             args.append(ArgumentString(text))
-        if self.purpose is not None:
-            args.append(ArgumentKeyword('purpose', self.purpose, quotes=QuoteStyle.NEVER))
+
+        purpose = struct['purpose']
+        if purpose is not None:
+            args.append(ArgumentKeyword('purpose', purpose, quotes=QuoteStyle.NEVER))
 
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -736,19 +777,20 @@ class CommandSetCircuitPurpose(Command):
 
     #: Circuit ID to set the purpose on.
     circuit: int
+
     #: Set purpose of the provided circuit.
     purpose: CircuitPurpose
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``SETCIRCUITPURPOSE`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
-        args.append(ArgumentString(self.circuit, safe=True))
-        args.append(ArgumentKeyword('purpose', self.purpose, quotes=QuoteStyle.NEVER))
+        args.append(ArgumentString(struct['circuit'], safe=True))
+        args.append(ArgumentKeyword('purpose', struct['purpose'], quotes=QuoteStyle.NEVER))
 
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -777,18 +819,20 @@ class CommandAttachStream(Command):
     #: it is not permitted to attach to hop 1.
     hop: int | None = None
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``ATTACHSTREAM`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
-        args.append(ArgumentString(self.stream, safe=True))
-        args.append(ArgumentString(self.circuit, safe=True))
-        if self.hop is not None:
-            args.append(ArgumentKeyword('HOP', self.hop, quotes=QuoteStyle.NEVER))
+        args.append(ArgumentString(struct['stream'], safe=True))
+        args.append(ArgumentString(struct['circuit'], safe=True))
+
+        hop = struct['hop']
+        if hop is not None:
+            args.append(ArgumentKeyword('HOP', hop, quotes=QuoteStyle.NEVER))
 
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -812,20 +856,23 @@ class CommandPostDescriptor(Command):
     #: Descriptor content.
     descriptor: str
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``POSTDESCRIPTOR`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
-        if self.purpose is not None:
-            args.append(ArgumentKeyword('purpose', self.purpose, quotes=QuoteStyle.NEVER))
-        if self.cache is not None:
-            text = 'yes' if self.cache else 'no'
+        purpose = struct['purpose']
+        if purpose is not None:
+            args.append(ArgumentKeyword('purpose', purpose, quotes=QuoteStyle.NEVER))
+
+        cache = struct['cache']
+        if cache is not None:
+            text = 'yes' if cache else 'no'
             args.append(ArgumentKeyword('cache', text, quotes=QuoteStyle.NEVER))
 
         ser.arguments.extend(args)
         ser.body = self.descriptor
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -852,21 +899,20 @@ class CommandRedirectStream(Command):
     #: Optional port to redirect the stream to.
     port: AnyPort | None = None
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``REDIRECTSTREAM`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
-        adapter = self.adapter()
-        struct = adapter.dump_python(self)
-
-        args.append(ArgumentString(self.stream, safe=True))
+        args.append(ArgumentString(struct['stream'], safe=True))
         args.append(ArgumentString(struct['address']))
-        if self.port is not None:
-            args.append(ArgumentString(self.port, safe=True))
+
+        port = struct['port']
+        if port is not None:
+            args.append(ArgumentString(port, safe=True))
 
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -888,14 +934,14 @@ class CommandCloseStream(Command):
     #: Provide a reason for the stream to be closed.
     reason: CloseStreamReason
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``CLOSESTREAM`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-        args.append(ArgumentString(self.stream, safe=True))
-        args.append(ArgumentString(self.reason, safe=True))
+        args.append(ArgumentString(struct['stream'], safe=True))
+        args.append(ArgumentString(struct['reason'], safe=True))
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -920,17 +966,18 @@ class CommandCloseCircuit(Command):
     #: Do not close the circuit unless it is unused.
     if_unused: bool = False
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``CLOSECIRCUIT`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
-        args.append(ArgumentString(self.circuit, safe=True))
-        if self.if_unused:
+        args.append(ArgumentString(struct['circuit'], safe=True))
+
+        if struct['if_unused'] is True:
             args.append(ArgumentKeyword('IfUnused', None))
 
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -946,14 +993,6 @@ class CommandQuit(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.QUIT
-
-    def _serialize(self) -> CommandSerializer:
-        """
-        Serialize a ``QUIT`` command.
-
-        This command has no additional arguments.
-        """
-        return super()._serialize()
 
 
 @dataclass(kw_only=True)
@@ -979,14 +1018,14 @@ class CommandUseFeature(Command):
     #: Set of features to enable.
     features: set[Feature | str] = field(default_factory=set)
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``USEFEATURE`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-        for feature in self.features:
+        for feature in struct['features']:
             args.append(ArgumentString(feature))
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -1011,22 +1050,19 @@ class CommandResolve(Command):
     #: Whether we should perform a reverse lookup resolution.
     reverse: bool = False
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``RESOLVE`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
-        adapter = self.adapter()
-        struct = adapter.dump_python(self)
-
-        if self.reverse:
+        if struct['reverse'] is True:
             args.append(ArgumentKeyword('mode', 'reverse', quotes=QuoteStyle.NEVER))
         for address in struct['addresses']:
             # These are marked as keywords in `src/feature/control/control_cmd.c`.
             args.append(ArgumentKeyword(address, None))
 
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -1046,16 +1082,16 @@ class CommandProtocolInfo(Command):
     #: Optional version to request information for (ignored by Tor at the moment).
     version: int | None = None
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``PROTOCOLINFO`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
         if self.version is not None:
-            args.append(ArgumentString(self.version, safe=True))
+            args.append(ArgumentString(struct['version'], safe=True))
 
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -1076,11 +1112,11 @@ class CommandLoadConf(Command):
     #: Raw configuration text to load.
     text: str
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``LOADCONF`` specific arguments."""
-        ser = super()._serialize()
-        ser.body = self.text
-        return ser
+        ser = CommandSerializer(self.command)
+        ser.body = struct['text']
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -1099,10 +1135,6 @@ class CommandTakeOwnership(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.TAKEOWNERSHIP
-
-    def _serialize(self) -> CommandSerializer:
-        """Serialize a ``TAKEOWNERSHIP`` command."""
-        return super()._serialize()
 
 
 @dataclass(kw_only=True)
@@ -1131,23 +1163,24 @@ class CommandAuthChallenge(Command):
         """Generate a nonce value of 32 bytes."""
         return secrets.token_bytes(cls.NONCE_LENGTH)
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``AUTHCHALLENGE`` specific arguments."""
         # Generate a nonce while serializing as we need one!
         if self.nonce is None:
             self.nonce = self.generate_nonce()
 
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         args.append(ArgumentString('SAFECOOKIE', safe=True))
 
+        # Here we have to use the nonce from the object since it could have been generated.
         match self.nonce:
             case bytes():
                 args.append(ArgumentKeyword(None, self.nonce.hex(), quotes=QuoteStyle.NEVER))
             case str():  # pragma: no branch
                 args.append(ArgumentKeyword(None, self.nonce, quotes=QuoteStyle.ALWAYS))
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -1167,10 +1200,6 @@ class CommandDropGuards(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.DROPGUARDS
-
-    def _serialize(self) -> CommandSerializer:
-        """Serialize a ``DROPGUARDS`` command."""
-        return super()._serialize()
 
 
 @dataclass(kw_only=True)
@@ -1193,19 +1222,16 @@ class CommandHsFetch(Command):
     #: Onion address (v2 or v3) to request a descriptor for, without the ``.onion`` suffix.
     address: HiddenServiceAddress
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``HSFETCH`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
-        adapter = self.adapter()
-        struct = adapter.dump_python(self)
-
-        args.append(ArgumentString(self.address, safe=True))
+        args.append(ArgumentString(struct['address'], safe=True))
         for server in struct['servers']:
             args.append(ArgumentKeyword('SERVER', server, quotes=QuoteStyle.NEVER_ENSURE))
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 def _onion_add_get_key_tag(v: Any) -> str:
@@ -1262,37 +1288,38 @@ class CommandAddOnion(Command):
     #: String syntax is a base32-encoded ``x25519`` public key with only the key part.
     client_auth_v3: MutableSequence[HsDescClientAuthV3] = field(default_factory=list)
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``ADD_ONION`` specific arguments."""
-        ser = super()._serialize()
-        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-
-        if not len(self.ports):
+        ports = struct['ports']
+        if not len(ports):
             msg = 'You must specify one or more virtual ports.'
             raise CommandError(msg)
 
-        # Automatically set the V3 authentication when applicable.
-        if len(self.client_auth_v3):
-            self.flags.add(OnionServiceFlags.V3AUTH)
-
-        adapter = self.adapter()
-        struct = adapter.dump_python(self)
+        ser = CommandSerializer(self.command)
+        args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
         args.append(ArgumentString(struct['key']))
-        if len(self.flags):
-            args.append(ArgumentKeyword('Flags', struct['flags'], quotes=QuoteStyle.NEVER))
 
-        if self.max_streams is not None:
-            kwarg = ArgumentKeyword('MaxStreams', self.max_streams, quotes=QuoteStyle.NEVER)
+        flags = struct['flags']
+        if len(flags):
+            args.append(ArgumentKeyword('Flags', flags, quotes=QuoteStyle.NEVER))
+
+        max_streams = struct['max_streams']
+        if max_streams is not None:
+            kwarg = ArgumentKeyword('MaxStreams', max_streams, quotes=QuoteStyle.NEVER)
             args.append(kwarg)
-        for port in struct['ports']:
+
+        for port in ports:
             args.append(ArgumentKeyword('Port', port, quotes=QuoteStyle.NEVER_ENSURE))
+
         for auth in struct['client_auth']:
             args.append(ArgumentKeyword('ClientAuth', auth, quotes=QuoteStyle.NEVER_ENSURE))
+
         for auth in struct['client_auth_v3']:
             args.append(ArgumentKeyword('ClientAuthV3', auth, quotes=QuoteStyle.NEVER))
+
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -1316,13 +1343,13 @@ class CommandDelOnion(Command):
     #: This is the v2 or v3 address without the ``.onion`` suffix.
     address: HiddenServiceAddress
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``DEL_ONION`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-        args.append(ArgumentString(self.address))
+        args.append(ArgumentString(struct['address']))
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -1349,22 +1376,22 @@ class CommandHsPost(Command):
     #: Descriptor content as raw text.
     descriptor: str
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``HSPOST`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-
-        adapter = self.adapter()
-        struct = adapter.dump_python(self)
 
         for server in struct['servers']:
             args.append(ArgumentKeyword('SERVER', server, quotes=QuoteStyle.NEVER_ENSURE))
-        if self.address is not None:
-            kwarg = ArgumentKeyword('HSADDRESS', self.address, quotes=QuoteStyle.NEVER_ENSURE)
+
+        address = struct['address']
+        if address is not None:
+            kwarg = ArgumentKeyword('HSADDRESS', address, quotes=QuoteStyle.NEVER_ENSURE)
             args.append(kwarg)
+
         ser.arguments.extend(args)
         ser.body = self.descriptor
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -1397,31 +1424,25 @@ class CommandOnionClientAuthAdd(Command):
         default_factory=set
     )
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``ONION_CLIENT_AUTH_ADD`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
-        args.append(ArgumentString(self.address))
-
-        adapter = self.adapter()
-        struct = adapter.dump_python(self)
-
+        args.append(ArgumentString(struct['address']))
         args.append(ArgumentString(struct['key']))
 
-        if self.nickname is not None:
-            kwarg = ArgumentKeyword(
-                'ClientName',
-                self.nickname,
-                quotes=QuoteStyle.NEVER_ENSURE,
-            )
+        nickname = struct['nickname']
+        if nickname is not None:
+            kwarg = ArgumentKeyword('ClientName', nickname, quotes=QuoteStyle.NEVER_ENSURE)
             args.append(kwarg)
 
-        if len(self.flags):
-            args.append(ArgumentKeyword('Flags', struct['flags'], quotes=QuoteStyle.NEVER))
+        flags = struct['flags']
+        if len(flags):
+            args.append(ArgumentKeyword('Flags', flags, quotes=QuoteStyle.NEVER))
 
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -1442,13 +1463,13 @@ class CommandOnionClientAuthRemove(Command):
     #: V3 onion address without the ``.onion`` suffix.
     address: HiddenServiceAddressV3
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``ONION_CLIENT_AUTH_REMOVE`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-        args.append(ArgumentString(self.address))
+        args.append(ArgumentString(struct['address']))
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -1470,14 +1491,15 @@ class CommandOnionClientAuthView(Command):
     #: V3 onion address without the ``.onion`` suffix.
     address: HiddenServiceAddress | None = None
 
-    def _serialize(self) -> CommandSerializer:
+    def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``ONION_CLIENT_AUTH_VIEW`` specific arguments."""
-        ser = super()._serialize()
+        ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
-        if self.address is not None:
-            args.append(ArgumentString(self.address))
+        address = struct['address']
+        if address is not None:
+            args.append(ArgumentString(address))
         ser.arguments.extend(args)
-        return ser
+        return ser.serialize()
 
 
 @dataclass(kw_only=True)
@@ -1494,10 +1516,6 @@ class CommandDropOwnership(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.DROPOWNERSHIP
-
-    def _serialize(self) -> CommandSerializer:
-        """Serialize a ``DROPOWNERSHIP`` command."""
-        return super()._serialize()
 
 
 @dataclass(kw_only=True)
@@ -1517,7 +1535,3 @@ class CommandDropTimeouts(Command):
     """
 
     command: ClassVar[CommandWord] = CommandWord.DROPTIMEOUTS
-
-    def _serialize(self) -> CommandSerializer:
-        """Serialize a ``DROPTIMEOUTS`` command."""
-        return super()._serialize()

@@ -7,6 +7,7 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from pydantic import TypeAdapter
+from pydantic_core import PydanticSerializationError
 
 from aiostem.command import (
     CommandAddOnion,
@@ -115,7 +116,7 @@ class TestCommands:
         assert cmd.serialize() == 'SETCONF ControlPort\r\n'
 
     def test_set_conf_error(self):
-        with pytest.raises(CommandError, match='No value provided'):
+        with pytest.raises(PydanticSerializationError, match='No value provided'):
             CommandSetConf().serialize()
 
     def test_reset_conf_with_value(self):
@@ -127,7 +128,7 @@ class TestCommands:
         assert cmd.serialize() == 'RESETCONF ControlPort\r\n'
 
     def test_reset_conf_error(self):
-        with pytest.raises(CommandError, match='No value provided'):
+        with pytest.raises(PydanticSerializationError, match='No value provided'):
             CommandResetConf().serialize()
 
     def test_get_conf(self):
@@ -168,7 +169,7 @@ class TestCommands:
         assert cmd.serialize() == 'MAPADDRESS 1.2.3.4=torproject.org\r\n'
 
     def test_map_address_error(self):
-        with pytest.raises(CommandError, match='No address provided'):
+        with pytest.raises(PydanticSerializationError, match='No address provided'):
             CommandMapAddress().serialize()
 
     def test_get_info(self):
@@ -176,7 +177,7 @@ class TestCommands:
         assert cmd.serialize() == 'GETINFO version config-file\r\n'
 
     def test_get_info_error(self):
-        with pytest.raises(CommandError, match='No keyword provided'):
+        with pytest.raises(PydanticSerializationError, match='No keyword provided'):
             CommandGetInfo().serialize()
 
     def test_extend_circuit_simple(self):
@@ -313,7 +314,9 @@ class TestCommands:
             key=OnionServiceNewKeyStruct(OnionServiceKeyType.ED25519_V3),
             ports=[port],
         )
-        assert cmd.serialize() == 'ADD_ONION NEW:ED25519-V3 Port=80,127.0.0.1:80\r\n'
+        adapter = cmd.adapter()
+        serial = adapter.dump_python(cmd)
+        assert serial == 'ADD_ONION NEW:ED25519-V3 Port=80,127.0.0.1:80\r\n'
 
     def test_add_onion_bytes(self):
         key = Ed25519PrivateKey.from_private_bytes(secrets.token_bytes(32))
@@ -372,11 +375,11 @@ class TestCommands:
         ]
         auth_v3 = []
         for key_b32 in v3_auth_strings:
-            key_bytes = b32decode(key_b32)
-            auth_v3.append(X25519PublicKey.from_public_bytes(key_bytes))
+            auth_v3.append(X25519PublicKey.from_public_bytes(b32decode(key_b32)))
 
         port = VirtualPortAdapter.validate_python('80,127.0.0.1:80')
         cmd = CommandAddOnion(
+            flags={OnionServiceFlags.V3AUTH},
             key=OnionServiceNewKeyStruct('BEST'),
             ports=[port],
             client_auth_v3=auth_v3,
@@ -389,7 +392,8 @@ class TestCommands:
 
     def test_add_onion_key_no_port(self):
         cmd = CommandAddOnion(key=OnionServiceNewKeyStruct('BEST'))
-        with pytest.raises(CommandError, match='You must specify one or more virtual ports'):
+        msg = 'You must specify one or more virtual ports'
+        with pytest.raises(PydanticSerializationError, match=msg):
             cmd.serialize()
 
     def test_del_onion(self):
