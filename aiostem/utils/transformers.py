@@ -548,3 +548,33 @@ class TrX25519PublicKey(TrGenericKey[X25519PublicKey]):
 
         """
         return key.public_bytes_raw()
+
+
+@dataclass(frozen=True, slots=True)
+class TrBoolYesNo:
+    """Transform yes/no to and from a bool."""
+
+    #: What we use when this value is :obj:`True`.
+    true: str = 'yes'
+    #: What we use when this value is :obj:`False`.
+    false: str = 'no'
+
+    def __get_pydantic_core_schema__(
+        self,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Serialize and deserialize from/to a string."""
+        return core_schema.union_schema(
+            choices=[
+                core_schema.bool_schema(),
+            ],
+            serialization=core_schema.plain_serializer_function_ser_schema(
+                function=self.to_string,
+                return_schema=core_schema.str_schema(strict=True),
+            ),
+        )
+
+    def to_string(self, value: bool) -> str:
+        """Serialize this value to a string."""
+        return self.true if value else self.false

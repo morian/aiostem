@@ -48,6 +48,7 @@ from .types import (
     Base16Bytes,
     Base32Bytes,
     Base64Bytes,
+    BoolYesNo,
     DatetimeUTC,
     TimedeltaMilliseconds,
 )
@@ -319,7 +320,7 @@ class EventAddrMap(EventSimple):
     #:
     #: See Also:
     #:    https://docs.pydantic.dev/latest/api/standard_library_types/#booleans
-    cached: bool | None = None
+    cached: BoolYesNo | None = None
     #: Stream identifier.
     stream: int | None = None
 

@@ -14,6 +14,7 @@ from .utils import (
     EncodedBytes,
     TrAfterAsTimezone,
     TrBeforeTimedelta,
+    TrBoolYesNo,
     TrX25519PrivateKey,
     TrX25519PublicKey,
 )
@@ -37,6 +38,9 @@ Base32Bytes: TypeAlias = Annotated[bytes, EncodedBytes(encoder=Base32Encoder)]
 
 #: Bytes that are base64 encoded.
 Base64Bytes: TypeAlias = Annotated[bytes, EncodedBytes(encoder=Base64Encoder)]
+
+#: A boolean value serialized as a yes/no string.
+BoolYesNo: TypeAlias = Annotated[bool, TrBoolYesNo()]
 
 #: A datetime that always puts or convert to UTC.
 DatetimeUTC: TypeAlias = Annotated[datetime, TrAfterAsTimezone()]

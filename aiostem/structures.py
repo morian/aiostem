@@ -646,6 +646,7 @@ OnionClientAuthKeyExtractKeyBytes = BeforeValidator(lambda auth: auth.data)
 OnionClientAuthKeyFromKey = WrapSerializer(
     func=_onion_client_auth_key_to_struct,
     return_type=OnionClientAuthKeyStruct,
+    when_used='always',
 )
 
 #: Parse and serialize any onion client auth key with format ``x25519:[base64]``.

@@ -22,6 +22,7 @@ from aiostem.utils import (
     TrBeforeSetToNone,
     TrBeforeStringSplit,
     TrBeforeTimedelta,
+    TrBoolYesNo,
     TrEd25519PrivateKey,
     TrEd25519PublicKey,
     TrRSAPrivateKey,
@@ -521,3 +522,22 @@ class TestTrX25519PublicKey:
         raw = b32decode(self.TEST_KEY)
         key = self.ADAPTER_RAW.validate_python(raw)
         assert self.ADAPTER_RAW.dump_python(key) == raw
+
+
+class TestTrBoolYesNo:
+    ADAPTER = TypeAdapter(Annotated[bool, TrBoolYesNo()])
+
+    @pytest.mark.parametrize(
+        ('entry', 'bval', 'serial'),
+        [
+            ('YES', True, 'yes'),
+            (True, True, 'yes'),
+            ('NO', False, 'no'),
+            (False, False, 'no'),
+        ],
+    )
+    def test_parse_and_encode(self, entry, bval, serial):
+        res = self.ADAPTER.validate_python(entry)
+        assert res is bval
+        ser = self.ADAPTER.dump_python(res)
+        assert ser == serial

@@ -29,7 +29,7 @@ from .structures import (
     Signal,
     VirtualPort,
 )
-from .types import AnyHost, AnyPort, Base16Bytes
+from .types import AnyHost, AnyPort, Base16Bytes, BoolYesNo
 from .utils.argument import ArgumentKeyword, ArgumentString, QuoteStyle
 from .utils.transformers import TrBeforeStringSplit
 
@@ -851,8 +851,10 @@ class CommandPostDescriptor(Command):
     #: :attr:`~.CircuitPurpose.CONTROLLER`, :attr:`~.CircuitPurpose.BRIDGE`,
     #: default is :attr:`~.CircuitPurpose.GENERAL`.
     purpose: CircuitPurpose | None = None
+
     #: Cache the provided descriptor internally.
-    cache: bool | None = None
+    cache: BoolYesNo | None = None
+
     #: Descriptor content.
     descriptor: str
 
@@ -867,8 +869,7 @@ class CommandPostDescriptor(Command):
 
         cache = struct['cache']
         if cache is not None:
-            text = 'yes' if cache else 'no'
-            args.append(ArgumentKeyword('cache', text, quotes=QuoteStyle.NEVER))
+            args.append(ArgumentKeyword('cache', cache, quotes=QuoteStyle.NEVER))
 
         ser.arguments.extend(args)
         ser.body = self.descriptor
@@ -1156,7 +1157,7 @@ class CommandAuthChallenge(Command):
     command: ClassVar[CommandWord] = CommandWord.AUTHCHALLENGE
 
     #: Nonce value, a new one is generated when none is provided.
-    nonce: bytes | str | None
+    nonce: Base16Bytes | str | None
 
     @classmethod
     def generate_nonce(cls) -> bytes:
