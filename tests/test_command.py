@@ -54,6 +54,7 @@ from aiostem.structures import (
     HsDescAuthCookie,
     HsDescAuthTypeInt,
     HsDescClientAuthV2,
+    LongServerName,
     OnionClientAuthFlags,
     OnionServiceFlags,
     OnionServiceKeyStruct,
@@ -188,16 +189,16 @@ class TestCommands:
         cmd = CommandExtendCircuit(
             circuit=12345,
             server_spec=[
-                '$b34a4ac3892e41c58709d9c51b3648620a7d5bfe~Test1',
-                '$7b70bf914770f022e71a26cbf3d9519dc89f2a9a~Test2',
+                LongServerName.from_string('$b34a4ac3892e41c58709d9c51b3648620a7d5bfe~Test1'),
+                LongServerName.from_string('$7b70bf914770f022e71a26cbf3d9519dc89f2a9a~Test2'),
             ],
             purpose=CircuitPurpose.GENERAL,
         )
         assert cmd.serialize() == (
             'EXTENDCIRCUIT '
             '12345 '
-            '$b34a4ac3892e41c58709d9c51b3648620a7d5bfe~Test1,'
-            '$7b70bf914770f022e71a26cbf3d9519dc89f2a9a~Test2 '
+            '$B34A4AC3892E41C58709D9C51B3648620A7D5BFE~Test1,'
+            '$7B70BF914770F022E71A26CBF3D9519DC89F2A9A~Test2 '
             'purpose=general'
             '\r\n'
         )

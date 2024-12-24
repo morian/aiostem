@@ -395,14 +395,14 @@ class Command:
         return core_schema.union_schema(
             choices=[handler(source)],
             serialization=core_schema.wrap_serializer_function_ser_schema(
-                function=cls._pydantic_serialize,
+                function=cls._pydantic_serializer,
                 schema=handler(source),
                 return_schema=core_schema.str_schema(),
             ),
         )
 
     @classmethod
-    def _pydantic_serialize(cls, item: Self, to_dict: SerializerFunctionWrapHandler) -> str:
+    def _pydantic_serializer(cls, item: Self, to_dict: SerializerFunctionWrapHandler) -> str:
         """
         Serialize the provided command to a nice string.
 
@@ -661,14 +661,15 @@ class CommandMapAddress(Command):
 
     def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``MAPADDRESS`` specific arguments."""
-        if len(self.addresses) == 0:
+        addresses = struct['addresses']
+        if len(addresses) == 0:
             msg = "No address provided for command 'MAPADDRESS'"
             raise CommandError(msg)
 
         ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
-        for key, value in struct['addresses'].items():
+        for key, value in addresses.items():
             args.append(ArgumentKeyword(key, value, quotes=QuoteStyle.NEVER_ENSURE))
 
         ser.arguments.extend(args)
@@ -732,7 +733,7 @@ class CommandExtendCircuit(Command):
 
     #: List of servers to extend the circuit onto (or no server).
     server_spec: Annotated[
-        MutableSequence[str],
+        MutableSequence[LongServerName],
         TrBeforeStringSplit(),
     ] = field(default_factory=list)
 
@@ -746,9 +747,10 @@ class CommandExtendCircuit(Command):
 
         circuit = struct['circuit']
         args.append(ArgumentString(circuit, safe=True))
-        if len(self.server_spec):
-            text = ','.join(self.server_spec)
-            args.append(ArgumentString(text))
+
+        server_spec = struct['server_spec']
+        if server_spec:
+            args.append(ArgumentString(server_spec))
 
         purpose = struct['purpose']
         if purpose is not None:

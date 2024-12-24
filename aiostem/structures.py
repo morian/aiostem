@@ -544,21 +544,21 @@ class LongServerName:
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Declare schema and validator for a long server name."""
-        return core_schema.union_schema(
-            choices=[
-                handler(source),
-                core_schema.chain_schema(
-                    steps=[
-                        core_schema.str_schema(strict=True),
-                        core_schema.no_info_before_validator_function(
-                            function=cls.from_string,
-                            schema=handler(source),
-                        ),
-                    ]
-                ),
-            ],
+        # There is an issue while serializing CommandExtendCircuit where this class
+        # is badly serialized, not taking our serialization method into account.
+        # Using a before validator fixes this issue, for an unknown reason.
+        return core_schema.no_info_before_validator_function(
+            function=cls._pydantic_validator,
+            schema=handler(source),
             serialization=core_schema.to_string_ser_schema(when_used='always'),
         )
+
+    @classmethod
+    def _pydantic_validator(cls, value: Any) -> Any:
+        """Validate any value."""
+        if isinstance(value, str):
+            return cls.from_string(value)
+        return value
 
     @classmethod
     def from_string(cls, server: str) -> Self:
