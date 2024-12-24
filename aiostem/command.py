@@ -874,7 +874,7 @@ class CommandPostDescriptor(Command):
             args.append(ArgumentKeyword('cache', cache, quotes=QuoteStyle.NEVER))
 
         ser.arguments.extend(args)
-        ser.body = self.descriptor
+        ser.body = struct['descriptor']
         return ser.serialize()
 
 
@@ -1090,8 +1090,9 @@ class CommandProtocolInfo(Command):
         ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
 
-        if self.version is not None:
-            args.append(ArgumentString(struct['version'], safe=True))
+        version = struct['version']
+        if version is not None:
+            args.append(ArgumentString(version, safe=True))
 
         ser.arguments.extend(args)
         return ser.serialize()
@@ -1159,7 +1160,7 @@ class CommandAuthChallenge(Command):
     command: ClassVar[CommandWord] = CommandWord.AUTHCHALLENGE
 
     #: Nonce value, a new one is generated when none is provided.
-    nonce: Base16Bytes | str | None
+    nonce: Base16Bytes | str
 
     @classmethod
     def generate_nonce(cls) -> bytes:
@@ -1168,20 +1169,17 @@ class CommandAuthChallenge(Command):
 
     def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``AUTHCHALLENGE`` specific arguments."""
-        # Generate a nonce while serializing as we need one!
-        if self.nonce is None:
-            self.nonce = self.generate_nonce()
-
         ser = CommandSerializer(self.command)
         args = []  # type: MutableSequence[ArgumentKeyword | ArgumentString]
         args.append(ArgumentString('SAFECOOKIE', safe=True))
 
-        # Here we have to use the nonce from the object since it could have been generated.
+        # Here we need to have the original type for serialization.
+        nonce = struct['nonce']
         match self.nonce:
             case bytes():
-                args.append(ArgumentKeyword(None, self.nonce.hex(), quotes=QuoteStyle.NEVER))
+                args.append(ArgumentKeyword(None, nonce, quotes=QuoteStyle.NEVER))
             case str():  # pragma: no branch
-                args.append(ArgumentKeyword(None, self.nonce, quotes=QuoteStyle.ALWAYS))
+                args.append(ArgumentKeyword(None, nonce, quotes=QuoteStyle.ALWAYS))
         ser.arguments.extend(args)
         return ser.serialize()
 
@@ -1393,7 +1391,7 @@ class CommandHsPost(Command):
             args.append(kwarg)
 
         ser.arguments.extend(args)
-        ser.body = self.descriptor
+        ser.body = struct['descriptor']
         return ser.serialize()
 
 

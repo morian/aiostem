@@ -510,6 +510,9 @@ class Controller:
             An authentication challenge reply.
 
         """
+        if nonce is None:
+            nonce = CommandAuthChallenge.generate_nonce()
+
         command = CommandAuthChallenge(nonce=nonce)
         message = await self.request(command)
         reply = ReplyAuthChallenge.from_message(message)
