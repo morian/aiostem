@@ -81,6 +81,7 @@ Hidden services commands
    :no-index:
 
    .. automethod:: add_onion
+   .. automethod:: del_onion
    .. automethod:: hs_fetch
 
 

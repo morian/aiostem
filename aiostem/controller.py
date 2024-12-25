@@ -14,6 +14,7 @@ from .command import (
     CommandAddOnion,
     CommandAuthChallenge,
     CommandAuthenticate,
+    CommandDelOnion,
     CommandDropGuards,
     CommandDropOwnership,
     CommandDropTimeouts,
@@ -46,6 +47,7 @@ from .reply import (
     ReplyAddOnion,
     ReplyAuthChallenge,
     ReplyAuthenticate,
+    ReplyDelOnion,
     ReplyDropGuards,
     ReplyDropOwnership,
     ReplyDropTimeouts,
@@ -643,9 +645,24 @@ class Controller:
 
         command = CommandAuthenticate(token=token)
         message = await self.request(command)
-        reply = ReplyAuthenticate.from_message(message)
-        self._authenticated = reply.is_success
-        return reply
+        self._authenticated = message.is_success
+        return ReplyAuthenticate.from_message(message)
+
+    async def del_onion(self, address: HiddenServiceAddress | str) -> ReplyDelOnion:
+        """
+        Request the deletion of a hidden service we control.
+
+        Args:
+            address: The hidden service address to delete.
+
+        Returns:
+            A simple del_onion reply where only the status is relevant.
+
+        """
+        adapter = CommandDelOnion.adapter()
+        command = adapter.validate_python({'address': address})
+        message = await self.request(command)
+        return ReplyDelOnion.from_message(message)
 
     async def drop_guards(self) -> ReplyDropGuards:
         """

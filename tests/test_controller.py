@@ -335,6 +335,15 @@ class TestController:
         reply.raise_for_status()
         assert isinstance(reply.data.key, OnionServiceKeyStruct)
 
+    @pytest.mark.timeout(2)
+    async def test_add_and_del_onion(self, controller):
+        added = await controller.add_onion(key='NEW:BEST', ports=['80,127.0.0.1:80'])
+        added.raise_for_status()
+
+        deleted = await controller.del_onion(added.data.address)
+        deleted.raise_for_status()
+        assert deleted.status_text == 'OK'
+
 
 class TestControllerEvents:
     """Event related tests for the controller."""
@@ -363,7 +372,7 @@ class TestControllerEvents:
             await controller.add_event_handler('INVALID_EVENT', lambda: None)
 
     async def test_signal_bad_signal(self, controller):
-        with pytest.raises(ValidationError, match="Input should be "):
+        with pytest.raises(ValidationError, match='Input should be '):
             await controller.signal('INVALID_SIGNAL')
 
     async def test_bad_event_received(self, controller, caplog):
