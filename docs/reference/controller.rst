@@ -80,6 +80,7 @@ Hidden services commands
 .. class:: Controller
    :no-index:
 
+   .. automethod:: add_onion
    .. automethod:: hs_fetch
 
 

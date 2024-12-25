@@ -239,6 +239,7 @@ class CommandWord(StrEnum):
     #: Tells the server to create a new onion "hidden" service.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.add_onion`
     #:     - Command implementation: :class:`CommandAddOnion`
     #:     - Reply implementation: :class:`.ReplyAddOnion`
     ADD_ONION = 'ADD_ONION'

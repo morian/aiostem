@@ -6,6 +6,9 @@ import secrets
 from functools import partial
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
+from pydantic import ValidationError
 
 from aiostem import Controller
 from aiostem.command import CommandHsFetch
@@ -17,7 +20,7 @@ from aiostem.event import (
     event_from_message,
 )
 from aiostem.exceptions import CommandError, ControllerError, ReplyError, ReplyStatusError
-from aiostem.structures import LongServerName
+from aiostem.structures import LongServerName, OnionServiceKeyStruct
 from aiostem.utils import Message
 
 # All test coroutines will be treated as marked for asyncio.
@@ -305,6 +308,37 @@ class TestController:
         await controller.del_event_handler('DISCONNECT', cb_async)
         await controller.del_event_handler('DISCONNECT', cb_sync)
 
+    @pytest.mark.timeout(2)
+    async def test_add_onion_generate_best_locally(self, controller):
+        reply = await controller.add_onion(key='NEW:BEST', ports=['80,127.0.0.1:80'])
+        reply.raise_for_status()
+        assert isinstance(reply.data.key, Ed25519PrivateKey)
+
+    @pytest.mark.timeout(2)
+    async def test_add_onion_generate_rsa1024_locally(self, controller):
+        """Note: this is not supported anymore for a few years now."""
+        reply = await controller.add_onion(key='NEW:RSA1024', ports=['80,127.0.0.1:80'])
+        with pytest.raises(ReplyStatusError, match='Invalid key type'):
+            reply.raise_for_status()
+
+    @pytest.mark.timeout(2)
+    async def test_add_onion_generate_on_tor(self, controller):
+        reply = await controller.add_onion(
+            key='NEW:BEST',
+            ports=['80,127.0.0.1:80'],
+            client_auth_v3=[
+                X25519PublicKey.from_public_bytes(secrets.token_bytes(32)),
+                X25519PublicKey.from_public_bytes(secrets.token_bytes(32)),
+            ],
+            generate_locally=False,
+        )
+        reply.raise_for_status()
+        assert isinstance(reply.data.key, OnionServiceKeyStruct)
+
+
+class TestControllerEvents:
+    """Event related tests for the controller."""
+
     async def test_cmd_add_event_handler_error(self, controller):
         controller.error_on_set_events = True
         with pytest.raises(ReplyStatusError, match='Triggered by PyTest.'):
@@ -329,7 +363,7 @@ class TestController:
             await controller.add_event_handler('INVALID_EVENT', lambda: None)
 
     async def test_signal_bad_signal(self, controller):
-        with pytest.raises(CommandError, match="Unknown signal 'INVALID_SIGNAL'"):
+        with pytest.raises(ValidationError, match="Input should be "):
             await controller.signal('INVALID_SIGNAL')
 
     async def test_bad_event_received(self, controller, caplog):

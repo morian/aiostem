@@ -2,14 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from collections.abc import Awaitable, Callable, MutableSequence
+from collections.abc import Awaitable, Callable
 from contextlib import AsyncExitStack, suppress
 from typing import TYPE_CHECKING, TypeAlias, cast
 
-from pydantic import RootModel
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from .command import (
     Command,
+    CommandAddOnion,
     CommandAuthChallenge,
     CommandAuthenticate,
     CommandDropGuards,
@@ -41,6 +43,7 @@ from .connector import (
 from .event import Event, EventWord, EventWordInternal, event_from_message
 from .exceptions import CommandError, ControllerError
 from .reply import (
+    ReplyAddOnion,
     ReplyAuthChallenge,
     ReplyAuthenticate,
     ReplyDropGuards,
@@ -61,18 +64,31 @@ from .reply import (
     ReplySignal,
     ReplyTakeOwnership,
 )
-from .structures import HiddenServiceAddress, LongServerName, Signal
+from .structures import (
+    HiddenServiceAddress,
+    HsDescClientAuth,
+    LongServerName,
+    OnionServiceFlags,
+    OnionServiceKeyType,
+    OnionServiceNewKeyStruct,
+    Signal,
+    VirtualPortTarget,
+)
 from .utils import Message, messages_from_stream
 
 if TYPE_CHECKING:
     from collections.abc import (  # noqa: F401
-        Iterable,
         Mapping,
         MutableMapping,
+        MutableSequence,
+        Sequence,
         Set as AbstractSet,
     )
     from types import TracebackType
     from typing import Self
+
+    from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
+    from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
 
     from .types import AnyHost
 
@@ -267,27 +283,6 @@ class Controller:
             return EventWordInternal(event)
         msg = f"Unknown event '{event}'"
         raise CommandError(msg)
-
-    @staticmethod
-    def _str_signal_to_enum(signal: str) -> Signal:
-        """
-        Convert a textual signal name to its enum equivalent.
-
-        Args:
-            signal: a textual representation of the signal.
-
-        Raises:
-            CommandError: when the signal name does not exit.
-
-        Returns:
-            The corresponding enum signal.
-
-        """
-        try:
-            return Signal(signal)
-        except ValueError:
-            msg = f"Unknown signal '{signal}'"
-            raise CommandError(msg) from None
 
     async def _notify_disconnect(self) -> None:
         """
@@ -488,6 +483,76 @@ class Controller:
             raise ControllerError(msg)
         return resp
 
+    async def add_onion(
+        self,
+        key: Ed25519PrivateKey | RSAPrivateKey | OnionServiceNewKeyStruct | str,
+        ports: Sequence[VirtualPortTarget | str],
+        *,
+        client_auth: Sequence[HsDescClientAuth] = [],
+        client_auth_v3: Sequence[X25519PublicKey] = [],
+        flags: AbstractSet[OnionServiceFlags] = frozenset(),
+        generate_locally: bool = True,
+        max_streams: int | None = None,
+    ) -> ReplyAddOnion:
+        """
+        Create a new onion service.
+
+        This can either be created from an existing private key or ask Tor generate
+        a new one. You must provide at least one ``port`` for this command to succeed.
+
+        Args:
+            key: The onion service private key or type of private key to generate.
+            ports: List of virtual ports to assign to this onion service.
+
+        Keyword Args:
+            client_auth: List of authorized clients (for V2 onions).
+            client_auth_v3: List of authorized clients (for V3 onions).
+            flags: Set of additional flags attached to this service.
+            generate_locally: Generate onion keys locally instead (default).
+            max_streams: Optional max number of streams attached to the rendezvous circuit.
+
+        Returns:
+            The reply from the Tor server.
+
+        """
+        adapter = CommandAddOnion.adapter()
+        command = adapter.validate_python(
+            {
+                'key': key,
+                'ports': ports,
+                'client_auth': client_auth,
+                'client_auth_v3': client_auth_v3,
+                'flags': flags,
+                'max_streams': max_streams,
+            },
+        )
+        # Make sure the V3AUTH flag is set when necessary.
+        if len(command.client_auth_v3):
+            command.flags.add(OnionServiceFlags.V3AUTH)
+
+        generated = None  # type: Ed25519PrivateKey | RSAPrivateKey | None
+        if generate_locally and isinstance(command.key, OnionServiceNewKeyStruct):
+            match command.key.key_type:
+                case OnionServiceKeyType.RSA1024:
+                    # These are/were the common parameters for Onion V2.
+                    generated = rsa.generate_private_key(65537, key_size=1024)  # noqa: S505
+                    command.key = generated
+                case _:
+                    generated = Ed25519PrivateKey.generate()
+                    command.key = generated
+
+        message = await self.request(command)
+        reply = ReplyAddOnion.from_message(message)
+
+        # Simply copy the key generated locally.
+        if (
+            generated is not None
+            and reply.data is not None
+            and OnionServiceFlags.DISCARD_PK not in command.flags
+        ):
+            reply.data.key = generated
+        return reply
+
     async def auth_challenge(self, nonce: bytes | str | None = None) -> ReplyAuthChallenge:
         """
         Start the authentication for :attr:`~.structures.AuthMethod.SAFECOOKIE`.
@@ -681,7 +746,7 @@ class Controller:
     async def hs_fetch(
         self,
         address: HiddenServiceAddress | str,
-        servers: Iterable[LongServerName | str] | None = None,
+        servers: Sequence[LongServerName | str] = [],
     ) -> ReplyHsFetch:
         """
         Request a hidden service descriptor fetch.
@@ -697,14 +762,13 @@ class Controller:
             A simple hsfetch reply where only the status is relevant.
 
         """
-        # See https://github.com/pydantic/pydantic/discussions/7094#discussioncomment-8486007
-        addr = RootModel[HiddenServiceAddress].model_validate(address).root
-        command = CommandHsFetch(address=addr)
-        if servers is not None:
-            for server in servers:
-                if isinstance(server, str):
-                    server = LongServerName.from_string(server)
-                command.servers.append(server)
+        adapter = CommandHsFetch.adapter()
+        command = adapter.validate_python(
+            {
+                'address': address,
+                'servers': servers,
+            }
+        )
         message = await self.request(command)
         return ReplyHsFetch.from_message(message)
 
@@ -819,7 +883,7 @@ class Controller:
 
     async def resolve(
         self,
-        addresses: Iterable[AnyHost],
+        addresses: Sequence[AnyHost],
         *,
         reverse: bool = False,
     ) -> ReplyResolve:
@@ -931,10 +995,8 @@ class Controller:
             A simple signal reply where only the status is relevant.
 
         """
-        if not isinstance(signal, Signal):
-            signal = self._str_signal_to_enum(signal)
-
-        command = CommandSignal(signal=signal)
+        adapter = CommandSignal.adapter()
+        command = adapter.validate_python({'signal': signal})
         message = await self.request(command)
         return ReplySignal.from_message(message)
 
