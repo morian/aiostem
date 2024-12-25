@@ -103,7 +103,7 @@ class TrCast:
                         target_schema,
                         source_schema,
                     ],
-                )
+                ),
             ]
         )
 
