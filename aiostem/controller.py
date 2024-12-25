@@ -24,6 +24,8 @@ from .command import (
     CommandLoadConf,
     CommandMapAddress,
     CommandOnionClientAuthAdd,
+    CommandOnionClientAuthRemove,
+    CommandOnionClientAuthView,
     CommandProtocolInfo,
     CommandQuit,
     CommandResetConf,
@@ -58,6 +60,8 @@ from .reply import (
     ReplyLoadConf,
     ReplyMapAddress,
     ReplyOnionClientAuthAdd,
+    ReplyOnionClientAuthRemove,
+    ReplyOnionClientAuthView,
     ReplyProtocolInfo,
     ReplyQuit,
     ReplyResetConf,
@@ -884,6 +888,44 @@ class Controller:
         )
         message = await self.request(command)
         return ReplyOnionClientAuthAdd.from_message(message)
+
+    async def onion_client_auth_remove(
+        self,
+        address: HiddenServiceAddressV3 | str,
+    ) -> ReplyOnionClientAuthRemove:
+        """
+        Remove a client authorization for an existing hidden service.
+
+        Args:
+            address: Onion service address to remove a client authorization from.
+
+        Returns:
+            A simple reply where only the status is relevant.
+
+        """
+        adapter = CommandOnionClientAuthRemove.adapter()
+        command = adapter.validate_python({'address': address})
+        message = await self.request(command)
+        return ReplyOnionClientAuthRemove.from_message(message)
+
+    async def onion_client_auth_view(
+        self,
+        address: HiddenServiceAddressV3 | str | None = None,
+    ) -> ReplyOnionClientAuthView:
+        """
+        List authorization clients for the provided hidden service or all services.
+
+        Args:
+            address: Optional onion service address to list authorization for.
+
+        Returns:
+            A simple reply where only the status is relevant.
+
+        """
+        adapter = CommandOnionClientAuthView.adapter()
+        command = adapter.validate_python({'address': address})
+        message = await self.request(command)
+        return ReplyOnionClientAuthView.from_message(message)
 
     async def protocol_info(self, version: int | None = None) -> ReplyProtocolInfo:
         """

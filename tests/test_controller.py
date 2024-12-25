@@ -201,6 +201,22 @@ class TestController:
         )
         assert reply.is_success is True
 
+    async def test_cmd_onion_client_auth_remove(self, controller):
+        address = 'aiostpy74pbvneqehctjqan6242vcxeppxmjkschdpqe7tgn7wve65qd'
+        added = await controller.onion_client_auth_add(
+            address=address,
+            key=X25519PrivateKey.generate(),
+        )
+        assert added.is_success is True
+
+        removed = await controller.onion_client_auth_remove(address)
+        assert removed.is_success is True
+
+    async def test_cmd_onion_client_auth_view(self, controller):
+        address = 'aiostpy74pbvneqehctjqan6242vcxeppxmjkschdpqe7tgn7wve65qd'
+        added = await controller.onion_client_auth_view(address)
+        assert added.is_success is True
+
     async def test_cmd_reset_conf(self, controller):
         conf = {'MaxClientCircuitsPending': '64'}
         result = await controller.reset_conf(conf)

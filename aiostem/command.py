@@ -262,7 +262,7 @@ class CommandWord(StrEnum):
     #: Add client-side v3 client auth credentials for a onion service.
     #:
     #: See Also:
-    #:     - Controller method: :meth:`Controller.onion_client_auth_add`
+    #:     - Controller method: :meth:`.Controller.onion_client_auth_add`
     #:     - Command implementation: :class:`CommandOnionClientAuthAdd`
     #:     - Reply implementation: :class:`.ReplyOnionClientAuthAdd`
     ONION_CLIENT_AUTH_ADD = 'ONION_CLIENT_AUTH_ADD'
@@ -270,6 +270,7 @@ class CommandWord(StrEnum):
     #: Remove client-side v3 client auth credentials for a onion service.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.onion_client_auth_remove`
     #:     - Command implementation: :class:`CommandOnionClientAuthRemove`
     #:     - Reply implementation: :class:`.ReplyOnionClientAuthRemove`
     ONION_CLIENT_AUTH_REMOVE = 'ONION_CLIENT_AUTH_REMOVE'
@@ -277,6 +278,7 @@ class CommandWord(StrEnum):
     #: List client-side v3 client auth credentials for a onion service.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.onion_client_auth_view`
     #:     - Command implementation: :class:`CommandOnionClientAuthView`
     #:     - Reply implementation: :class:`.ReplyOnionClientAuthView`
     ONION_CLIENT_AUTH_VIEW = 'ONION_CLIENT_AUTH_VIEW'
@@ -1493,7 +1495,7 @@ class CommandOnionClientAuthView(Command):
     command: ClassVar[CommandWord] = CommandWord.ONION_CLIENT_AUTH_VIEW
 
     #: V3 onion address without the ``.onion`` suffix.
-    address: HiddenServiceAddress | None = None
+    address: HiddenServiceAddressV3 | None = None
 
     def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``ONION_CLIENT_AUTH_VIEW`` specific arguments."""
