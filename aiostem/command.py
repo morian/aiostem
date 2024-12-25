@@ -247,6 +247,7 @@ class CommandWord(StrEnum):
     #: Tells the server to remove an onion "hidden" service.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.del_onion`
     #:     - Command implementation: :class:`CommandDelOnion`
     #:     - Reply implementation: :class:`.ReplyDelOnion`
     DEL_ONION = 'DEL_ONION'
@@ -261,6 +262,7 @@ class CommandWord(StrEnum):
     #: Add client-side v3 client auth credentials for a onion service.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`Controller.onion_client_auth_add`
     #:     - Command implementation: :class:`CommandOnionClientAuthAdd`
     #:     - Reply implementation: :class:`.ReplyOnionClientAuthAdd`
     ONION_CLIENT_AUTH_ADD = 'ONION_CLIENT_AUTH_ADD'

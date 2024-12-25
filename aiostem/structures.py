@@ -609,7 +609,7 @@ class OnionClientAuthKeyStruct:
     data: Base64Bytes
 
 
-def _discriminate_client_auth_private_key(v: Any) -> str:
+def _discriminate_client_auth_private_key(v: Any) -> str | None:
     """Find how to discriminate the provided key."""
     match v:
         case OnionClientAuthKeyStruct():
@@ -618,8 +618,7 @@ def _discriminate_client_auth_private_key(v: Any) -> str:
         case X25519PrivateKey():
             return OnionClientAuthKeyType.X25519.value
 
-    msg = 'Unknown discrimination type for client auth key!'
-    raise TypeError(msg)
+    return None
 
 
 def _onion_client_auth_key_to_struct(
@@ -639,14 +638,20 @@ def _onion_client_auth_key_to_struct(
             raise TypeError(msg)
 
 
+def _onion_client_auth_key_from_struct(value: Any) -> Any:
+    """Extract the data part of our struct, if applicable."""
+    if isinstance(value, OnionClientAuthKeyStruct):
+        return value.data
+    return value
+
+
 #: Validator used to extract the raw key material after discrimination.
-OnionClientAuthKeyExtractKeyBytes = BeforeValidator(lambda auth: auth.data)
+ExtractOnionClientAuthKeyFromStruct = BeforeValidator(_onion_client_auth_key_from_struct)
 
 #: Build a OnionClientAuthKeyStruct structure from a real key.
-OnionClientAuthKeyFromKey = WrapSerializer(
+SerializeOnionClientAuthKeyToStruct = WrapSerializer(
     func=_onion_client_auth_key_to_struct,
     return_type=OnionClientAuthKeyStruct,
-    when_used='always',
 )
 
 #: Parse and serialize any onion client auth key with format ``x25519:[base64]``.
@@ -655,8 +660,8 @@ OnionClientAuthKey: TypeAlias = Annotated[
         Annotated[
             X25519PrivateKey,
             TrX25519PrivateKey(),
-            OnionClientAuthKeyExtractKeyBytes,
-            OnionClientAuthKeyFromKey,
+            ExtractOnionClientAuthKeyFromStruct,
+            SerializeOnionClientAuthKeyToStruct,
             Tag('x25519'),
         ],
         # Needed as we don't handle another type in this union (yet).
@@ -749,7 +754,7 @@ class OnionServiceKeyStruct:
     data: Base64Bytes
 
 
-def _discriminate_service_private_key(v: Any) -> str:
+def _discriminate_service_private_key(v: Any) -> str | None:
     """
     Find how to discriminate the provided key.
 
@@ -772,8 +777,7 @@ def _discriminate_service_private_key(v: Any) -> str:
         case Ed25519PrivateKey():
             return OnionServiceKeyType.ED25519_V3.value
 
-    msg = 'Unknown discrimination type for onion service key!'
-    raise TypeError(msg)
+    return None
 
 
 def _onion_service_key_to_struct(
@@ -799,11 +803,18 @@ def _onion_service_key_to_struct(
             raise TypeError(msg)
 
 
+def _onion_service_key_from_struct(value: Any) -> Any:
+    """Extract the data part of our struct, if applicable."""
+    if isinstance(value, OnionServiceKeyStruct):
+        return value.data
+    return value
+
+
 #: Validator used to extract the raw key material after discrimination.
-OnionServiceKeyExtractKeyBytes = BeforeValidator(lambda key: key.data)
+ExtractServiceKeyFromStruct = BeforeValidator(_onion_service_key_from_struct)
 
 #: Build a OnionClientAuthKeyStruct structure from a real key.
-OnionServiceStructFromKey = WrapSerializer(
+SerializeOnionServiceKeyFromStruct = WrapSerializer(
     func=_onion_service_key_to_struct,
     return_type=OnionServiceKeyStruct,
 )
@@ -814,21 +825,18 @@ OnionServiceKey: TypeAlias = Annotated[
         Annotated[
             RSAPrivateKey,
             TrRSAPrivateKey(),
-            OnionServiceKeyExtractKeyBytes,
-            OnionServiceStructFromKey,
+            ExtractServiceKeyFromStruct,
+            SerializeOnionServiceKeyFromStruct,
             Tag('RSA1024'),
         ],
         Annotated[
             Ed25519PrivateKey,
             TrEd25519PrivateKey(expanded=True),
-            OnionServiceKeyExtractKeyBytes,
-            OnionServiceStructFromKey,
+            ExtractServiceKeyFromStruct,
+            SerializeOnionServiceKeyFromStruct,
             Tag('ED25519-V3'),
         ],
-        Annotated[
-            OnionServiceKeyStruct,
-            Tag('fallback'),
-        ],
+        Annotated[OnionServiceKeyStruct, Tag('fallback')],
     ],
     Discriminator(_discriminate_service_private_key),
     TrCast(OnionServiceKeyStruct),
@@ -1253,7 +1261,7 @@ class ReplyDataAddOnion:
     """
 
     #: Called `ServiceID` in the documentation, this is the onion address.
-    address: HiddenServiceAddress
+    address: HiddenServiceAddressV3
 
     #: List of client authentication for a v2 address.
     client_auth: Sequence[HsDescClientAuthV2] = field(default_factory=list)
@@ -1276,7 +1284,7 @@ class ReplyDataOnionClientAuthView:
     """
 
     #: Onion address minus the ``.onion`` suffix.
-    address: HiddenServiceAddress | None = None
+    address: HiddenServiceAddressV3 | None = None
 
     #: List of authorized clients and their private key.
     clients: Sequence[OnionClientAuth] = field(default_factory=list)

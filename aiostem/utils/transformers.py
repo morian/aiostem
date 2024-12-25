@@ -95,11 +95,16 @@ class TrCast:
         """Declare schema and validator to cast to the provided type."""
         source_schema = handler(source)
         target_schema = handler.generate_schema(self.target)
-        return core_schema.chain_schema(
-            steps=[
-                target_schema,
+        return core_schema.union_schema(
+            [
                 source_schema,
-            ],
+                core_schema.chain_schema(
+                    steps=[
+                        target_schema,
+                        source_schema,
+                    ],
+                )
+            ]
         )
 
 

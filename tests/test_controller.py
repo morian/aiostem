@@ -7,7 +7,7 @@ from functools import partial
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from pydantic import ValidationError
 
 from aiostem import Controller
@@ -193,6 +193,14 @@ class TestController:
         assert isinstance(entries, list)
         assert len(entries) == 2
 
+    async def test_cmd_onion_client_auth_add(self, controller):
+        address = 'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
+        reply = await controller.onion_client_auth_add(
+            address=address,
+            key=X25519PrivateKey.generate(),
+        )
+        assert reply.is_success is True
+
     async def test_cmd_reset_conf(self, controller):
         conf = {'MaxClientCircuitsPending': '64'}
         result = await controller.reset_conf(conf)
@@ -307,6 +315,15 @@ class TestController:
 
         await controller.del_event_handler('DISCONNECT', cb_async)
         await controller.del_event_handler('DISCONNECT', cb_sync)
+
+    @pytest.mark.timeout(2)
+    async def test_add_onion_existing_key(self, controller):
+        reply = await controller.add_onion(
+            key=Ed25519PrivateKey.generate(),
+            ports=['80,127.0.0.1:80'],
+        )
+        reply.raise_for_status()
+        assert reply.data.key is None
 
     @pytest.mark.timeout(2)
     async def test_add_onion_generate_best_locally(self, controller):

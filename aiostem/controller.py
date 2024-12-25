@@ -23,6 +23,7 @@ from .command import (
     CommandHsFetch,
     CommandLoadConf,
     CommandMapAddress,
+    CommandOnionClientAuthAdd,
     CommandProtocolInfo,
     CommandQuit,
     CommandResetConf,
@@ -56,6 +57,7 @@ from .reply import (
     ReplyHsFetch,
     ReplyLoadConf,
     ReplyMapAddress,
+    ReplyOnionClientAuthAdd,
     ReplyProtocolInfo,
     ReplyQuit,
     ReplyResetConf,
@@ -68,8 +70,10 @@ from .reply import (
 )
 from .structures import (
     HiddenServiceAddress,
+    HiddenServiceAddressV3,
     HsDescClientAuth,
     LongServerName,
+    OnionClientAuthFlags,
     OnionServiceFlags,
     OnionServiceKeyType,
     OnionServiceNewKeyStruct,
@@ -90,7 +94,10 @@ if TYPE_CHECKING:
     from typing import Self
 
     from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
-    from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PublicKey
+    from cryptography.hazmat.primitives.asymmetric.x25519 import (
+        X25519PrivateKey,
+        X25519PublicKey,
+    )
 
     from .types import AnyHost
 
@@ -842,6 +849,41 @@ class Controller:
         command.addresses.update(addresses)
         message = await self.request(command)
         return ReplyMapAddress.from_message(message)
+
+    async def onion_client_auth_add(
+        self,
+        address: HiddenServiceAddressV3 | str,
+        key: X25519PrivateKey,
+        *,
+        flags: AbstractSet[OnionClientAuthFlags] = frozenset(),
+        nickname: str | None = None,
+    ) -> ReplyOnionClientAuthAdd:
+        """
+        Add a new client authorization for an existing hidden service.
+
+        Args:
+            address: Onion service address to add a client authorization for.
+            key: The private X25519 private key used to access this service.
+
+        Keyword Args:
+            flags: Set of additional flags.
+            nickname: Client name associated with the provided key.
+
+        Returns:
+            A simple reply where only the status is relevant.
+
+        """
+        adapter = CommandOnionClientAuthAdd.adapter()
+        command = adapter.validate_python(
+            {
+                'address': address,
+                'key': key,
+                'flags': flags,
+                'nickname': nickname,
+            }
+        )
+        message = await self.request(command)
+        return ReplyOnionClientAuthAdd.from_message(message)
 
     async def protocol_info(self, version: int | None = None) -> ReplyProtocolInfo:
         """

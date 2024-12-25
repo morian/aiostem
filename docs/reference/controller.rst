@@ -83,6 +83,7 @@ Hidden services commands
    .. automethod:: add_onion
    .. automethod:: del_onion
    .. automethod:: hs_fetch
+   .. automethod:: onion_client_auth_add
 
 
 Streams and circuits

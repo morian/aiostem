@@ -424,6 +424,13 @@ class TestCommands:
         cmd = CommandOnionClientAuthAdd(address=address, key=key)
         assert cmd.serialize() == f'ONION_CLIENT_AUTH_ADD {address} x25519:{k64}\r\n'
 
+    def test_onion_client_auth_add_from_struct(self):
+        address = 'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
+        k64 = 'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o'
+        adapter = CommandOnionClientAuthAdd.adapter()
+        cmd = adapter.validate_python({'address': address, 'key': f'x25519:{k64}'})
+        assert cmd.serialize() == f'ONION_CLIENT_AUTH_ADD {address} x25519:{k64}\r\n'
+
     def test_onion_client_auth_add_advanced(self):
         address = 'aiostem26gcjyybsi3tyek6txlivvlc5tczytz52h4srsttknvd5s3qd'
         k64 = 'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o'
