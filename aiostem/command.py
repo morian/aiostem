@@ -261,6 +261,7 @@ class CommandWord(StrEnum):
     #: This command launches a hidden service descriptor upload to the specified HSDirs.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.hs_post`
     #:     - Command implementation: :class:`CommandHsPost`
     #:     - Reply implementation: :class:`.ReplyHsPost`
     HSPOST = 'HSPOST'

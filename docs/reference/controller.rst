@@ -82,7 +82,10 @@ Hidden services commands
 
    .. automethod:: add_onion
    .. automethod:: del_onion
+
    .. automethod:: hs_fetch
+   .. automethod:: hs_post
+
    .. automethod:: onion_client_auth_add
    .. automethod:: onion_client_auth_remove
    .. automethod:: onion_client_auth_view

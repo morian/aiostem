@@ -25,6 +25,7 @@ from .command import (
     CommandGetConf,
     CommandGetInfo,
     CommandHsFetch,
+    CommandHsPost,
     CommandLoadConf,
     CommandMapAddress,
     CommandOnionClientAuthAdd,
@@ -67,6 +68,7 @@ from .reply import (
     ReplyGetConf,
     ReplyGetInfo,
     ReplyHsFetch,
+    ReplyHsPost,
     ReplyLoadConf,
     ReplyMapAddress,
     ReplyOnionClientAuthAdd,
@@ -913,6 +915,46 @@ class Controller:
         )
         message = await self.request(command)
         return ReplyHsFetch.from_message(message)
+
+    async def hs_post(
+        self,
+        descriptor: str,
+        *,
+        address: HiddenServiceAddressV3 | str | None = None,
+        servers: Sequence[LongServerName | str] = [],
+    ) -> ReplyHsPost:
+        """
+        Ask Tor to upload the provided descriptor.
+
+        Important:
+            ``address`` is mandatory when uploading a v3 descriptor.
+
+        Warning:
+            When an invalid descriptor is provided and no address is provided,
+            tor does not provide an answer to this command, make sure to wrap
+            this function call with a timeout!
+
+        Args:
+            descriptor: The descriptor content to upload.
+
+        Keyword Args:
+            address: For v3 only, the hidden service address.
+            servers: List of servers to upload the descriptor to.
+
+        Returns:
+            A simple reply where only the status is relevant.
+
+        """
+        adapter = CommandHsPost.adapter()
+        command = adapter.validate_python(
+            {
+                'descriptor': descriptor,
+                'servers': servers,
+                'address': address,
+            },
+        )
+        message = await self.request(command)
+        return ReplyHsPost.from_message(message)
 
     async def load_conf(self, text: str) -> ReplyLoadConf:
         """

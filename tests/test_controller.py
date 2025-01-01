@@ -332,6 +332,13 @@ class TestController:
         assert isinstance(command, CommandHsFetch)
         assert len(command.servers) == 2
 
+    async def test_cmd_hs_post(self, controller):
+        address = 'oftestt7ffa4tt7et5wab7xhnzeooavy2xdmn6dtfa4pot7dk4xhviid'
+        reply = await controller.hs_post('XXX', address=address)
+        assert reply.is_error
+        assert reply.status == 554
+        assert 'Invalid descriptor' in reply.status_text
+
     async def test_cmd_drop_guard(self, controller):
         res = await controller.drop_guards()
         assert res.status_text == 'OK'
