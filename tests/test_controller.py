@@ -21,7 +21,12 @@ from aiostem.event import (
     event_from_message,
 )
 from aiostem.exceptions import CommandError, ControllerError, ReplyError, ReplyStatusError
-from aiostem.structures import CloseStreamReason, LongServerName, OnionServiceKeyStruct
+from aiostem.structures import (
+    CircuitPurpose,
+    CloseStreamReason,
+    LongServerName,
+    OnionServiceKeyStruct,
+)
 from aiostem.utils import Message
 
 # All test coroutines will be treated as marked for asyncio.
@@ -179,6 +184,12 @@ class TestController:
         assert reply.is_error is True
         assert reply.status == 552
         assert 'No such router' in reply.status_text
+
+    async def test_cmd_set_circuit_purpose(self, controller):
+        reply = await controller.set_circuit_purpose(0, CircuitPurpose.GENERAL)
+        assert reply.is_error is True
+        assert reply.status == 552
+        assert 'Unknown circuit' in reply.status_text
 
     async def test_cmd_close_stream(self, controller):
         reply = await controller.close_stream(0, CloseStreamReason.MISC)

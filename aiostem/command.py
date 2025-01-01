@@ -124,6 +124,7 @@ class CommandWord(StrEnum):
     #: Change the purpose of a circuit.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.set_circuit_purpose`
     #:     - Command implementation: :class:`CommandSetCircuitPurpose`
     #:     - Reply implementation: :class:`.ReplySetCircuitPurpose`
     SETCIRCUITPURPOSE = 'SETCIRCUITPURPOSE'

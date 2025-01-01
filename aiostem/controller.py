@@ -36,6 +36,7 @@ from .command import (
     CommandResetConf,
     CommandResolve,
     CommandSaveConf,
+    CommandSetCircuitPurpose,
     CommandSetConf,
     CommandSetEvents,
     CommandSignal,
@@ -77,6 +78,7 @@ from .reply import (
     ReplyResetConf,
     ReplyResolve,
     ReplySaveConf,
+    ReplySetCircuitPurpose,
     ReplySetConf,
     ReplySetEvents,
     ReplySignal,
@@ -1179,6 +1181,26 @@ class Controller:
         command = CommandSaveConf(force=force)
         message = await self.request(command)
         return ReplySaveConf.from_message(message)
+
+    async def set_circuit_purpose(
+        self,
+        circuit: int,
+        purpose: CircuitPurpose,
+    ) -> ReplySetCircuitPurpose:
+        """
+        Change the circuit purpose.
+
+        Args:
+            circuit: The circuit identifier to change the purpose.
+            purpose: New purpose for the provided circuit.
+
+        Returns:
+            A simple reply with only a status.
+
+        """
+        command = CommandSetCircuitPurpose(circuit=circuit, purpose=purpose)
+        message = await self.request(command)
+        return ReplySetCircuitPurpose.from_message(message)
 
     async def set_conf(
         self,

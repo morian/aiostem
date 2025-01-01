@@ -96,6 +96,7 @@ Streams and circuits
 
    .. automethod:: close_circuit
    .. automethod:: extend_circuit
+   .. automethod:: set_circuit_purpose
 
    .. automethod:: attach_stream
    .. automethod:: close_stream
