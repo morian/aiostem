@@ -188,7 +188,7 @@ class TestCommands:
     def test_extend_circuit_advanced(self):
         cmd = CommandExtendCircuit(
             circuit=12345,
-            server_spec=[
+            servers=[
                 LongServerName.from_string('$b34a4ac3892e41c58709d9c51b3648620a7d5bfe~Test1'),
                 LongServerName.from_string('$7b70bf914770f022e71a26cbf3d9519dc89f2a9a~Test2'),
             ],

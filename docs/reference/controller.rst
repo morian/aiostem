@@ -95,6 +95,7 @@ Streams and circuits
    :no-index:
 
    .. automethod:: close_circuit
+   .. automethod:: extend_circuit
 
    .. automethod:: attach_stream
    .. automethod:: close_stream

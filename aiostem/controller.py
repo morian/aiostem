@@ -21,6 +21,7 @@ from .command import (
     CommandDropGuards,
     CommandDropOwnership,
     CommandDropTimeouts,
+    CommandExtendCircuit,
     CommandGetConf,
     CommandGetInfo,
     CommandHsFetch,
@@ -61,6 +62,7 @@ from .reply import (
     ReplyDropGuards,
     ReplyDropOwnership,
     ReplyDropTimeouts,
+    ReplyExtendCircuit,
     ReplyGetConf,
     ReplyGetInfo,
     ReplyHsFetch,
@@ -81,6 +83,7 @@ from .reply import (
     ReplyTakeOwnership,
 )
 from .structures import (
+    CircuitPurpose,
     CloseStreamReason,
     HiddenServiceAddress,
     HiddenServiceAddressV3,
@@ -804,6 +807,38 @@ class Controller:
         command = CommandDropTimeouts()
         message = await self.request(command)
         return ReplyDropTimeouts.from_message(message)
+
+    async def extend_circuit(
+        self,
+        circuit: int,
+        servers: Sequence[LongServerName | str],
+        *,
+        purpose: CircuitPurpose | None = None,
+    ) -> ReplyExtendCircuit:
+        """
+        Extend the provided circuit to the provided servers.
+
+        Args:
+            circuit: The circuit identifier to extend to (``0`` for a new circuit).
+            servers: List of servers to extend the circuit to.
+
+        Keyword Args:
+            purpose: Optional circuit purpose.
+
+        Returns:
+            A circuit reply containing the circuit number.
+
+        """
+        adapter = CommandExtendCircuit.adapter()
+        command = adapter.validate_python(
+            {
+                'circuit': circuit,
+                'servers': servers,
+                'purpose': purpose,
+            },
+        )
+        message = await self.request(command)
+        return ReplyExtendCircuit.from_message(message)
 
     async def get_conf(self, *args: str) -> ReplyGetConf:
         """

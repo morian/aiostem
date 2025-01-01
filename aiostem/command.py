@@ -116,6 +116,7 @@ class CommandWord(StrEnum):
     #: Build a new or extend an existing circuit.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.extend_circuit`
     #:     - Command implementation: :class:`CommandExtendCircuit`
     #:     - Reply implementation: :class:`.ReplyExtendCircuit`
     EXTENDCIRCUIT = 'EXTENDCIRCUIT'
@@ -728,7 +729,7 @@ class CommandExtendCircuit(Command):
     This request takes one of two forms: either :attr:`circuit` is zero, in which case it is
     a request for the server to build a new circuit, or :attr:`circuit` is nonzero, in which
     case it is a request for the server to extend an existing circuit with that ID
-    according to the specified path provided in :attr:`server_spec`.
+    according to the specified path provided in :attr:`servers`.
 
     See Also:
         https://spec.torproject.org/control-spec/commands.html#extendcircuit
@@ -741,7 +742,7 @@ class CommandExtendCircuit(Command):
     circuit: int
 
     #: List of servers to extend the circuit onto (or no server).
-    server_spec: Annotated[
+    servers: Annotated[
         MutableSequence[LongServerName],
         TrBeforeStringSplit(),
     ] = field(default_factory=list)
@@ -757,9 +758,9 @@ class CommandExtendCircuit(Command):
         circuit = struct['circuit']
         args.append(ArgumentString(circuit, safe=True))
 
-        server_spec = struct['server_spec']
-        if server_spec:
-            args.append(ArgumentString(server_spec))
+        servers = struct['servers']
+        if servers:
+            args.append(ArgumentString(servers))
 
         purpose = struct['purpose']
         if purpose is not None:

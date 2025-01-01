@@ -158,21 +158,39 @@ class TestController:
         reply = await controller.attach_stream(0, 0)
         assert reply.is_error is True
         assert reply.status == 552
+        assert 'Unknown stream' in reply.status_text
 
     async def test_cmd_close_circuit(self, controller):
         reply = await controller.close_circuit(0)
         assert reply.is_error is True
         assert reply.status == 552
+        assert 'Unknown circuit' in reply.status_text
+
+    async def test_cmd_extend_circuit(self, controller):
+        reply = await controller.extend_circuit(
+            0,
+            [
+                '$9695DFC35FFEB861329B9F1AB04C46397020CE31~Test1',
+                LongServerName(
+                    fingerprint=b'\xc3\x07\xda\xa2\r(a\x19\tGS\r~XiD\x9d\x0bis',
+                ),
+            ],
+        )
+        assert reply.is_error is True
+        assert reply.status == 552
+        assert 'No such router' in reply.status_text
 
     async def test_cmd_close_stream(self, controller):
         reply = await controller.close_stream(0, CloseStreamReason.MISC)
         assert reply.is_error is True
         assert reply.status == 552
+        assert 'Unknown stream' in reply.status_text
 
     async def test_cmd_redirect_stream(self, controller):
         reply = await controller.redirect_stream(0, IPv4Address('127.0.0.1'))
         assert reply.is_error is True
         assert reply.status == 552
+        assert 'Unknown stream' in reply.status_text
 
     async def test_cmd_get_info(self, controller):
         info = await controller.get_info('version')
