@@ -105,6 +105,7 @@ Streams and circuits
    .. automethod:: close_stream
    .. automethod:: redirect_stream
 
+   .. automethod:: post_descriptor
    .. automethod:: drop_guards
    .. automethod:: drop_timeouts
 
@@ -116,11 +117,13 @@ Control commands
    :no-index:
 
    .. automethod:: drop_ownership
-   .. automethod:: get_info
+   .. automethod:: take_ownership
+
    .. automethod:: map_address
    .. automethod:: resolve
+
+   .. automethod:: get_info
    .. automethod:: signal
-   .. automethod:: take_ownership
 
 
 Generic request

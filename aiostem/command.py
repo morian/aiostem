@@ -143,6 +143,7 @@ class CommandWord(StrEnum):
     #: This message informs the server about a new descriptor.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.post_descriptor`
     #:     - Command implementation: :class:`CommandPostDescriptor`
     #:     - Reply implementation: :class:`.ReplyPostDescriptor`
     POSTDESCRIPTOR = 'POSTDESCRIPTOR'

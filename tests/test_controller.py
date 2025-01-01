@@ -185,6 +185,12 @@ class TestController:
         assert reply.status == 552
         assert 'No such router' in reply.status_text
 
+    async def test_cmd_post_descriptor(self, controller):
+        reply = await controller.post_descriptor('XXX')
+        assert reply.is_error is True
+        assert reply.status == 554
+        assert "Couldn't parse router descriptor" in reply.status_text
+
     async def test_cmd_set_circuit_purpose(self, controller):
         reply = await controller.set_circuit_purpose(0, CircuitPurpose.GENERAL)
         assert reply.is_error is True

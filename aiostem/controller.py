@@ -31,6 +31,7 @@ from .command import (
     CommandOnionClientAuthAdd,
     CommandOnionClientAuthRemove,
     CommandOnionClientAuthView,
+    CommandPostDescriptor,
     CommandProtocolInfo,
     CommandQuit,
     CommandRedirectStream,
@@ -74,6 +75,7 @@ from .reply import (
     ReplyOnionClientAuthAdd,
     ReplyOnionClientAuthRemove,
     ReplyOnionClientAuthView,
+    ReplyPostDescriptor,
     ReplyProtocolInfo,
     ReplyQuit,
     ReplyRedirectStream,
@@ -1083,6 +1085,38 @@ class Controller:
         message = await self.request(command)
         return ReplyOnionClientAuthView.from_message(message)
 
+    async def post_descriptor(
+        self,
+        descriptor: str,
+        *,
+        cache: bool | None = None,
+        purpose: CircuitPurpose | None = None,
+    ) -> ReplyPostDescriptor:
+        """
+        Inform the server about a new descriptor.
+
+        Args:
+            descriptor: The descriptor content.
+
+        Keyword Args:
+            cache: Whether to cache the provided descriptor internally.
+            purpose: The purpose of the descriptor (default is ``GENERAL``).
+
+        Returns:
+            A simple reply where only the status is relevant.
+
+        """
+        adapter = CommandPostDescriptor.adapter()
+        command = adapter.validate_python(
+            {
+                'descriptor': descriptor,
+                'purpose': purpose,
+                'cache': cache,
+            },
+        )
+        message = await self.request(command)
+        return ReplyPostDescriptor.from_message(message)
+
     async def protocol_info(self, version: int | None = None) -> ReplyProtocolInfo:
         """
         Get control protocol information from Tor.
@@ -1111,6 +1145,17 @@ class Controller:
             message = await self.request(command)
             self._protoinfo = ReplyProtocolInfo.from_message(message)
         return self._protoinfo
+
+    async def quit(self) -> ReplyQuit:
+        """
+        Tells the server to hang up on this controller connection.
+
+        Returns:
+            A simple quit reply where only the status is relevant.
+
+        """
+        message = await self.request(CommandQuit())
+        return ReplyQuit.from_message(message)
 
     async def redirect_stream(
         self,
@@ -1326,14 +1371,3 @@ class Controller:
         command = CommandTakeOwnership()
         message = await self.request(command)
         return ReplyTakeOwnership.from_message(message)
-
-    async def quit(self) -> ReplyQuit:
-        """
-        Tells the server to hang up on this controller connection.
-
-        Returns:
-            A simple quit reply where only the status is relevant.
-
-        """
-        message = await self.request(CommandQuit())
-        return ReplyQuit.from_message(message)
