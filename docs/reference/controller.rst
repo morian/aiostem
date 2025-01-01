@@ -94,6 +94,7 @@ Streams and circuits
 .. class:: Controller
    :no-index:
 
+   .. automethod:: attach_stream
    .. automethod:: drop_guards
    .. automethod:: drop_timeouts
 

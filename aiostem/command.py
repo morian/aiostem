@@ -133,6 +133,7 @@ class CommandWord(StrEnum):
     #: Request that the specified stream should be associated with the specified circuit.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.attach_stream`
     #:     - Command implementation: :class:`CommandAttachStream`
     #:     - Reply implementation: :class:`.ReplyAttachStream`
     ATTACHSTREAM = 'ATTACHSTREAM'

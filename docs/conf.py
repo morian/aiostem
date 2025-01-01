@@ -33,7 +33,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 author = 'Romain Bezut'
 project = 'aiostem'
-copyright = f'2021-2024, {author}'
+copyright = f'2021-2025, {author}'
 
 extensions = [
     'sphinx.ext.autodoc',

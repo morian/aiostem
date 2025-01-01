@@ -12,6 +12,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from .command import (
     Command,
     CommandAddOnion,
+    CommandAttachStream,
     CommandAuthChallenge,
     CommandAuthenticate,
     CommandDelOnion,
@@ -48,6 +49,7 @@ from .event import Event, EventWord, EventWordInternal, event_from_message
 from .exceptions import CommandError, ControllerError
 from .reply import (
     ReplyAddOnion,
+    ReplyAttachStream,
     ReplyAuthChallenge,
     ReplyAuthenticate,
     ReplyDelOnion,
@@ -565,6 +567,35 @@ class Controller:
         ):
             reply.data.key = generated
         return reply
+
+    async def attach_stream(
+        self,
+        stream: int,
+        circuit: int,
+        *,
+        hop: int | None = None,
+    ) -> ReplyAttachStream:
+        """
+        Inform the server that the specified stream should be associated with a circuit.
+
+        Args:
+            stream: The stream to associate to the provided circuit.
+            circuit: The circuit identifier to attach the stream onto.
+
+        Keyword Args:
+            hop: When specified, Tor choose the HopNumth hop in the circuit as the exit node.
+
+        Returns:
+            A simple reply where only the status is relevant.
+
+        """
+        command = CommandAttachStream(
+            stream=stream,
+            circuit=circuit,
+            hop=hop,
+        )
+        message = await self.request(command)
+        return ReplyAttachStream.from_message(message)
 
     async def auth_challenge(self, nonce: bytes | str | None = None) -> ReplyAuthChallenge:
         """

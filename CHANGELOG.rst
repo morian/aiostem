@@ -30,7 +30,7 @@ Changed
 
 Removed
 -------
-- Dependency on aiofiles_ and stem_ were removed after refactoring
+- Dependencies on aiofiles_ and stem_ were removed after refactoring
 - The whole extra part of this library, including the `aiostem-hsscan` part
 - Debian and ubuntu packages are no longer available
 - Dropped support for python 3.10 and lower

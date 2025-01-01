@@ -294,7 +294,7 @@ class Monitor:
         USE EXAMPLE::
 
            async with monitor.condition:
-               await monitor.condition.wait_for(monitor.is_healthy)
+               await monitor.condition.wait_for(lambda: monitor.is_healthy)
                print('Monitor is now healthy.')
 
         """
