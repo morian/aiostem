@@ -15,6 +15,7 @@ from .command import (
     CommandAttachStream,
     CommandAuthChallenge,
     CommandAuthenticate,
+    CommandCloseStream,
     CommandDelOnion,
     CommandDropGuards,
     CommandDropOwnership,
@@ -53,6 +54,7 @@ from .reply import (
     ReplyAttachStream,
     ReplyAuthChallenge,
     ReplyAuthenticate,
+    ReplyCloseStream,
     ReplyDelOnion,
     ReplyDropGuards,
     ReplyDropOwnership,
@@ -77,6 +79,7 @@ from .reply import (
     ReplyTakeOwnership,
 )
 from .structures import (
+    CloseStreamReason,
     HiddenServiceAddress,
     HiddenServiceAddressV3,
     HsDescClientAuth,
@@ -691,6 +694,22 @@ class Controller:
         message = await self.request(command)
         self._authenticated = message.is_success
         return ReplyAuthenticate.from_message(message)
+
+    async def close_stream(self, stream: int, reason: CloseStreamReason) -> ReplyCloseStream:
+        """
+        Tell the server to close the specified stream.
+
+        Args:
+            stream: The stream identifier to close.
+            reason: The provided reason why this stream should be closed.
+
+        Returns:
+            A simple reply where only the status is relevant.
+
+        """
+        command = CommandCloseStream(stream=stream, reason=reason)
+        message = await self.request(command)
+        return ReplyCloseStream.from_message(message)
 
     async def del_onion(self, address: HiddenServiceAddress | str) -> ReplyDelOnion:
         """

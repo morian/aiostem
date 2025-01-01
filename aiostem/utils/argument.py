@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from enum import IntEnum, StrEnum
+from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Any, TypeAlias, Union, overload
 
 if TYPE_CHECKING:
@@ -19,6 +20,8 @@ KeyTypes: TypeAlias = Union[str, None]  # noqa: UP007
 
 #: All types allowed as a value, either for a keyword or a simple string.
 ValueTypes: TypeAlias = Union[  # noqa: UP007
+    IPv4Address,
+    IPv6Address,
     IntEnum,
     StrEnum,
     int,
@@ -41,13 +44,13 @@ def _serialize_value(value: Any, *, allow_none: bool = False) -> str | None:
     match value:
         case IntEnum() | StrEnum():
             result = str(value.value)
-        case int() | str():
-            result = str(value)
         case None:
             if allow_none is False:
                 msg = 'Value cannot be None.'
                 raise CommandError(msg)
             result = None
+        case IPv4Address() | IPv6Address() | int() | str():
+            result = str(value)
         case _:
             msg = f'Type {type(value).__name__} cannot be serialized to a string.'
             raise CommandError(msg)

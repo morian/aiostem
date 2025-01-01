@@ -3,8 +3,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import secrets
-from ipaddress import IPv4Address
 from functools import partial
+from ipaddress import IPv4Address
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -21,7 +21,7 @@ from aiostem.event import (
     event_from_message,
 )
 from aiostem.exceptions import CommandError, ControllerError, ReplyError, ReplyStatusError
-from aiostem.structures import LongServerName, OnionServiceKeyStruct
+from aiostem.structures import CloseStreamReason, LongServerName, OnionServiceKeyStruct
 from aiostem.utils import Message
 
 # All test coroutines will be treated as marked for asyncio.
@@ -156,6 +156,11 @@ class TestController:
 
     async def test_cmd_attach_stream(self, controller):
         reply = await controller.attach_stream(0, 0)
+        assert reply.is_error is True
+        assert reply.status == 552
+
+    async def test_cmd_close_stream(self, controller):
+        reply = await controller.close_stream(0, CloseStreamReason.MISC)
         assert reply.is_error is True
         assert reply.status == 552
 

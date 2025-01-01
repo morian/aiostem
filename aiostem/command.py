@@ -156,6 +156,7 @@ class CommandWord(StrEnum):
     #: Tells the server to close the specified stream.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.close_stream`
     #:     - Command implementation: :class:`CommandCloseStream`
     #:     - Reply implementation: :class:`.ReplyCloseStream`
     CLOSESTREAM = 'CLOSESTREAM'

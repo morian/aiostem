@@ -95,6 +95,7 @@ Streams and circuits
    :no-index:
 
    .. automethod:: attach_stream
+   .. automethod:: close_stream
    .. automethod:: redirect_stream
 
    .. automethod:: drop_guards
