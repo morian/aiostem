@@ -94,6 +94,8 @@ Streams and circuits
 .. class:: Controller
    :no-index:
 
+   .. automethod:: close_circuit
+
    .. automethod:: attach_stream
    .. automethod:: close_stream
    .. automethod:: redirect_stream

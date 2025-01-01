@@ -159,6 +159,11 @@ class TestController:
         assert reply.is_error is True
         assert reply.status == 552
 
+    async def test_cmd_close_circuit(self, controller):
+        reply = await controller.close_circuit(0)
+        assert reply.is_error is True
+        assert reply.status == 552
+
     async def test_cmd_close_stream(self, controller):
         reply = await controller.close_stream(0, CloseStreamReason.MISC)
         assert reply.is_error is True

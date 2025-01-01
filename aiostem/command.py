@@ -164,6 +164,7 @@ class CommandWord(StrEnum):
     #: Tells the server to close the specified circuit.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.close_circuit`
     #:     - Command implementation: :class:`CommandCloseCircuit`
     #:     - Reply implementation: :class:`.ReplyCloseCircuit`
     CLOSECIRCUIT = 'CLOSECIRCUIT'

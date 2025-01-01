@@ -15,6 +15,7 @@ from .command import (
     CommandAttachStream,
     CommandAuthChallenge,
     CommandAuthenticate,
+    CommandCloseCircuit,
     CommandCloseStream,
     CommandDelOnion,
     CommandDropGuards,
@@ -54,6 +55,7 @@ from .reply import (
     ReplyAttachStream,
     ReplyAuthChallenge,
     ReplyAuthenticate,
+    ReplyCloseCircuit,
     ReplyCloseStream,
     ReplyDelOnion,
     ReplyDropGuards,
@@ -694,6 +696,29 @@ class Controller:
         message = await self.request(command)
         self._authenticated = message.is_success
         return ReplyAuthenticate.from_message(message)
+
+    async def close_circuit(
+        self,
+        circuit: int,
+        *,
+        if_unused: bool = False,
+    ) -> ReplyCloseCircuit:
+        """
+        Tell the server to close the specified circuit.
+
+        Args:
+            circuit: The circuit identifier to close.
+
+        Keyword Args:
+            if_unused: Close the circuit only if it is unused.
+
+        Returns:
+            A simple reply where only the status is relevant.
+
+        """
+        command = CommandCloseCircuit(circuit=circuit, if_unused=if_unused)
+        message = await self.request(command)
+        return ReplyCloseCircuit.from_message(message)
 
     async def close_stream(self, stream: int, reason: CloseStreamReason) -> ReplyCloseStream:
         """
