@@ -148,6 +148,7 @@ class CommandWord(StrEnum):
     #: Tells the server to change the exit address on the specified stream.
     #:
     #: See Also:
+    #:     - Controller method: :meth:`.Controller.redirect_stream`
     #:     - Command implementation: :class:`CommandRedirectStream`
     #:     - Reply implementation: :class:`.ReplyRedirectStream`
     REDIRECTSTREAM = 'REDIRECTSTREAM'

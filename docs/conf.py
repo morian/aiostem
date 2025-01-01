@@ -116,6 +116,7 @@ _reftype_fixmap = {
     'aiostem.controller.EventCallbackType': 'data',
     'aiostem.reply._ReplyMapDefault': 'data',
     'aiostem.types.AnyHost': 'data',
+    'aiostem.types.AnyPort': 'data',
     'aiostem.types.HiddenServiceAddress': 'data',
     'aiostem.utils.argument.Argument': 'data',
     'aiostem.utils.argument.KeyTypes': 'data',

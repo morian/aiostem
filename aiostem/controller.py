@@ -29,6 +29,7 @@ from .command import (
     CommandOnionClientAuthView,
     CommandProtocolInfo,
     CommandQuit,
+    CommandRedirectStream,
     CommandResetConf,
     CommandResolve,
     CommandSaveConf,
@@ -66,6 +67,7 @@ from .reply import (
     ReplyOnionClientAuthView,
     ReplyProtocolInfo,
     ReplyQuit,
+    ReplyRedirectStream,
     ReplyResetConf,
     ReplyResolve,
     ReplySaveConf,
@@ -697,7 +699,7 @@ class Controller:
         Args:
             address: The hidden service address to delete.
 
-        Returns:
+        Returnse
             A simple del_onion reply where only the status is relevant.
 
         """
@@ -986,6 +988,38 @@ class Controller:
             message = await self.request(command)
             self._protoinfo = ReplyProtocolInfo.from_message(message)
         return self._protoinfo
+
+    async def redirect_stream(
+        self,
+        stream: int,
+        address: AnyHost,
+        *,
+        port: int | None = None,
+    ) -> ReplyRedirectStream:
+        """
+        Tell the server to change the exit address on the specified stream.
+
+        Args:
+            stream: The stream identifier to redirect.
+            address: Destination address to redirect it to.
+
+        Keyword Args:
+            port: Optional port to redirect the stream to.
+
+        Returns:
+            A simple reply where only the status is relevant.
+
+        """
+        adapter = CommandRedirectStream.adapter()
+        command = adapter.validate_python(
+            {
+                'stream': stream,
+                'address': address,
+                'port': port,
+            },
+        )
+        message = await self.request(command)
+        return ReplyRedirectStream.from_message(message)
 
     async def reset_conf(
         self,

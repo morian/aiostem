@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import secrets
+from ipaddress import IPv4Address
 from functools import partial
 
 import pytest
@@ -156,6 +157,12 @@ class TestController:
     async def test_cmd_attach_stream(self, controller):
         reply = await controller.attach_stream(0, 0)
         assert reply.is_error is True
+        assert reply.status == 552
+
+    async def test_cmd_redirect_stream(self, controller):
+        reply = await controller.redirect_stream(0, IPv4Address('127.0.0.1'))
+        assert reply.is_error is True
+        assert reply.status == 552
 
     async def test_cmd_get_info(self, controller):
         info = await controller.get_info('version')
