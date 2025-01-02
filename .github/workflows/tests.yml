@@ -39,7 +39,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run the Tor service
-        run: docker-compose -f tests/compose.yml up --detach --wait
+        run: docker compose -f tests/compose.yml up --detach --wait
 
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
