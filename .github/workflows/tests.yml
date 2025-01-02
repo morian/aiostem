@@ -30,11 +30,12 @@ jobs:
       AIOSTEM_PASS: aiostem
 
     services:
-      image: 'docker.io/morian42/tor-client:0.4.8.13'
-      ports:
-        - '9051:9051'
-      volumes:
-        - ./tests/control-hash.conf:/etc/tor/torrc.d/00-control-hash.conf
+      tor-client:
+        image: 'docker.io/morian42/tor-client:0.4.8.13'
+        ports:
+          - '9051:9051'
+        volumes:
+          - './tests/control-hash.conf:/etc/tor/torrc.d/00-control-hash.conf'
 
     strategy:
       fail-fast: false
