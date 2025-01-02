@@ -125,6 +125,6 @@ async def controller_unauth(controller_raw):
 
 @pytest_asyncio.fixture()
 async def controller(controller_unauth):
-    password = os.environ.get('AIOSTEM_PASS', 'onionfarm')
+    password = os.environ.get('AIOSTEM_PASS', 'aiostem')
     await controller_unauth.authenticate(password)
     return controller_unauth
