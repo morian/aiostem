@@ -1,0 +1,15 @@
+---
+services:
+  tor-client:
+    image: "docker.io/morian42/tor-client:0.4.8.13"
+    ports:
+      - "9050:9050"
+      - "9051:9051"
+    command: [
+      'tor',
+      '-f',
+      '/etc/tor/torrc',
+      'HashedControlPassword',
+      '16:163184F7911BFBE760F8E71F6B13522B768BE174591BA285B3373FBC07'
+    ]
+    restart: unless-stopped
