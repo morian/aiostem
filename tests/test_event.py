@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from aiostem.event import (
     EventDisconnect,
+    EventTbEmpty,
     EventHsDesc,
     EventHsDescContent,
     EventSignal,
@@ -54,6 +55,28 @@ class TestEvents:
         assert isinstance(event, EventUnknown)
         assert event.message == message
         assert event.TYPE is None
+
+    async def test_tb_empty_global(self):
+        line = '650 TB_EMPTY GLOBAL READ=93 WRITTEN=92 LAST=100'
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventTbEmpty)
+        assert event.bucket == 'GLOBAL'
+        assert event.conn_id is None
+        assert event.last.microseconds == 100000
+        assert event.read.microseconds == 93000
+        assert event.written.microseconds == 92000
+
+    async def test_tb_empty_orconn(self):
+        line = '650 TB_EMPTY ORCONN ID=16 READ=0 WRITTEN=0 LAST=100'
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventTbEmpty)
+        assert event.bucket == 'ORCONN'
+        assert event.conn_id == 16
+        assert event.last.microseconds == 100000
+        assert event.read.microseconds == 0
+        assert event.written.microseconds == 0
 
     async def test_hs_desc_minimal(self):
         line = (

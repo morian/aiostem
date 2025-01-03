@@ -126,6 +126,14 @@ Pluggable transport events
    :members:
 
 
+Misc. events
+------------
+
+.. autoclass:: EventTbEmpty
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
+
 Helpers
 -------
 

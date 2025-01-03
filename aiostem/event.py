@@ -194,6 +194,9 @@ class EventWord(StrEnum):
     CELL_STATS = 'CELL_STATS'
 
     #: Token buckets refilled.
+    #:
+    #: See Also:
+    #:     :class:`EventTbEmpty`
     TB_EMPTY = 'TB_EMPTY'
 
     #: HiddenService descriptors.
@@ -387,6 +390,48 @@ class EventSignal(EventSimple):
 
     #: The signal received by Tor.
     signal: Signal
+
+
+@dataclass(kw_only=True, slots=True)
+class EventTbEmpty(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.TB_EMPTY` event.
+
+    Important:
+        These events are only generated if TestingTorNetwork is set.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#TB_EMPTY
+
+    """
+
+    SYNTAX = ReplySyntax(
+        args_min=2,
+        args_map=(None, 'bucket'),
+        kwargs_map={
+            'ID': 'conn_id',
+            'LAST': 'last',
+            'READ': 'read',
+            'WRITTEN': 'written',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE,
+    )
+    TYPE = EventWord.TB_EMPTY
+
+    #: Name of the refilled bucket that was previously empty.
+    bucket: Literal['GLOBAL', 'RELAY', 'ORCONN']
+
+    #: Connection ID, only included when :attr:`bucket` is ``ORCONN``.
+    conn_id: int | None = None
+
+    #: Duration since the last refill.
+    last: TimedeltaMilliseconds
+
+    #: Duration that the read bucket was empty since the last refill.
+    read: TimedeltaMilliseconds
+
+    #: Duration that the write bucket was empty since the last refill.
+    written: TimedeltaMilliseconds
 
 
 @dataclass(kw_only=True, slots=True)
@@ -986,6 +1031,7 @@ _EVENT_MAP = {
     'ADDRMAP': EventAddrMap,
     'BUILDTIMEOUT_SET': EventBuildTimeoutSet,
     'DISCONNECT': EventDisconnect,
+    'TB_EMPTY': EventTbEmpty,
     'HS_DESC': EventHsDesc,
     'HS_DESC_CONTENT': EventHsDescContent,
     'NETWORK_LIVENESS': EventNetworkLiveness,
