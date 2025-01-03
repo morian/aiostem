@@ -139,9 +139,6 @@ ogp_site_url = os.environ.get(
     'https://aiostem.readthedocs.io/en/latest/',
 )
 
-# Define the canonical URL if you are using a custom domain on ReadTheDocs.
-html_baseurl = os.environ.get('READTHEDOCS_CANONICAL_URL', '')
-
 # Tell Jinja2 templates the build is running on Read the Docs
 if os.environ.get('READTHEDOCS') == 'True':
     if 'html_context' not in globals():
@@ -227,7 +224,7 @@ html_theme_options = {
         'color-brand-primary': '#ffd43bcc',  # yellow from logo, more muted than content
         'color-brand-content': '#ffd43bd9',  # yellow from logo, transparent like text
     },
-    'sidebar_hide_name': False,
+    'sidebar_hide_name': True,
     'top_of_page_buttons': ['view'],
 }
 
@@ -237,9 +234,14 @@ html_theme_options = {
 html_static_path = ['_static']
 html_css_files = ['css/custom.css']
 html_copy_source = False
+html_favicon = '_static/favicon.png'
+html_logo = '_static/aiostem.png'
 html_show_sourcelink = True
 html_show_sphinx = False
-html_title = 'AIOSTEM'
+html_title = 'AioStem'
+
+# Define the canonical URL if you are using a custom domain on ReadTheDocs.
+html_baseurl = os.environ.get('READTHEDOCS_CANONICAL_URL', '')
 
 # See https://github.com/sphinx-doc/sphinx/issues/12300
 suppress_warnings = ['config.cache']
