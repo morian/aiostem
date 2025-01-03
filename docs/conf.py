@@ -133,7 +133,8 @@ _reftype_fixmap = {
     'typing.Self': 'obj',
 }
 
-# OpenGraph
+# OpenGraph URL and image.
+ogp_image = '_static/aiostem.png'
 ogp_site_url = os.environ.get(
     'READTHEDOCS_CANONICAL_URL',
     'https://aiostem.readthedocs.io/en/latest/',
