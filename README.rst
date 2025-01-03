@@ -1,6 +1,15 @@
 AioStem
 =======
 
+|coverage| |docs|
+
+.. |coverage| image:: https://codecov.io/github/morian/aiostem/graph/badge.svg
+   :target: https://app.codecov.io/github/morian/aiostem
+
+.. |docs| image:: https://img.shields.io/readthedocs/aiostem.svg
+   :target: https://aiostem.readthedocs.io/en/latest/
+
+
 ``aiostem`` is an `asyncio`_ python library that provides a controller to connect
 and interact with the Tor control port. It therefore acts as an alternative to the
 community-maintained `stem`_ controller.
