@@ -16,11 +16,27 @@ Common classes
    :undoc-members:
    :members:
 
+.. autoclass:: CircuitBuildFlags
+   :undoc-members:
+   :members:
+
+.. autoclass:: CircuitEvent
+   :undoc-members:
+   :members:
+
+.. autoclass:: CircuitHiddenServiceState
+   :undoc-members:
+   :members:
+
 .. autoclass:: CircuitPurpose
    :undoc-members:
    :members:
 
 .. autoclass:: CloseStreamReason
+   :undoc-members:
+   :members:
+
+.. autoclass:: DescriptorPurpose
    :undoc-members:
    :members:
 

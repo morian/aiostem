@@ -51,6 +51,7 @@ from aiostem.exceptions import CommandError
 from aiostem.structures import (
     CircuitPurpose,
     CloseStreamReason,
+    DescriptorPurpose,
     HsDescAuthCookie,
     HsDescAuthTypeInt,
     HsDescClientAuthV2,
@@ -199,13 +200,13 @@ class TestCommands:
             '12345 '
             '$B34A4AC3892E41C58709D9C51B3648620A7D5BFE~Test1,'
             '$7B70BF914770F022E71A26CBF3D9519DC89F2A9A~Test2 '
-            'purpose=general'
+            'purpose=GENERAL'
             '\r\n'
         )
 
     def test_set_circuit_purpose(self):
         cmd = CommandSetCircuitPurpose(circuit=0, purpose=CircuitPurpose.CONTROLLER)
-        assert cmd.serialize() == 'SETCIRCUITPURPOSE 0 purpose=controller\r\n'
+        assert cmd.serialize() == 'SETCIRCUITPURPOSE 0 purpose=CONTROLLER\r\n'
 
     def test_attach_stream(self):
         cmd = CommandAttachStream(circuit=12, stream=2134)
@@ -223,7 +224,7 @@ class TestCommands:
         cmd = CommandPostDescriptor(
             cache=True,
             descriptor='desc',
-            purpose=CircuitPurpose.GENERAL,
+            purpose=DescriptorPurpose.GENERAL,
         )
         assert cmd.serialize() == '+POSTDESCRIPTOR purpose=general cache=yes\r\ndesc\r\n.\r\n'
 

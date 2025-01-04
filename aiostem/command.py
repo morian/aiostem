@@ -4,7 +4,7 @@ import secrets
 from collections.abc import Mapping, MutableMapping, MutableSequence
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Self, Union
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Self, Union
 
 from pydantic import Discriminator, NonNegativeInt, Tag, TypeAdapter
 from pydantic_core import core_schema
@@ -14,6 +14,7 @@ from .exceptions import CommandError
 from .structures import (
     CircuitPurpose,
     CloseStreamReason,
+    DescriptorPurpose,
     Feature,
     HiddenServiceAddress,
     HiddenServiceAddressV3,
@@ -751,7 +752,7 @@ class CommandExtendCircuit(Command):
     ] = field(default_factory=list)
 
     #: Circuit purpose or :obj:`None` to use a default purpose.
-    purpose: CircuitPurpose | None = None
+    purpose: Literal[CircuitPurpose.CONTROLLER, CircuitPurpose.GENERAL] | None = None
 
     def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``EXTENDCIRCUIT`` specific arguments."""
@@ -794,7 +795,7 @@ class CommandSetCircuitPurpose(Command):
     circuit: int
 
     #: Set purpose of the provided circuit.
-    purpose: CircuitPurpose
+    purpose: Literal[CircuitPurpose.CONTROLLER, CircuitPurpose.GENERAL]
 
     def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``SETCIRCUITPURPOSE`` specific arguments."""
@@ -862,10 +863,10 @@ class CommandPostDescriptor(Command):
 
     command: ClassVar[CommandWord] = CommandWord.POSTDESCRIPTOR
 
-    #: If specified must be :attr:`~.CircuitPurpose.GENERAL`,
-    #: :attr:`~.CircuitPurpose.CONTROLLER`, :attr:`~.CircuitPurpose.BRIDGE`,
-    #: default is :attr:`~.CircuitPurpose.GENERAL`.
-    purpose: CircuitPurpose | None = None
+    #: If specified must be :attr:`~.DescriptorPurpose.GENERAL`,
+    #: :attr:`~.DescriptorPurpose.CONTROLLER`, :attr:`~.DescriptorPurpose.BRIDGE`,
+    #: default is :attr:`~.DescriptorPurpose.GENERAL`.
+    purpose: DescriptorPurpose | None = None
 
     #: Cache the provided descriptor internally.
     cache: BoolYesNo | None = None

@@ -819,7 +819,7 @@ class Controller:
         circuit: int,
         servers: Sequence[LongServerName | str],
         *,
-        purpose: CircuitPurpose | None = None,
+        purpose: CircuitPurpose | str | None = None,
     ) -> ReplyExtendCircuit:
         """
         Extend the provided circuit to the provided servers.
@@ -1272,7 +1272,7 @@ class Controller:
     async def set_circuit_purpose(
         self,
         circuit: int,
-        purpose: CircuitPurpose,
+        purpose: CircuitPurpose | str,
     ) -> ReplySetCircuitPurpose:
         """
         Change the circuit purpose.
@@ -1285,7 +1285,13 @@ class Controller:
             A simple reply with only a status.
 
         """
-        command = CommandSetCircuitPurpose(circuit=circuit, purpose=purpose)
+        adapter = CommandSetCircuitPurpose.adapter()
+        command = adapter.validate_python(
+            {
+                'circuit': circuit,
+                'purpose': purpose,
+            },
+        )
         message = await self.request(command)
         return ReplySetCircuitPurpose.from_message(message)
 

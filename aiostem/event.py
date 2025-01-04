@@ -2,15 +2,23 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import (
+    Mapping,
+    Sequence,
+    Set as AbstractSet,
+)
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Annotated, Any, ClassVar, Literal, Self, TypeAlias, Union
 
-from pydantic import BeforeValidator, Discriminator, NonNegativeInt, Tag, TypeAdapter
+from pydantic import BeforeValidator, Discriminator, Field, NonNegativeInt, Tag, TypeAdapter
 
 from .exceptions import MessageError, ReplySyntaxError
 from .structures import (
+    CircuitBuildFlags,
+    CircuitEvent,
+    CircuitHiddenServiceState,
+    CircuitPurpose,
     HiddenServiceAddress,
     HsDescAction,
     HsDescAuthTypeStr,
@@ -184,6 +192,9 @@ class EventWord(StrEnum):
     CONF_CHANGED = 'CONF_CHANGED'
 
     #: Circuit status changed slightly.
+    #:
+    #: See Also:
+    #:     :class:`EventCircMinor`
     CIRC_MINOR = 'CIRC_MINOR'
 
     #: Pluggable transport launched.
@@ -407,39 +418,6 @@ class EventSignal(EventSimple):
 
 
 @dataclass(kw_only=True, slots=True)
-class EventConnBW(EventSimple):
-    """
-    Structure for a :attr:`~EventWord.CONN_BW` event.
-
-    See Also:
-        https://spec.torproject.org/control-spec/replies.html#CONN_BW
-
-    """
-
-    SYNTAX = ReplySyntax(
-        args_min=1,
-        args_map=(None,),
-        kwargs_map={
-            'ID': 'conn_id',
-            'TYPE': 'conn_type',
-            'READ': 'read',
-            'WRITTEN': 'written',
-        },
-        flags=ReplySyntaxFlag.KW_ENABLE,
-    )
-    TYPE = EventWord.CONN_BW
-
-    #: Identifier for this connection.
-    conn_id: int
-    #: Connection type, typically ``OR`` / ``DIR`` / ``EXIT``.
-    conn_type: str
-    #: Number of bytes read by Tor since the last event on this connection.
-    read: int
-    #: Number of bytes written by Tor since the last event on this connection.
-    written: int
-
-
-@dataclass(kw_only=True, slots=True)
 class EventCircBW(EventSimple):
     """
     Structure for a :attr:`~EventWord.CIRC_BW` event.
@@ -495,6 +473,66 @@ class EventCircBW(EventSimple):
     rtt: TimedeltaMilliseconds | None = None
     #: Minimum RTT value of the circuit.
     rtt_min: TimedeltaMilliseconds | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class EventCircMinor(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.CIRC_MINOR` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#CIRC_MINOR
+
+    """
+
+    SYNTAX = ReplySyntax(
+        args_min=3,
+        args_map=(None, 'circuit', 'event', 'path'),
+        kwargs_map={
+            'BUILD_FLAGS': 'build_flags',
+            'HS_STATE': 'hs_state',
+            'PURPOSE': 'purpose',
+            'REND_QUERY': 'rend_query',
+            'TIME_CREATED': 'time_created',
+            'OLD_HS_STATE': 'old_hs_state',
+            'OLD_PURPOSE': 'old_purpose',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE,
+    )
+    TYPE = EventWord.CIRC_MINOR
+
+    #: Circuit identifier.
+    circuit: int
+    #: Circuit event, either ``PURPOSE_CHANGED`` or ``CANNIBALIZED``.
+    event: Annotated[CircuitEvent | str, Field(union_mode='left_to_right')]
+    #: Circuit path, when provided.
+    path: Annotated[Sequence[LongServerName], TrBeforeStringSplit()] | None = None
+
+    #: Circuit build flags.
+    build_flags: (
+        Annotated[
+            AbstractSet[
+                Annotated[
+                    CircuitBuildFlags | str,
+                    Field(union_mode='left_to_right'),
+                ],
+            ],
+            TrBeforeStringSplit(),
+        ]
+        | None
+    ) = None
+    # Current hidden service state when applicable.
+    hs_state: CircuitHiddenServiceState | None = None
+    #: When this circuit was created.
+    time_created: DatetimeUTC | None = None
+    #: Current circuit purpose.
+    purpose: CircuitPurpose | None = None
+    #: Onion address related to this circuit.
+    rend_query: HiddenServiceAddress | None = None
+    #: Previous hidden service state when applicable.
+    old_hs_state: CircuitHiddenServiceState | None = None
+    #: Previous circuit purpose.
+    old_purpose: CircuitPurpose | None = None
 
 
 #: Describes a list of cell statistics for :class:`EventCellStats`.
@@ -589,6 +627,39 @@ class EventCellStats(EventSimple):
     outbound_removed: CellsByType | None = None
     #: Total waiting times in milliseconds of all processed cells by cell type.
     outbound_time: MsecByType | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class EventConnBW(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.CONN_BW` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#CONN_BW
+
+    """
+
+    SYNTAX = ReplySyntax(
+        args_min=1,
+        args_map=(None,),
+        kwargs_map={
+            'ID': 'conn_id',
+            'TYPE': 'conn_type',
+            'READ': 'read',
+            'WRITTEN': 'written',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE,
+    )
+    TYPE = EventWord.CONN_BW
+
+    #: Identifier for this connection.
+    conn_id: int
+    #: Connection type, typically ``OR`` / ``DIR`` / ``EXIT``.
+    conn_type: str
+    #: Number of bytes read by Tor since the last event on this connection.
+    read: int
+    #: Number of bytes written by Tor since the last event on this connection.
+    written: int
 
 
 @dataclass(kw_only=True, slots=True)
@@ -1230,10 +1301,10 @@ _EVENT_MAP = {
     'ADDRMAP': EventAddrMap,
     'BUILDTIMEOUT_SET': EventBuildTimeoutSet,
     'DISCONNECT': EventDisconnect,
-    'CONN_BW': EventConnBW,
-    'CIRC_BW': EventCircBW,
     'CELL_STATS': EventCellStats,
-    'TB_EMPTY': EventTbEmpty,
+    'CIRC_MINOR': EventCircMinor,
+    'CIRC_BW': EventCircBW,
+    'CONN_BW': EventConnBW,
     'HS_DESC': EventHsDesc,
     'HS_DESC_CONTENT': EventHsDescContent,
     'NETWORK_LIVENESS': EventNetworkLiveness,
@@ -1242,13 +1313,14 @@ _EVENT_MAP = {
     'NOTICE': EventLogNotice,
     'WARN': EventLogWarn,
     'ERR': EventLogErr,
+    'PT_LOG': EventPtLog,
+    'PT_STATUS': EventPtStatus,
     'SIGNAL': EventSignal,
     'STATUS_GENERAL': EventStatusGeneral,
     'STATUS_CLIENT': EventStatusClient,
     'STATUS_SERVER': EventStatusServer,
+    'TB_EMPTY': EventTbEmpty,
     'TRANSPORT_LAUNCHED': EventTransportLaunched,
-    'PT_LOG': EventPtLog,
-    'PT_STATUS': EventPtStatus,
 }  # type: Mapping[str, type[Event]]
 
 

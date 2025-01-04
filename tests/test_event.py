@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from aiostem.event import (
     EventCellStats,
     EventCircBW,
+    EventCircMinor,
     EventConnBW,
     EventDisconnect,
     EventHsDesc,
@@ -23,6 +24,7 @@ from aiostem.event import (
 )
 from aiostem.exceptions import MessageError, ReplySyntaxError
 from aiostem.structures import (
+    CircuitEvent,
     HsDescAction,
     HsDescFailReason,
     LogSeverity,
@@ -58,6 +60,22 @@ class TestEvents:
         assert isinstance(event, EventUnknown)
         assert event.message == message
         assert event.TYPE is None
+
+    async def test_circ_minor(self):
+        line = (
+            '650 CIRC_MINOR 261373 PURPOSE_CHANGED '
+            '$E6FA2613FA6325F83FAFF643C315DA725BC372B9~NowhereDOTmoe,'
+            '$9E42073401F6B4046983C9AA027DDB1538587B93~ellenatfims,'
+            '$76BACC90CBA71714918554156CAABE955E7A940F~Quetzalcoatl '
+            'BUILD_FLAGS=NEED_CAPACITY,NEED_UPTIME PURPOSE=CONFLUX_LINKED '
+            'TIME_CREATED=2025-01-04T17:52:34.407938 OLD_PURPOSE=CONFLUX_UNLINKED'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventCircMinor)
+        assert isinstance(event.time_created, datetime)
+        assert event.event == CircuitEvent.PURPOSE_CHANGED
+        assert len(event.path) == 3
 
     async def test_conn_bw(self):
         line = '650 CONN_BW ID=123 TYPE=EXIT READ=234 WRITTEN=345'

@@ -70,12 +70,78 @@ class AuthMethod(StrEnum):
     SAFECOOKIE = 'SAFECOOKIE'
 
 
+class CircuitBuildFlags(StrEnum):
+    """Known flags when building a new circuit."""
+
+    #: One-hop circuit, used for tunneled directory conns.
+    ONEHOP_TUNNEL = 'ONEHOP_TUNNEL'
+    #: Internal circuit, not to be used for exiting streams.
+    IS_INTERNAL = 'IS_INTERNAL'
+    #: This circuit must use only high-capacity nodes.
+    NEED_CAPACITY = 'NEED_CAPACITY'
+    #: This circuit must use only high-uptime nodes.
+    NEED_UPTIME = 'NEED_UPTIME'
+
+
+class CircuitEvent(StrEnum):
+    """List of existing circuit events."""
+
+    #: Circuit cannibalized.
+    CANNIBALIZED = 'CANNIBALIZED'
+    #: Circuit purpose or HS-related state changed.
+    PURPOSE_CHANGED = 'PURPOSE_CHANGED'
+
+
+class CircuitHiddenServiceState(StrEnum):
+    """State of a hidden service circuit."""
+
+    HSCI_CONNECTING = 'HSCI_CONNECTING'
+    HSCI_INTRO_SENT = 'HSCI_INTRO_SENT'
+    HSCI_DONE = 'HSCI_DONE'
+    HSCR_CONNECTING = 'HSCR_CONNECTING'
+    HSCR_ESTABLISHED_IDLE = 'HSCR_ESTABLISHED_IDLE'
+    HSCR_ESTABLISHED_WAITING = 'HSCR_ESTABLISHED_WAITING'
+    HSCR_JOINED = 'HSCR_JOINED'
+    HSSI_CONNECTING = 'HSSI_CONNECTING'
+    HSSI_ESTABLISHED = 'HSSI_ESTABLISHED'
+    HSSR_CONNECTING = 'HSSR_CONNECTING'
+    HSSR_JOINED = 'HSSR_JOINED'
+
+
 class CircuitPurpose(StrEnum):
     """All possible purposes for circuits."""
 
-    CONTROLLER = 'controller'
-    GENERAL = 'general'
-    BRIDGE = 'bridge'
+    #: Circuit kept open for padding.
+    CIRCUIT_PADDING = 'CIRCUIT_PADDING'
+    #: Linked conflux circuit.
+    CONFLUX_LINKED = 'CONFLUX_LINKED'
+    #: Unlinked conflux circuit.
+    CONFLUX_UNLINKED = 'CONFLUX_UNLINKED'
+    #: Circuit made by controller.
+    CONTROLLER = 'CONTROLLER'
+    #: General-purpose client.
+    GENERAL = 'GENERAL'
+    #: Hidden service client, connection to an introduction point.
+    HS_CLIENT_INTRO = 'HS_CLIENT_INTRO'
+    #: Hidden service client, fetching HS descriptor.
+    HS_CLIENT_HSDIR = 'HS_CLIENT_HSDIR'
+    #: Hidden service client, connection to a rendezvous point.
+    HS_CLIENT_REND = 'HS_CLIENT_REND'
+    #: Hidden service, introduction point.
+    HS_SERVICE_INTRO = 'HS_SERVICE_INTRO'
+    #: Hidden service, uploading HS descriptor.
+    HS_SERVICE_HSDIR = 'HS_SERVICE_HSDIR'
+    #: Hidden service, connection as a rendezvous point.
+    HS_SERVICE_REND = 'HS_SERVICE_REND'
+    #: Hidden service, pre-built vanguard circuit.
+    HS_VANGUARDS = 'HS_VANGUARDS'
+    #: Measuring circuit timeout.
+    MEASURE_TIMEOUT = 'MEASURE_TIMEOUT'
+    #: Path-bias testing circuit.
+    PATH_BIAS_TESTING = 'PATH_BIAS_TESTING'
+    SERVER = 'SERVER'
+    #: Testing circuit.
+    TESTING = 'TESTING'
 
 
 @dataclass(kw_only=True, slots=True)
@@ -132,6 +198,14 @@ class CloseStreamReason(IntEnum):
     TORPROTOCOL = 13
     #: Client sent ``RELAY_BEGIN_DIR`` to a non-directory relay.
     NOTDIRECTORY = 14
+
+
+class DescriptorPurpose(StrEnum):
+    """All possible purposes for a descriptor."""
+
+    CONTROLLER = 'controller'
+    GENERAL = 'general'
+    BRIDGE = 'bridge'
 
 
 class Feature(StrEnum):
