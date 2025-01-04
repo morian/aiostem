@@ -11,6 +11,7 @@ from aiostem.event import (
     EventCellStats,
     EventCircBW,
     EventCircMinor,
+    EventConfChanged,
     EventConnBW,
     EventDisconnect,
     EventHsDesc,
@@ -60,6 +61,20 @@ class TestEvents:
         assert isinstance(event, EventUnknown)
         assert event.message == message
         assert event.TYPE is None
+
+    async def test_conf_changed(self):
+        lines = [
+            '650-CONF_CHANGED',
+            '650-SocksPort=unix:/run/tor/socks WorldWritable ExtendedErrors RelaxDirModeCheck',
+            '650-SocksPort=0.0.0.0:9050',
+            '650 OK',
+        ]
+        message = await create_message(lines)
+        event = event_from_message(message)
+        assert isinstance(event, EventConfChanged)
+        assert len(event) == 1
+        assert len(event['SocksPort']) == 2
+        assert event['SocksPort'][1] == '0.0.0.0:9050'
 
     async def test_circ_minor(self):
         line = (

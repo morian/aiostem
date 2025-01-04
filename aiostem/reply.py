@@ -60,7 +60,7 @@ class BaseReply(ABC):
     @property
     def is_error(self) -> bool:
         """Whether our status is an error status (greater or equal to 400)."""
-        return bool(self.status >= 400)
+        return bool(self.status >= 400 and self.status != 650)
 
     @property
     def is_success(self) -> bool:
@@ -133,8 +133,8 @@ ReplyMapType: TypeAlias = Mapping[str, ReplyMapValueType]
 _ReplyMapDefaultType = TypeVar('_ReplyMapDefaultType')
 
 
-@dataclass(kw_only=True, slots=True)
-class ReplyGetMap(Reply, ReplyMapType):
+@dataclass(kw_only=True)
+class ReplyGetMap(ReplyMapType):
     """
     A base reply class for commands returning maps of values.
 
@@ -144,6 +144,8 @@ class ReplyGetMap(Reply, ReplyMapType):
     These are replies for commands such as:
         - :class:`~.CommandGetConf`
         - :class:`~.CommandGetInfo`
+
+    This class is also used for :class:`.EventConfChanged`.
 
     """
 
@@ -220,7 +222,7 @@ class ReplyResetConf(ReplySimple):
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyGetConf(ReplyGetMap):
+class ReplyGetConf(Reply, ReplyGetMap):
     """A reply for a :attr:`~.CommandWord.GETCONF` command."""
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
@@ -327,7 +329,7 @@ class ReplyMapAddress(Reply):
 
 
 @dataclass(kw_only=True, slots=True)
-class ReplyGetInfo(ReplyGetMap):
+class ReplyGetInfo(ReplyGetMap, Reply):
     """A reply for a :attr:`~.CommandWord.GETINFO` command."""
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(

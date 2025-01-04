@@ -9,11 +9,12 @@ from collections.abc import (
 )
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Annotated, Any, ClassVar, Literal, Self, TypeAlias, Union
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Self, TypeAlias, Union
 
 from pydantic import BeforeValidator, Discriminator, Field, NonNegativeInt, Tag, TypeAdapter
 
 from .exceptions import MessageError, ReplySyntaxError
+from .reply import ReplyGetMap
 from .structures import (
     CircuitBuildFlags,
     CircuitEvent,
@@ -69,6 +70,10 @@ from .utils import (
     TrBeforeStringSplit,
     TrCast,
 )
+
+if TYPE_CHECKING:
+    # The following line is needed so sphinx can get EventConfChanged right.
+    from .reply import ReplyMapType  # noqa: F401
 
 logger = logging.getLogger(__package__)
 
@@ -189,6 +194,9 @@ class EventWord(StrEnum):
     SIGNAL = 'SIGNAL'
 
     #: Configuration changed.
+    #:
+    #: See Also:
+    #:     :class:`EventConfChanged`
     CONF_CHANGED = 'CONF_CHANGED'
 
     #: Circuit status changed slightly.
@@ -473,6 +481,37 @@ class EventCircBW(EventSimple):
     rtt: TimedeltaMilliseconds | None = None
     #: Minimum RTT value of the circuit.
     rtt_min: TimedeltaMilliseconds | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class EventConfChanged(Event, ReplyGetMap):
+    """
+    Structure for a :attr:`~EventWord.CONF_CHANGED` event.
+
+    Hint:
+        This class behaves somehow like :class:`.ReplyGetConf`.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#CONF_CHANGED
+
+    """
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        flags=(
+            ReplySyntaxFlag.KW_ENABLE
+            | ReplySyntaxFlag.KW_OMIT_VALS
+            | ReplySyntaxFlag.KW_EXTRA
+            | ReplySyntaxFlag.KW_RAW
+        )
+    )
+
+    TYPE = EventWord.CONF_CHANGED
+
+    @classmethod
+    def from_message(cls, message: Message) -> Self:
+        """Build an event dataclass from a received message."""
+        result = {'data': cls._key_value_extract(message.items[1:])}
+        return cls.adapter().validate_python(result)
 
 
 @dataclass(kw_only=True, slots=True)
@@ -1301,6 +1340,7 @@ _EVENT_MAP = {
     'ADDRMAP': EventAddrMap,
     'BUILDTIMEOUT_SET': EventBuildTimeoutSet,
     'DISCONNECT': EventDisconnect,
+    'CONF_CHANGED': EventConfChanged,
     'CELL_STATS': EventCellStats,
     'CIRC_MINOR': EventCircMinor,
     'CIRC_BW': EventCircBW,
