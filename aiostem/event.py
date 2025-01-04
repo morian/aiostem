@@ -20,6 +20,7 @@ from .structures import (
     CircuitEvent,
     CircuitHiddenServiceState,
     CircuitPurpose,
+    GuardEventStatus,
     HiddenServiceAddress,
     HsDescAction,
     HsDescAuthTypeStr,
@@ -167,6 +168,9 @@ class EventWord(StrEnum):
     STATUS_SERVER = 'STATUS_SERVER'
 
     #: Our set of guard nodes has changed.
+    #:
+    #: See Also:
+    #:     :class:`EventGuard`
     GUARD = 'GUARD'
 
     #: Network status has changed.
@@ -415,6 +419,31 @@ GenericStatsMap: TypeAlias = Annotated[
         ]
     ),
 ]
+
+
+@dataclass(kw_only=True, slots=True)
+class EventGuard(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.GUARD` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#GUARD
+
+    """
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=4,
+        args_map=(None, 'kind', 'name', 'status'),
+    )
+    TYPE = EventWord.GUARD
+
+    #: Type of guard node, should be ``ENTRY``.
+    kind: str
+    #: Full server name of the guard node.
+    name: LongServerName
+    #: Status of the guard in our event.
+    status: Annotated[GuardEventStatus | str, Field(union_mode='left_to_right')]
+
 
 @dataclass(kw_only=True, slots=True)
 class EventClientsSeen(EventSimple):
@@ -1483,6 +1512,7 @@ _EVENT_MAP = {
     'CIRC_MINOR': EventCircMinor,
     'CIRC_BW': EventCircBW,
     'CONN_BW': EventConnBW,
+    'GUARD': EventGuard,
     'HS_DESC': EventHsDesc,
     'HS_DESC_CONTENT': EventHsDescContent,
     'NETWORK_LIVENESS': EventNetworkLiveness,

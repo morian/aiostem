@@ -112,6 +112,10 @@ Log events
 Status events
 -------------
 
+.. autoclass:: EventGuard
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
 .. autoclass:: EventNetworkLiveness
    :exclude-members: SYNTAX, __init__, from_message
    :members:

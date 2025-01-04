@@ -217,6 +217,41 @@ class Feature(StrEnum):
     VERBOSE_NAMES = 'VERBOSE_NAMES'
 
 
+class GuardEventStatus(StrEnum):
+    """Possible statuses for a :attr:`~EventWord.GUARD` event."""
+
+    #: This node was not previously used as a guard.
+    #:
+    #: Now we have picked it as one.
+    NEW = 'NEW'
+
+    #: This node is one we previously picked as a guard.
+    #:
+    #: We no longer consider it to be a member of our guard list.
+    DROPPED = 'DROPPED'
+
+    #: The guard now seems to be reachable.
+    UP = 'UP'
+
+    #: The guard now seems to be unreachable.
+    DOWN = 'DOWN'
+
+    #: This node is now unusable as a guard.
+    #:
+    #: Because of flags set in the consensus and/or values in the configuration.
+    BAD = 'BAD'
+
+    #: This node is removed from the layer2 guard set.
+    #:
+    #: This layer2 guard has expired or got removed from the consensus.
+    BAD_L2 = 'BAD_L2'
+
+    #: This node is now usable as a guard.
+    #:
+    #: Because of flags set in the consensus and/or values in the configuration.
+    GOOD = 'GOOD'
+
+
 class HiddenServiceVersion(IntEnum):
     """Any valid onion hidden service version."""
 

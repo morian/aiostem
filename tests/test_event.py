@@ -15,6 +15,7 @@ from aiostem.event import (
     EventConfChanged,
     EventConnBW,
     EventDisconnect,
+    EventGuard,
     EventHsDesc,
     EventHsDescContent,
     EventNetworkStatus,
@@ -65,6 +66,18 @@ class TestEvents:
         assert isinstance(event, EventUnknown)
         assert event.message == message
         assert event.TYPE is None
+
+    async def test_guard(self):
+        line = (
+            '650 GUARD ENTRY '
+            '$669E9D3CF2C1BF3A9E7A0B7FD89F8B4B5E1EF516~PalestineWillBeFree NEW'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventGuard)
+        assert event.name.nickname == 'PalestineWillBeFree'
+        assert event.kind == 'ENTRY'
+        assert event.status == 'NEW'
 
     async def test_clients_seen(self):
         line = (

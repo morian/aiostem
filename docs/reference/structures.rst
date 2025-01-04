@@ -44,6 +44,10 @@ Common classes
    :undoc-members:
    :members:
 
+.. autoclass:: GuardEventStatus
+   :undoc-members:
+   :members:
+
 .. autoclass:: LivenessStatus
    :undoc-members:
    :members:
