@@ -6,6 +6,8 @@ on:
       - 'v*'
   workflow_dispatch:
 
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -50,8 +52,7 @@ jobs:
       url: 'https://pypi.org/p/aiostem'
 
     permissions:
-      # For PyPI's trusted publishing.
-      id-token: write
+      id-token: write  # For PyPI's trusted publishing.
 
     steps:
       - name: Download artifacts
