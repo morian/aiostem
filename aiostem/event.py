@@ -196,6 +196,9 @@ class EventWord(StrEnum):
     CONN_BW = 'CONN_BW'
 
     #: Bandwidth used by all streams attached to a circuit.
+    #:
+    #: See Also:
+    #:     :class:`EventCircBW`
     CIRC_BW = 'CIRC_BW'
 
     #: Per-circuit cell stats.
@@ -401,6 +404,64 @@ class EventSignal(EventSimple):
 
     #: The signal received by Tor.
     signal: Signal
+
+
+@dataclass(kw_only=True, slots=True)
+class EventCircBW(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.CIRC_BW` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#CIRC_BW
+
+    """
+
+    SYNTAX = ReplySyntax(
+        args_min=1,
+        args_map=(None,),
+        kwargs_map={
+            'ID': 'circuit',
+            'TIME': 'time',
+            'READ': 'read',
+            'DELIVERED_READ': 'read_delivered',
+            'OVERHEAD_READ': 'read_overhead',
+            'WRITTEN': 'written',
+            'DELIVERED_WRITTEN': 'written_delivered',
+            'OVERHEAD_WRITTEN': 'written_overhead',
+            'SS': 'slow_start',
+            'CWND': 'cwnd',
+            'RTT': 'rtt',
+            'MIN_RTT': 'rtt_min',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE,
+    )
+    TYPE = EventWord.CIRC_BW
+
+    #: Records when Tor created the bandwidth event.
+    time: DatetimeUTC
+
+    #: Number of bytes read on this circuit since the last :attr:`~EventWord.CIRC_BW` event.
+    read: int
+    #: Byte count for incoming delivered relay messages.
+    read_delivered: int
+    #: Overhead of extra unused bytes at the end of read messages.
+    read_overhead: int
+
+    #: Number of bytes written on this circuit since the last :attr:`~EventWord.CIRC_BW` event.
+    written: int
+    #: Byte count for outgoing delivered relay messages.
+    written_delivered: int
+    #: Overhead of extra unused bytes at the end of written messages.
+    written_overhead: int
+
+    #: Provides an indication if the circuit is in slow start or not.
+    slow_start: bool | None = None
+    #: Size of the congestion window in terms of number of cells.
+    cwnd: int | None = None
+    #: The ``N_EWMA`` smoothed current RTT value.
+    rtt: TimedeltaMilliseconds | None = None
+    #: Minimum RTT value of the circuit.
+    rtt_min: TimedeltaMilliseconds | None = None
 
 
 #: Describes a list of cell statistics for :class:`EventCellStats`.
@@ -1136,6 +1197,7 @@ _EVENT_MAP = {
     'ADDRMAP': EventAddrMap,
     'BUILDTIMEOUT_SET': EventBuildTimeoutSet,
     'DISCONNECT': EventDisconnect,
+    'CIRC_BW': EventCircBW,
     'CELL_STATS': EventCellStats,
     'TB_EMPTY': EventTbEmpty,
     'HS_DESC': EventHsDesc,

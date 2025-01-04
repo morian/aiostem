@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from aiostem.event import (
     EventCellStats,
+    EventCircBW,
     EventDisconnect,
     EventHsDesc,
     EventHsDescContent,
@@ -57,6 +58,40 @@ class TestEvents:
         assert event.message == message
         assert event.TYPE is None
 
+    async def test_circ_bw(self):
+        line = (
+            '650 CIRC_BW ID=261239 READ=0 WRITTEN=509 TIME=2025-01-04T17:13:43.979647 '
+            'DELIVERED_READ=0 OVERHEAD_READ=0 DELIVERED_WRITTEN=153 OVERHEAD_WRITTEN=345'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventCircBW)
+        assert isinstance(event.time, datetime)
+        assert event.read == 0
+        assert event.written == 509
+        assert event.written_delivered == 153
+        assert event.written_overhead == 345
+        assert event.slow_start is None
+
+    async def test_cell_stats(self):
+        line = (
+            '650 CELL_STATS ID=14 OutboundQueue=19403 OutboundConn=15 '
+            'OutboundAdded=create_fast:1,relay_early:2 '
+            'OutboundRemoved=create_fast:1,relay_early:2 '
+            'OutboundTime=create_fast:0,relay_early:10'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventCellStats)
+        assert event.circuit == 14
+        assert event.inbound_queue is None
+        assert event.outbound_conn == 15
+        assert event.outbound_queue == 19403
+        assert event.outbound_added['create_fast'] == 1
+        assert event.outbound_added['relay_early'] == 2
+        assert event.outbound_time['create_fast'].microseconds == 0
+        assert event.outbound_time['relay_early'].microseconds == 10000
+
     async def test_tb_empty_global(self):
         line = '650 TB_EMPTY GLOBAL READ=93 WRITTEN=92 LAST=100'
         message = await create_message([line])
@@ -78,25 +113,6 @@ class TestEvents:
         assert event.last.microseconds == 100000
         assert event.read.microseconds == 0
         assert event.written.microseconds == 0
-
-    async def test_cell_stats(self):
-        line = (
-            '650 CELL_STATS ID=14 OutboundQueue=19403 OutboundConn=15 '
-            'OutboundAdded=create_fast:1,relay_early:2 '
-            'OutboundRemoved=create_fast:1,relay_early:2 '
-            'OutboundTime=create_fast:0,relay_early:10'
-        )
-        message = await create_message([line])
-        event = event_from_message(message)
-        assert isinstance(event, EventCellStats)
-        assert event.circuit == 14
-        assert event.inbound_queue is None
-        assert event.outbound_conn == 15
-        assert event.outbound_queue == 19403
-        assert event.outbound_added['create_fast'] == 1
-        assert event.outbound_added['relay_early'] == 2
-        assert event.outbound_time['create_fast'].microseconds == 0
-        assert event.outbound_time['relay_early'].microseconds == 10000
 
     async def test_hs_desc_minimal(self):
         line = (
