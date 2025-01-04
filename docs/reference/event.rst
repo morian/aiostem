@@ -112,6 +112,14 @@ Status events
    :exclude-members: SYNTAX, __init__, from_message
    :members:
 
+.. autoclass:: EventNetworkStatus
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
+.. autoclass:: EventNewConsensus
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
 .. autoclass:: EventStatusGeneral
    :members: TYPE, action, arguments
 

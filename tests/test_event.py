@@ -16,6 +16,8 @@ from aiostem.event import (
     EventDisconnect,
     EventHsDesc,
     EventHsDescContent,
+    EventNetworkStatus,
+    EventNewConsensus,
     EventSignal,
     EventTbEmpty,
     EventUnknown,
@@ -61,6 +63,38 @@ class TestEvents:
         assert isinstance(event, EventUnknown)
         assert event.message == message
         assert event.TYPE is None
+
+    @pytest.mark.parametrize('verb', ('NEWCONSENSUS', 'NS'))
+    async def test_consensus_no_data(self, verb):
+        message = await create_message([f'650 {verb}'])
+        with pytest.raises(ReplySyntaxError, match='has no data attached to it'):
+            event_from_message(message)
+
+    @pytest.mark.parametrize(
+        ('verb', 'cls'),
+        [
+            ('NEWCONSENSUS', EventNewConsensus),
+            ('NS', EventNetworkStatus),
+        ],
+    )
+    async def test_consensus_with_data(self, verb, cls):
+        lines = [
+            f'650+{verb}',
+            'Hello',
+            '.',
+            '650 OK',
+        ]
+        message = await create_message(lines)
+        event = event_from_message(message)
+        assert isinstance(event, cls)
+        assert event.status == 'Hello'
+
+    async def test_conf_changed_empty(self):
+        lines = ['650-CONF_CHANGED', '650 OK']
+        message = await create_message(lines)
+        event = event_from_message(message)
+        assert isinstance(event, EventConfChanged)
+        assert len(event) == 0
 
     async def test_conf_changed(self):
         lines = [

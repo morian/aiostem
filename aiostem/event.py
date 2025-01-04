@@ -170,6 +170,9 @@ class EventWord(StrEnum):
     GUARD = 'GUARD'
 
     #: Network status has changed.
+    #:
+    #: See Also:
+    #:     :class:`EventNetworkStatus`
     NS = 'NS'
 
     #: Bandwidth used on an application stream.
@@ -179,6 +182,9 @@ class EventWord(StrEnum):
     CLIENTS_SEEN = 'CLIENTS_SEEN'
 
     #: New consensus networkstatus has arrived.
+    #:
+    #: See Also:
+    #:     :class:`EventNewConsensus`
     NEWCONSENSUS = 'NEWCONSENSUS'
 
     #: New circuit buildtime has been set.
@@ -362,6 +368,56 @@ class EventAddrMap(EventSimple):
 
 
 @dataclass(kw_only=True, slots=True)
+class EventNetworkStatus(Event):
+    """
+    Structure for a :attr:`~EventWord.NS` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#NS
+
+    """
+
+    TYPE = EventWord.NS
+
+    #: Raw content of the new network status.
+    status: str
+
+    @classmethod
+    def from_message(cls, message: Message) -> Self:
+        """Build an event dataclass from a received message."""
+        if not len(message.items) or not isinstance(message.items[0], MessageData):
+            msg = "Event 'NS' has no data attached to it!"
+            raise ReplySyntaxError(msg)
+
+        return cls.adapter().validate_python({'status': message.items[0].data})
+
+
+@dataclass(kw_only=True, slots=True)
+class EventNewConsensus(Event):
+    """
+    Structure for a :attr:`~EventWord.NEWCONSENSUS` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#NEWCONSENSUS
+
+    """
+
+    TYPE = EventWord.NEWCONSENSUS
+
+    #: Raw content of the received consensus.
+    status: str
+
+    @classmethod
+    def from_message(cls, message: Message) -> Self:
+        """Build an event dataclass from a received message."""
+        if not len(message.items) or not isinstance(message.items[0], MessageData):
+            msg = "Event 'NEWCONSENSUS' has no data attached to it!"
+            raise ReplySyntaxError(msg)
+
+        return cls.adapter().validate_python({'status': message.items[0].data})
+
+
+@dataclass(kw_only=True, slots=True)
 class EventBuildTimeoutSet(EventSimple):
     """
     Structure for a :attr:`~EventWord.BUILDTIMEOUT_SET` event.
@@ -510,7 +566,9 @@ class EventConfChanged(Event, ReplyGetMap):
     @classmethod
     def from_message(cls, message: Message) -> Self:
         """Build an event dataclass from a received message."""
-        result = {'data': cls._key_value_extract(message.items[1:])}
+        result = {}  # type: dict[str, Any]
+        if len(message.items) > 1:
+            result['data'] = cls._key_value_extract(message.items[1:])
         return cls.adapter().validate_python(result)
 
 
@@ -1348,6 +1406,8 @@ _EVENT_MAP = {
     'HS_DESC': EventHsDesc,
     'HS_DESC_CONTENT': EventHsDescContent,
     'NETWORK_LIVENESS': EventNetworkLiveness,
+    'NEWCONSENSUS': EventNewConsensus,
+    'NS': EventNetworkStatus,
     'DEBUG': EventLogDebug,
     'INFO': EventLogInfo,
     'NOTICE': EventLogNotice,
