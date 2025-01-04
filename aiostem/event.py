@@ -407,6 +407,39 @@ class EventSignal(EventSimple):
 
 
 @dataclass(kw_only=True, slots=True)
+class EventConnBW(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.CONN_BW` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#CONN_BW
+
+    """
+
+    SYNTAX = ReplySyntax(
+        args_min=1,
+        args_map=(None,),
+        kwargs_map={
+            'ID': 'conn_id',
+            'TYPE': 'conn_type',
+            'READ': 'read',
+            'WRITTEN': 'written',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE,
+    )
+    TYPE = EventWord.CONN_BW
+
+    #: Identifier for this connection.
+    conn_id: int
+    #: Connection type, typically ``OR`` / ``DIR`` / ``EXIT``.
+    conn_type: str
+    #: Number of bytes read by Tor since the last event on this connection.
+    read: int
+    #: Number of bytes written by Tor since the last event on this connection.
+    written: int
+
+
+@dataclass(kw_only=True, slots=True)
 class EventCircBW(EventSimple):
     """
     Structure for a :attr:`~EventWord.CIRC_BW` event.
@@ -1197,6 +1230,7 @@ _EVENT_MAP = {
     'ADDRMAP': EventAddrMap,
     'BUILDTIMEOUT_SET': EventBuildTimeoutSet,
     'DISCONNECT': EventDisconnect,
+    'CONN_BW': EventConnBW,
     'CIRC_BW': EventCircBW,
     'CELL_STATS': EventCellStats,
     'TB_EMPTY': EventTbEmpty,

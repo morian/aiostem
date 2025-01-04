@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from aiostem.event import (
     EventCellStats,
     EventCircBW,
+    EventConnBW,
     EventDisconnect,
     EventHsDesc,
     EventHsDescContent,
@@ -57,6 +58,16 @@ class TestEvents:
         assert isinstance(event, EventUnknown)
         assert event.message == message
         assert event.TYPE is None
+
+    async def test_conn_bw(self):
+        line = '650 CONN_BW ID=123 TYPE=EXIT READ=234 WRITTEN=345'
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventConnBW)
+        assert event.conn_id == 123
+        assert event.conn_type == 'EXIT'
+        assert event.read == 234
+        assert event.written == 345
 
     async def test_circ_bw(self):
         line = (

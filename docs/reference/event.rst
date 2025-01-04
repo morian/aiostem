@@ -59,6 +59,10 @@ Circuit events
    :exclude-members: SYNTAX, __init__, from_message
    :members:
 
+.. autoclass:: EventConnBW
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
 
 Hidden service events
 ---------------------
