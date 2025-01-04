@@ -65,13 +65,13 @@ jobs:
           path: coverage.xml
 
       - name: Publish coverage results to Codecov
-        uses: codecov/codecov-action@v4
+        uses: codecov/codecov-action@v5
         with:
           name: Coverage with Python ${{ matrix.python-version }}
           token: ${{ secrets.CODECOV_TOKEN }}
           env_vars: PYTHON
           fail_ci_if_error: true
-          file: ./coverage.xml
+          files: ./coverage.xml
           disable_search: true
           flags: unittests
           verbose: true
