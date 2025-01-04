@@ -147,6 +147,9 @@ class EventWord(StrEnum):
     AUTHDIR_NEWDESCS = 'AUTHDIR_NEWDESCS'
 
     #: Our descriptor changed.
+    #:
+    #: See Also:
+    #:     :class:`EventDescChanged`
     DESCCHANGED = 'DESCCHANGED'
 
     #: General status event.
@@ -375,6 +378,20 @@ class EventAddrMap(EventSimple):
     cached: BoolYesNo | None = None
     #: Stream identifier.
     stream: int | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class EventDescChanged(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.DESCCHANGED` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#DESCCHANGED
+
+    """
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(args_min=1, args_map=(None,))
+    TYPE = EventWord.DESCCHANGED
 
 
 @dataclass(kw_only=True, slots=True)
@@ -1512,6 +1529,7 @@ _EVENT_MAP = {
     'CIRC_MINOR': EventCircMinor,
     'CIRC_BW': EventCircBW,
     'CONN_BW': EventConnBW,
+    'DESCCHANGED': EventDescChanged,
     'GUARD': EventGuard,
     'HS_DESC': EventHsDesc,
     'HS_DESC_CONTENT': EventHsDescContent,

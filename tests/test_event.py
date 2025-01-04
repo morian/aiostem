@@ -14,6 +14,7 @@ from aiostem.event import (
     EventClientsSeen,
     EventConfChanged,
     EventConnBW,
+    EventDescChanged,
     EventDisconnect,
     EventGuard,
     EventHsDesc,
@@ -66,6 +67,11 @@ class TestEvents:
         assert isinstance(event, EventUnknown)
         assert event.message == message
         assert event.TYPE is None
+
+    async def test_desc_changed(self):
+        message = await create_message(['650 DESCCHANGED'])
+        event = event_from_message(message)
+        assert isinstance(event, EventDescChanged)
 
     async def test_guard(self):
         line = (
