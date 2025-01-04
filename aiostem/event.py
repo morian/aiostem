@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Annotated, Any, ClassVar, Literal, Self, Union
+from typing import Annotated, Any, ClassVar, Literal, Self, TypeAlias, Union
 
-from pydantic import Discriminator, NonNegativeInt, Tag, TypeAdapter
+from pydantic import BeforeValidator, Discriminator, NonNegativeInt, Tag, TypeAdapter
 
 from .exceptions import MessageError, ReplySyntaxError
 from .structures import (
@@ -52,7 +52,15 @@ from .types import (
     DatetimeUTC,
     TimedeltaMilliseconds,
 )
-from .utils import Message, MessageData, ReplySyntax, ReplySyntaxFlag, TrBeforeSetToNone
+from .utils import (
+    Message,
+    MessageData,
+    ReplySyntax,
+    ReplySyntaxFlag,
+    TrBeforeSetToNone,
+    TrBeforeStringSplit,
+    TrCast,
+)
 
 logger = logging.getLogger(__package__)
 
@@ -191,6 +199,9 @@ class EventWord(StrEnum):
     CIRC_BW = 'CIRC_BW'
 
     #: Per-circuit cell stats.
+    #:
+    #: See Also:
+    #:     :class:`EventCellStats`
     CELL_STATS = 'CELL_STATS'
 
     #: Token buckets refilled.
@@ -390,6 +401,100 @@ class EventSignal(EventSimple):
 
     #: The signal received by Tor.
     signal: Signal
+
+
+#: Describes a list of cell statistics for :class:`EventCellStats`.
+CellsByType: TypeAlias = Annotated[
+    Mapping[str, int],
+    BeforeValidator(dict),
+    TrCast(
+        Annotated[
+            Sequence[
+                Annotated[
+                    tuple[str, str],
+                    TrBeforeStringSplit(maxsplit=1, separator=':'),
+                ]
+            ],
+            TrBeforeStringSplit(separator=','),
+        ]
+    ),
+]
+
+#: Describes a list of cell time statistics for :class:`EventCellStats`.
+MsecByType: TypeAlias = Annotated[
+    Mapping[str, TimedeltaMilliseconds],
+    BeforeValidator(dict),
+    TrCast(
+        Annotated[
+            Sequence[
+                Annotated[
+                    tuple[str, str],
+                    TrBeforeStringSplit(maxsplit=1, separator=':'),
+                ]
+            ],
+            TrBeforeStringSplit(separator=','),
+        ]
+    ),
+]
+
+
+@dataclass(kw_only=True, slots=True)
+class EventCellStats(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.CELL_STATS` event.
+
+    Important:
+        These events are only generated if TestingTorNetwork is set.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#CELL_STATS
+
+    """
+
+    SYNTAX = ReplySyntax(
+        args_min=1,
+        args_map=(None,),
+        kwargs_map={
+            'ID': 'circuit',
+            'InboundConn': 'inbound_conn',
+            'InboundQueue': 'inbound_queue',
+            'InboundAdded': 'inbound_added',
+            'InboundRemoved': 'inbound_removed',
+            'InboundTime': 'inbound_time',
+            'OutboundConn': 'outbound_conn',
+            'OutboundQueue': 'outbound_queue',
+            'OutboundAdded': 'outbound_added',
+            'OutboundRemoved': 'outbound_removed',
+            'OutboundTime': 'outbound_time',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE,
+    )
+    TYPE = EventWord.CELL_STATS
+
+    #: Circuit identifier only included if the circuit originates at this node.
+    circuit: int | None = None
+
+    #: InboundQueue is the identifier of the inbound circuit queue of this circuit.
+    inbound_queue: int | None = None
+    #: Locally unique IDs of inbound OR connection.
+    inbound_conn: int | None = None
+    #: Total number of cells by cell type added to inbound queue.
+    inbound_added: CellsByType | None = None
+    #: Total number of cells by cell type processed from inbound queue.
+    inbound_removed: CellsByType | None = None
+    #: Total waiting times in milliseconds of all processed cells by cell type.
+    inbound_time: MsecByType | None = None
+
+    #: OutboundQueue is the identifier of the outbound circuit queue of this circuit.
+    outbound_queue: int | None = None
+    #: Locally unique IDs of outbound OR connection.
+    outbound_conn: int | None = None
+    #: Total number of cells by cell type added to outbound queue.
+    outbound_added: CellsByType | None = None
+    #: Total number of cells by cell type processed from outbound queue.
+    outbound_removed: CellsByType | None = None
+    #: Total waiting times in milliseconds of all processed cells by cell type.
+    outbound_time: MsecByType | None = None
 
 
 @dataclass(kw_only=True, slots=True)
@@ -1031,6 +1136,7 @@ _EVENT_MAP = {
     'ADDRMAP': EventAddrMap,
     'BUILDTIMEOUT_SET': EventBuildTimeoutSet,
     'DISCONNECT': EventDisconnect,
+    'CELL_STATS': EventCellStats,
     'TB_EMPTY': EventTbEmpty,
     'HS_DESC': EventHsDesc,
     'HS_DESC_CONTENT': EventHsDescContent,

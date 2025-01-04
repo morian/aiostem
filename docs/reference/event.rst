@@ -129,6 +129,10 @@ Pluggable transport events
 Misc. events
 ------------
 
+.. autoclass:: EventCellStats
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
 .. autoclass:: EventTbEmpty
    :exclude-members: SYNTAX, __init__, from_message
    :members:
