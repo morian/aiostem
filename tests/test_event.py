@@ -19,6 +19,7 @@ from aiostem.event import (
     EventNetworkStatus,
     EventNewConsensus,
     EventSignal,
+    EventStreamBW,
     EventTbEmpty,
     EventUnknown,
     EventWord,
@@ -64,7 +65,17 @@ class TestEvents:
         assert event.message == message
         assert event.TYPE is None
 
-    @pytest.mark.parametrize('verb', ('NEWCONSENSUS', 'NS'))
+    async def test_stream_bw(self):
+        line = '650 STREAM_BW 207187 20600 0 2025-01-04T21:29:50.985239'
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventStreamBW)
+        assert isinstance(event.time, datetime)
+        assert event.stream == 207187
+        assert event.written == 20600
+        assert event.read == 0
+
+    @pytest.mark.parametrize('verb', ['NEWCONSENSUS', 'NS'])
     async def test_consensus_no_data(self, verb):
         message = await create_message([f'650 {verb}'])
         with pytest.raises(ReplySyntaxError, match='has no data attached to it'):

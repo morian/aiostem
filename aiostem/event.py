@@ -176,6 +176,9 @@ class EventWord(StrEnum):
     NS = 'NS'
 
     #: Bandwidth used on an application stream.
+    #:
+    #: See Also:
+    #:     :class:`EventStreamBW`
     STREAM_BW = 'STREAM_BW'
 
     #: Per-country client stats.
@@ -365,6 +368,32 @@ class EventAddrMap(EventSimple):
     cached: BoolYesNo | None = None
     #: Stream identifier.
     stream: int | None = None
+
+
+@dataclass(kw_only=True, slots=True)
+class EventStreamBW(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.STREAM_BW` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#STREAM_BW
+
+    """
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=5,
+        args_map=(None, 'stream', 'written', 'read', 'time'),
+    )
+    TYPE = EventWord.STREAM_BW
+
+    #: Stream identifier.
+    stream: int
+    #: Number of bytes read by the application since the last event on this stream.
+    read: int
+    #: Number of bytes written by the application since the last event on this stream.
+    written: int
+    #: Records when Tor created the bandwidth event.
+    time: DatetimeUTC
 
 
 @dataclass(kw_only=True, slots=True)
@@ -1419,6 +1448,7 @@ _EVENT_MAP = {
     'STATUS_GENERAL': EventStatusGeneral,
     'STATUS_CLIENT': EventStatusClient,
     'STATUS_SERVER': EventStatusServer,
+    'STREAM_BW': EventStreamBW,
     'TB_EMPTY': EventTbEmpty,
     'TRANSPORT_LAUNCHED': EventTransportLaunched,
 }  # type: Mapping[str, type[Event]]
