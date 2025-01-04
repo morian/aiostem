@@ -157,6 +157,10 @@ Misc. events
    :exclude-members: SYNTAX, __init__, from_message
    :members:
 
+.. autoclass:: EventClientsSeen
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
 .. autoclass:: EventConfChanged
    :exclude-members: SYNTAX, __init__, from_message
    :members:

@@ -182,6 +182,9 @@ class EventWord(StrEnum):
     STREAM_BW = 'STREAM_BW'
 
     #: Per-country client stats.
+    #:
+    #: See Also:
+    #:     :class:`EventClientsSeen`
     CLIENTS_SEEN = 'CLIENTS_SEEN'
 
     #: New consensus networkstatus has arrived.
@@ -394,6 +397,53 @@ class EventStreamBW(EventSimple):
     written: int
     #: Records when Tor created the bandwidth event.
     time: DatetimeUTC
+
+
+#: Describes a list of cell statistics for :class:`EventCellStats`.
+GenericStatsMap: TypeAlias = Annotated[
+    Mapping[str, int],
+    BeforeValidator(dict),
+    TrCast(
+        Annotated[
+            Sequence[
+                Annotated[
+                    tuple[str, str],
+                    TrBeforeStringSplit(maxsplit=1, separator='='),
+                ]
+            ],
+            TrBeforeStringSplit(separator=','),
+        ]
+    ),
+]
+
+@dataclass(kw_only=True, slots=True)
+class EventClientsSeen(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.CLIENTS_SEEN` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#CLIENTS_SEEN
+
+    """
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=1,
+        args_map=(None,),
+        kwargs_map={
+            'TimeStarted': 'time',
+            'CountrySummary': 'countries',
+            'IPVersions': 'ip_versions',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+    )
+    TYPE = EventWord.CLIENTS_SEEN
+
+    #: When the reported summary counts started.
+    time: DatetimeUTC
+    #: A map of countries seen by Tor.
+    countries: GenericStatsMap
+    #: A map of ip versions encountered.
+    ip_versions: GenericStatsMap
 
 
 @dataclass(kw_only=True, slots=True)
@@ -1428,6 +1478,7 @@ _EVENT_MAP = {
     'BUILDTIMEOUT_SET': EventBuildTimeoutSet,
     'DISCONNECT': EventDisconnect,
     'CONF_CHANGED': EventConfChanged,
+    'CLIENTS_SEEN': EventClientsSeen,
     'CELL_STATS': EventCellStats,
     'CIRC_MINOR': EventCircMinor,
     'CIRC_BW': EventCircBW,

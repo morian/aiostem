@@ -11,6 +11,7 @@ from aiostem.event import (
     EventCellStats,
     EventCircBW,
     EventCircMinor,
+    EventClientsSeen,
     EventConfChanged,
     EventConnBW,
     EventDisconnect,
@@ -64,6 +65,21 @@ class TestEvents:
         assert isinstance(event, EventUnknown)
         assert event.message == message
         assert event.TYPE is None
+
+    async def test_clients_seen(self):
+        line = (
+            '650 CLIENTS_SEEN TimeStarted="2008-12-25 23:50:43" '
+            'CountrySummary=us=16,de=8,uk=8 '
+            'IPVersions=v4=16,v6=40'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventClientsSeen)
+        assert isinstance(event.time, datetime)
+        assert len(event.countries) == 3
+        assert len(event.ip_versions) == 2
+        assert event.countries['us'] == 16
+        assert event.ip_versions['v6'] == 40
 
     async def test_stream_bw(self):
         line = '650 STREAM_BW 207187 20600 0 2025-01-04T21:29:50.985239'
