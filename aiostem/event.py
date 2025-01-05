@@ -135,6 +135,9 @@ class EventWord(StrEnum):
     ERR = 'ERR'
 
     #: New descriptors available.
+    #:
+    #: See Also:
+    #:     :class:`EventNewDesc`
     NEWDESC = 'NEWDESC'
 
     #: New Address mapping.
@@ -144,6 +147,8 @@ class EventWord(StrEnum):
     ADDRMAP = 'ADDRMAP'
 
     #: Descriptors uploaded to us in our role as authoritative dirserver.
+    #:
+    #: This event has been deprecated since Tor v0.3.3.1.
     AUTHDIR_NEWDESCS = 'AUTHDIR_NEWDESCS'
 
     #: Our descriptor changed.
@@ -460,6 +465,29 @@ class EventGuard(EventSimple):
     name: LongServerName
     #: Status of the guard in our event.
     status: Annotated[GuardEventStatus | str, Field(union_mode='left_to_right')]
+
+
+@dataclass(kw_only=True, slots=True)
+class EventNewDesc(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.NEWDESC` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#NEWDESC
+
+    """
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=1,
+        args_map=(None,),
+        kwargs_map={None: 'servers'},
+        kwargs_multi={'servers'},
+        flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_OMIT_KEYS,
+    )
+    TYPE = EventWord.NEWDESC
+
+    #: List of new server identifiers received.
+    servers: Sequence[LongServerName] = field(default_factory=list)
 
 
 @dataclass(kw_only=True, slots=True)
@@ -1535,6 +1563,7 @@ _EVENT_MAP = {
     'HS_DESC_CONTENT': EventHsDescContent,
     'NETWORK_LIVENESS': EventNetworkLiveness,
     'NEWCONSENSUS': EventNewConsensus,
+    'NEWDESC': EventNewDesc,
     'NS': EventNetworkStatus,
     'DEBUG': EventLogDebug,
     'INFO': EventLogInfo,

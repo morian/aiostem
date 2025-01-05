@@ -21,6 +21,7 @@ from aiostem.event import (
     EventHsDescContent,
     EventNetworkStatus,
     EventNewConsensus,
+    EventNewDesc,
     EventSignal,
     EventStreamBW,
     EventTbEmpty,
@@ -35,6 +36,7 @@ from aiostem.structures import (
     HsDescAction,
     HsDescFailReason,
     LogSeverity,
+    LongServerName,
     Signal,
     StatusActionGeneral,
 )
@@ -237,6 +239,19 @@ class TestEvents:
         assert event.last.microseconds == 100000
         assert event.read.microseconds == 0
         assert event.written.microseconds == 0
+
+    async def test_new_desc(self):
+        line = (
+            '650 NEWDESC '
+            '$F5B58FEE44573C3BFD7D176D918BA5B4057519D7~bistrv1 '
+            '$14AE2154A26F1D42C3C3BEDC10D05FDD9F8545BB~freeasf'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventNewDesc)
+        assert len(event.servers) == 2
+        for server in event.servers:
+            assert isinstance(server, LongServerName)
 
     async def test_hs_desc_minimal(self):
         line = (

@@ -165,11 +165,15 @@ Misc. events
    :exclude-members: SYNTAX, __init__, from_message
    :members:
 
+.. autoclass:: EventConfChanged
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
 .. autoclass:: EventDescChanged
    :exclude-members: SYNTAX, __init__, from_message
    :members:
 
-.. autoclass:: EventConfChanged
+.. autoclass:: EventNewDesc
    :exclude-members: SYNTAX, __init__, from_message
    :members:
 
