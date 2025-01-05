@@ -17,9 +17,11 @@ from .exceptions import MessageError, ReplySyntaxError
 from .reply import ReplyGetMap
 from .structures import (
     CircuitBuildFlags,
+    CircuitCloseReason,
     CircuitEvent,
     CircuitHiddenServiceState,
     CircuitPurpose,
+    CircuitStatus,
     GuardEventStatus,
     HiddenServiceAddress,
     HsDescAction,
@@ -102,6 +104,9 @@ class EventWord(StrEnum):
     """All possible events to subscribe to."""
 
     #: Circuit status changed.
+    #:
+    #: See Also:
+    #:     :class:`EventCirc`
     CIRC = 'CIRC'
 
     #: Stream status changed.
@@ -462,6 +467,114 @@ GenericStatsMap: TypeAlias = Annotated[
 
 
 @dataclass(kw_only=True, slots=True)
+class EventCirc(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.CIRC` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#CIRC
+
+    """
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=3,
+        args_map=(None, 'circuit', 'status'),
+        kwargs_map={
+            None: 'path',
+            'BUILD_FLAGS': 'build_flags',
+            'CONFLUX_ID': 'conflux_id',
+            'CONFLUX_RTT': 'conflux_rtt',
+            'HS_POW': 'hs_pow',
+            'HS_STATE': 'hs_state',
+            'PURPOSE': 'purpose',
+            'REASON': 'reason',
+            'REMOTE_REASON': 'remote_reason',
+            'REND_QUERY': 'rend_query',
+            'SOCKS_USERNAME': 'socks_username',
+            'SOCKS_PASSWORD': 'socks_password',
+            'TIME_CREATED': 'time_created',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE
+        | ReplySyntaxFlag.KW_OMIT_KEYS
+        | ReplySyntaxFlag.KW_QUOTED,
+    )
+    TYPE = EventWord.CIRC
+
+    #: Circuit identifier this event is triggered for.
+    circuit: NonNegativeInt
+    #: Circuit status reported by this event.
+    status: Annotated[CircuitStatus | str, Field(union_mode='left_to_right')]
+
+    #: Circuit build flags.
+    build_flags: (
+        Annotated[
+            AbstractSet[
+                Annotated[
+                    CircuitBuildFlags | str,
+                    Field(union_mode='left_to_right'),
+                ],
+            ],
+            TrBeforeStringSplit(),
+        ]
+        | None
+    ) = None
+
+    conflux_id: Base16Bytes | None = None
+    conflux_rtt: TimedeltaMilliseconds | None = None
+
+    #: Hidden service power effort as a tuple of (version, effort).
+    hs_pow: Annotated[tuple[str, int], TrBeforeStringSplit()] | None = None
+
+    # Current hidden service state when applicable.
+    hs_state: (
+        Annotated[
+            CircuitHiddenServiceState | str,
+            Field(union_mode='left_to_right'),
+        ]
+        | None
+    ) = None
+
+    #: List of servers in this circuit, when provided.
+    path: Annotated[Sequence[LongServerName], TrBeforeStringSplit()] | None = None
+
+    #: Current circuit purpose.
+    purpose: (
+        Annotated[
+            CircuitPurpose | str,
+            Field(union_mode='left_to_right'),
+        ]
+        | None
+    ) = None
+
+    #: This field is provided only for ``FAILED`` and ``CLOSED`` events.
+    reason: (
+        Annotated[
+            CircuitCloseReason | str,
+            Field(union_mode='left_to_right'),
+        ]
+        | None
+    ) = None
+
+    #: Provided only when we receive a DESTROY cell or RELAY_TRUNCATE message.
+    remote_reason: (
+        Annotated[
+            CircuitCloseReason | str,
+            Field(union_mode='left_to_right'),
+        ]
+        | None
+    ) = None
+
+    #: Onion address related to this circuit.
+    rend_query: HiddenServiceAddress | None = None
+    #: Username used by a SOCKS client to connect to Tor and initiate this circuit.
+    socks_username: str | None = None
+    #: Password used by a SOCKS client to connect to Tor and initiate this circuit.
+    socks_password: str | None = None
+    #: When this circuit was created.
+    time_created: DatetimeUTC | None = None
+
+
+@dataclass(kw_only=True, slots=True)
 class EventStream(EventSimple):
     """
     Structure for a :attr:`~EventWord.STREAM` event.
@@ -496,7 +609,7 @@ class EventStream(EventSimple):
     #: Status of the stream event reported here.
     status: StreamStatus
     #: Circuit ID linked to this stream.
-    circuit: int
+    circuit: NonNegativeInt
     #: Target address or server of this stream (or ``0`` when unattached).
     target: StreamTarget
 
@@ -916,7 +1029,7 @@ class EventCircMinor(EventSimple):
     TYPE = EventWord.CIRC_MINOR
 
     #: Circuit identifier.
-    circuit: int
+    circuit: NonNegativeInt
     #: Circuit event, either ``PURPOSE_CHANGED`` or ``CANNIBALIZED``.
     event: Annotated[CircuitEvent | str, Field(union_mode='left_to_right')]
     #: Circuit path, when provided.
@@ -935,18 +1048,46 @@ class EventCircMinor(EventSimple):
         ]
         | None
     ) = None
+
     # Current hidden service state when applicable.
-    hs_state: CircuitHiddenServiceState | None = None
+    hs_state: (
+        Annotated[
+            CircuitHiddenServiceState | str,
+            Field(union_mode='left_to_right'),
+        ]
+        | None
+    ) = None
     #: When this circuit was created.
     time_created: DatetimeUTC | None = None
+
     #: Current circuit purpose.
-    purpose: CircuitPurpose | None = None
+    purpose: (
+        Annotated[
+            CircuitPurpose | str,
+            Field(union_mode='left_to_right'),
+        ]
+        | None
+    ) = None
+
     #: Onion address related to this circuit.
     rend_query: HiddenServiceAddress | None = None
+
     #: Previous hidden service state when applicable.
-    old_hs_state: CircuitHiddenServiceState | None = None
+    old_hs_state: (
+        Annotated[
+            CircuitHiddenServiceState | str,
+            Field(union_mode='left_to_right'),
+        ]
+        | None
+    ) = None
     #: Previous circuit purpose.
-    old_purpose: CircuitPurpose | None = None
+    old_purpose: (
+        Annotated[
+            CircuitPurpose | str,
+            Field(union_mode='left_to_right'),
+        ]
+        | None
+    ) = None
 
 
 #: Describes a list of cell statistics for :class:`EventCellStats`.
@@ -1018,7 +1159,7 @@ class EventCellStats(EventSimple):
     TYPE = EventWord.CELL_STATS
 
     #: Circuit identifier only included if the circuit originates at this node.
-    circuit: int | None = None
+    circuit: NonNegativeInt | None = None
 
     #: InboundQueue is the identifier of the inbound circuit queue of this circuit.
     inbound_queue: int | None = None
@@ -1716,6 +1857,7 @@ _EVENT_MAP = {
     'BUILDTIMEOUT_SET': EventBuildTimeoutSet,
     'BW': EventBandwidth,
     'DISCONNECT': EventDisconnect,
+    'CIRC': EventCirc,
     'CONF_CHANGED': EventConfChanged,
     'CLIENTS_SEEN': EventClientsSeen,
     'CELL_STATS': EventCellStats,

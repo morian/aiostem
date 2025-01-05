@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from aiostem.event import (
     EventBandwidth,
     EventCellStats,
+    EventCirc,
     EventCircBW,
     EventCircMinor,
     EventClientsSeen,
@@ -242,6 +243,41 @@ class TestEvents:
         assert event.last.microseconds == 100000
         assert event.read.microseconds == 0
         assert event.written.microseconds == 0
+
+    async def test_circuit_launched(self):
+        line = (
+            '650 CIRC 267807 LAUNCHED BUILD_FLAGS=IS_INTERNAL,NEED_CAPACITY,NEED_UPTIME '
+            'PURPOSE=HS_VANGUARDS TIME_CREATED=2025-01-04T23:55:46.318138'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventCirc)
+        assert event.circuit == 267807
+        assert event.status == 'LAUNCHED'
+        assert event.purpose == 'HS_VANGUARDS'
+        assert len(event.build_flags) == 3
+        assert isinstance(event.time_created, datetime)
+
+    async def test_circuit_closed(self):
+        line = (
+            '650 CIRC 288979 CLOSED '
+            '$F50CF02A0E6A9D9B25F7EB220FC26F7BD1B74999~flowjob02,'
+            '$1814DBD5E7E1839CA3F43847683A08F3BF3D5C91~isodiapher,'
+            '$745732BEBB6CD9344B6828481229F14F19E1C464~Unfixed1,'
+            '$1214952C0357904505AAE425D48D84131064E9AC~cakesnwaffles '
+            'BUILD_FLAGS=IS_INTERNAL,NEED_CAPACITY,NEED_UPTIME PURPOSE=HS_CLIENT_INTRO '
+            'HS_STATE=HSCI_DONE '
+            'REND_QUERY=facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid '
+            'TIME_CREATED=2025-01-05T21:54:19.138927 REASON=FINISHED'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventCirc)
+        assert event.circuit == 288979
+        assert event.status == 'CLOSED'
+        assert event.rend_query == 'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid'
+        assert event.reason == 'FINISHED'
+        assert len(event.path) == 4
 
     async def test_stream_new(self):
         line = (

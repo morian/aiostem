@@ -83,6 +83,47 @@ class CircuitBuildFlags(StrEnum):
     NEED_UPTIME = 'NEED_UPTIME'
 
 
+class CircuitCloseReason(StrEnum):
+    """Known reasons why a circuit can be closed."""
+
+    #: No reason given.
+    NONE = 'NONE'
+    #: Tor protocol violation.
+    PROTOCOL = 'PROTOCOL'
+    #: Internal error.
+    INTERNAL = 'INTERNAL'
+    #: A client sent a TRUNCATE command.
+    REQUESTED = 'REQUESTED'
+    #: Not currently operating; trying to save bandwidth.
+    HIBERNATING = 'HIBERNATING'
+    #: Out of memory, sockets, or circuit IDs.
+    RESOURCELIMIT = 'RESOURCELIMIT'
+    #: Unable to reach relay.
+    CONNECTFAILED = 'CONNECTFAILED'
+    #: Connected to relay, but its OR identity was not as expected.
+    OR_IDENTITY = 'OR_IDENTITY'
+    #: The OR connection that was carrying this circuit died.
+    CHANNEL_CLOSED = 'CHANNEL_CLOSED'
+    #: The circuit has expired for being dirty or old.
+    FINISHED = 'FINISHED'
+    #: Circuit construction took too long.
+    TIMEOUT = 'TIMEOUT'
+    #: The circuit was destroyed w/o client TRUNCATE.
+    DESTROYED = 'DESTROYED'
+    #: Request for unknown hidden service.
+    NOSUCHSERVICE = 'NOSUCHSERVICE'
+    #: Not enough nodes to make circuit.
+    NOPATH = 'NOPATH'
+    #: As "TIMEOUT", except that we had left the circuit open for measurement purposes.
+    #:
+    #: This is to see how long it would take to finish.
+    MEASUREMENT_EXPIRED = 'MEASUREMENT_EXPIRED'
+    #: Closing a circuit to an introduction point that has become redundant.
+    #:
+    #: Since some other circuit opened in parallel with it has succeeded.
+    IP_NOW_REDUNDANT = 'IP_NOW_REDUNDANT'
+
+
 class CircuitEvent(StrEnum):
     """List of existing circuit events."""
 
@@ -143,6 +184,23 @@ class CircuitPurpose(StrEnum):
     SERVER = 'SERVER'
     #: Testing circuit.
     TESTING = 'TESTING'
+
+
+class CircuitStatus(StrEnum):
+    """All possible statuses for a circuit."""
+
+    #: Circuit ID assigned to new circuit.
+    LAUNCHED = 'LAUNCHED'
+    #: All hops finished, can now accept streams.
+    BUILT = 'BUILT'
+    #: All hops finished, waiting to see if a circuit with a better guard will be usable.
+    GUARD_WAIT = 'GUARD_WAIT'
+    #: One more hop has been completed.
+    EXTENDED = 'EXTENDED'
+    #: Circuit closed (was not built).
+    FAILED = 'FAILED'
+    #: Circuit closed (was built).
+    CLOSED = 'CLOSED'
 
 
 @dataclass(kw_only=True, slots=True)

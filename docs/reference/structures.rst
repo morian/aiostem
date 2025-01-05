@@ -23,6 +23,10 @@ available flags, authentication methods, etc...
    :undoc-members:
    :members:
 
+.. autoclass:: CircuitCloseReason
+   :undoc-members:
+   :members:
+
 .. autoclass:: CircuitEvent
    :undoc-members:
    :members:
@@ -32,6 +36,10 @@ available flags, authentication methods, etc...
    :members:
 
 .. autoclass:: CircuitPurpose
+   :undoc-members:
+   :members:
+
+.. autoclass:: CircuitStatus
    :undoc-members:
    :members:
 
