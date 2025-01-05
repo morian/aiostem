@@ -32,6 +32,10 @@ Common classes
    :undoc-members:
    :members:
 
+.. autoclass:: CloseOrConnReason
+   :undoc-members:
+   :members:
+
 .. autoclass:: CloseStreamReason
    :undoc-members:
    :members:
@@ -143,6 +147,10 @@ Hidden Service structures
    :members:
 
 .. autoclass:: OnionClientAuthKeyType
+   :undoc-members:
+   :members:
+
+.. autoclass:: OnionRouterConnStatus
    :undoc-members:
    :members:
 

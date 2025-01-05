@@ -23,6 +23,7 @@ from aiostem.event import (
     EventNetworkStatus,
     EventNewConsensus,
     EventNewDesc,
+    EventOrConn,
     EventSignal,
     EventStreamBW,
     EventTbEmpty,
@@ -240,6 +241,19 @@ class TestEvents:
         assert event.last.microseconds == 100000
         assert event.read.microseconds == 0
         assert event.written.microseconds == 0
+
+    async def test_or_conn(self):
+        line = (
+            '650 ORCONN '
+            '$427526EBD012CFE50FCFFCBFE221EFFE199AFA8C~portugesecartel '
+            'CLOSED REASON=DONE ID=205906'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventOrConn)
+        assert event.status == 'CLOSED'
+        assert event.reason == 'DONE'
+        assert event.conn_id == 205906
 
     async def test_bandwidth(self):
         message = await create_message(['650 BW 1670343 1936996'])

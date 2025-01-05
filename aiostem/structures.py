@@ -144,6 +144,33 @@ class CircuitPurpose(StrEnum):
     TESTING = 'TESTING'
 
 
+class CloseOrConnReason(StrEnum):
+    """All possible reasons why an OR connection is closed."""
+
+    #: The OR connection has shut down cleanly.
+    DONE = 'DONE'
+    #: We got an ECONNREFUSED while connecting to the target OR.
+    CONNECTREFUSED = 'CONNECTREFUSED'
+    #: We connected to the OR, but found that its identity was not what we expected.
+    IDENTITY = 'IDENTITY'
+    #: We got an ECONNRESET or similar IO error from the connection with the OR.
+    CONNECTRESET = 'CONNECTRESET'
+    #: We got an ETIMEOUT or similar IO error from the connection with the OR.
+    TIMEOUT = 'TIMEOUT'
+    #: We got an ENETUNREACH, EHOSTUNREACH, or similar error while connecting to the OR.
+    NOROUTE = 'NOROUTE'
+    #: We got some other IO error on our connection to the OR.
+    IOERROR = 'IOERROR'
+    #: We don't have enough OS resources (file descriptors, etc.) to connect to the OR.
+    RESOURCELIMIT = 'RESOURCELIMIT'
+    #:  Problem in TLS protocol.
+    TLS_ERROR = 'TLS_ERROR'
+    #: The OR connection closed for some other reason.
+    MISC = 'MISC'
+    #: No pluggable transport was available.
+    PT_MISSING = 'PT_MISSING'
+
+
 @dataclass(kw_only=True, slots=True)
 class ClockSkewSource:
     """
@@ -716,6 +743,21 @@ class OnionClientAuthKeyStruct:
 
     #: Data bytes for the provided key.
     data: Base64Bytes
+
+
+class OnionRouterConnStatus(StrEnum):
+    """All possible statuses used in :attr:`~.EventWord.ORCONN`."""
+
+    #: We have received a new incoming OR connection, and are starting the server handshake.
+    NEW = 'NEW'
+    #: We have launched a new outgoing OR connection, and are starting the client handshake.
+    LAUNCHED = 'LAUNCHED'
+    #: The OR connection has been connected and the handshake is done.
+    CONNECTED = 'CONNECTED'
+    #: Our attempt to open the OR connection failed.
+    FAILED = 'FAILED'
+    #: The OR connection closed in an unremarkable way.
+    CLOSED = 'CLOSED'
 
 
 def _discriminate_client_auth_private_key(v: Any) -> str | None:

@@ -20,6 +20,7 @@ from .structures import (
     CircuitEvent,
     CircuitHiddenServiceState,
     CircuitPurpose,
+    CloseOrConnReason,
     GuardEventStatus,
     HiddenServiceAddress,
     HsDescAction,
@@ -28,6 +29,7 @@ from .structures import (
     LivenessStatus,
     LogSeverity,
     LongServerName,
+    OnionRouterConnStatus,
     Signal,
     StatusActionClient,
     StatusActionGeneral,
@@ -99,6 +101,9 @@ class EventWord(StrEnum):
     STREAM = 'STREAM'
 
     #: OR Connection status changed.
+    #:
+    #: See Also:
+    #:     :class:`EventOrConn`
     ORCONN = 'ORCONN'
 
     #: Bandwidth used in the last second.
@@ -444,6 +449,44 @@ GenericStatsMap: TypeAlias = Annotated[
         ]
     ),
 ]
+
+
+@dataclass(kw_only=True, slots=True)
+class EventOrConn(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.ORCONN` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#ORCONN
+
+    """
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=3,
+        args_map=(None, 'server', 'status'),
+        kwargs_map={
+            'REASON': 'reason',
+            'NCIRCS': 'circuit_count',
+            'ID': 'conn_id',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE,
+    )
+    TYPE = EventWord.ORCONN
+
+    #: Onion router server name reported in this event.
+    server: LongServerName
+
+    #: Status of the connection to the onion router.
+    status: OnionRouterConnStatus
+
+    #: When :attr:`status` is ``FAILED`` or ``CLOSED``, this is the reason why.
+    reason: CloseOrConnReason | None = None
+
+    #: Counts both established and pending circuits.
+    circuit_count: int | None = None
+
+    #: Connection identifier.
+    conn_id: int | None = None
 
 
 @dataclass(kw_only=True, slots=True)
@@ -1601,6 +1644,7 @@ _EVENT_MAP = {
     'NOTICE': EventLogNotice,
     'WARN': EventLogWarn,
     'ERR': EventLogErr,
+    'ORCONN': EventOrConn,
     'PT_LOG': EventPtLog,
     'PT_STATUS': EventPtStatus,
     'SIGNAL': EventSignal,
