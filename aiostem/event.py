@@ -102,6 +102,9 @@ class EventWord(StrEnum):
     ORCONN = 'ORCONN'
 
     #: Bandwidth used in the last second.
+    #:
+    #: See Also:
+    #:     :class:`EventBandwidth`
     BW = 'BW'
 
     #: Debug log message.
@@ -441,6 +444,33 @@ GenericStatsMap: TypeAlias = Annotated[
         ]
     ),
 ]
+
+
+@dataclass(kw_only=True, slots=True)
+class EventBandwidth(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.BW` event.
+
+    Note:
+        Documentation seems to tell that there are keyword arguments on this event
+        but the real implementation does not show any of them.
+        These are being ignored here for now.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#BW
+
+    """
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=3,
+        args_map=(None, 'read', 'written'),
+    )
+    TYPE = EventWord.BW
+
+    #: Total amount of bytes read.
+    read: int
+    #: Total amount of bytes written
+    written: int
 
 
 @dataclass(kw_only=True, slots=True)
@@ -1550,6 +1580,7 @@ class EventUnknown(Event):
 _EVENT_MAP = {
     'ADDRMAP': EventAddrMap,
     'BUILDTIMEOUT_SET': EventBuildTimeoutSet,
+    'BW': EventBandwidth,
     'DISCONNECT': EventDisconnect,
     'CONF_CHANGED': EventConfChanged,
     'CLIENTS_SEEN': EventClientsSeen,

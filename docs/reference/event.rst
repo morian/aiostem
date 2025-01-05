@@ -104,13 +104,13 @@ Log events
 .. autoclass:: EventLogErr
    :members:
 
-.. autoclass:: EventSignal
-   :exclude-members: SYNTAX, __init__, from_message
-   :members:
-
 
 Status events
 -------------
+
+.. autoclass:: EventDescChanged
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
 
 .. autoclass:: EventGuard
    :exclude-members: SYNTAX, __init__, from_message
@@ -125,6 +125,10 @@ Status events
    :members:
 
 .. autoclass:: EventNewConsensus
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
+.. autoclass:: EventNewDesc
    :exclude-members: SYNTAX, __init__, from_message
    :members:
 
@@ -154,8 +158,12 @@ Pluggable transport events
    :members:
 
 
-Misc. events
+Stats events
 ------------
+
+.. autoclass:: EventBandwidth
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
 
 .. autoclass:: EventCellStats
    :exclude-members: SYNTAX, __init__, from_message
@@ -165,19 +173,19 @@ Misc. events
    :exclude-members: SYNTAX, __init__, from_message
    :members:
 
+.. autoclass:: EventTbEmpty
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
+
+Misc. events
+------------
+
 .. autoclass:: EventConfChanged
    :exclude-members: SYNTAX, __init__, from_message
    :members:
 
-.. autoclass:: EventDescChanged
-   :exclude-members: SYNTAX, __init__, from_message
-   :members:
-
-.. autoclass:: EventNewDesc
-   :exclude-members: SYNTAX, __init__, from_message
-   :members:
-
-.. autoclass:: EventTbEmpty
+.. autoclass:: EventSignal
    :exclude-members: SYNTAX, __init__, from_message
    :members:
 

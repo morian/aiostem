@@ -8,6 +8,7 @@ import pytest
 from pydantic import ValidationError
 
 from aiostem.event import (
+    EventBandwidth,
     EventCellStats,
     EventCircBW,
     EventCircMinor,
@@ -239,6 +240,13 @@ class TestEvents:
         assert event.last.microseconds == 100000
         assert event.read.microseconds == 0
         assert event.written.microseconds == 0
+
+    async def test_bandwidth(self):
+        message = await create_message(['650 BW 1670343 1936996'])
+        event = event_from_message(message)
+        assert isinstance(event, EventBandwidth)
+        assert event.read == 1670343
+        assert event.written == 1936996
 
     async def test_new_desc(self):
         line = (
