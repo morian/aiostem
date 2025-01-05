@@ -6,9 +6,8 @@ Events
 .. currentmodule:: aiostem.event
 
 This page describes all the possible events and their parser implementation, received though
-the callbacks registered by :meth:`.Controller.add_event_handler`. Note that all events are
-not implemented yet, in which case you will receive an :class:`EventUnknown`, containing the
-raw :class:`.Message` received.
+the callbacks registered by :meth:`.Controller.add_event_handler`. Note that all unknown events
+will received an :class:`EventUnknown`, containing the raw :class:`.Message` received.
 
 
 Base classes

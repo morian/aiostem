@@ -482,8 +482,6 @@ class EventCirc(EventSimple):
         kwargs_map={
             None: 'path',
             'BUILD_FLAGS': 'build_flags',
-            'CONFLUX_ID': 'conflux_id',
-            'CONFLUX_RTT': 'conflux_rtt',
             'HS_POW': 'hs_pow',
             'HS_STATE': 'hs_state',
             'PURPOSE': 'purpose',
@@ -519,10 +517,7 @@ class EventCirc(EventSimple):
         | None
     ) = None
 
-    conflux_id: Base16Bytes | None = None
-    conflux_rtt: TimedeltaMilliseconds | None = None
-
-    #: Hidden service power effort as a tuple of (version, effort).
+    #: Hidden service proof of work effort as a tuple of (version, effort).
     hs_pow: Annotated[tuple[str, int], TrBeforeStringSplit()] | None = None
 
     # Current hidden service state when applicable.
@@ -564,13 +559,13 @@ class EventCirc(EventSimple):
         | None
     ) = None
 
-    #: Onion address related to this circuit.
+    #: Onion address related to this circuit (if any).
     rend_query: HiddenServiceAddress | None = None
     #: Username used by a SOCKS client to connect to Tor and initiate this circuit.
     socks_username: str | None = None
     #: Password used by a SOCKS client to connect to Tor and initiate this circuit.
     socks_password: str | None = None
-    #: When this circuit was created.
+    #: When this circuit was created, if provided.
     time_created: DatetimeUTC | None = None
 
 

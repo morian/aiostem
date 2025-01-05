@@ -12,8 +12,7 @@ also taken into account. It allowed the removal of deprecated commands, replies 
 when they were removed a long time ago, or sometime are described in the documentation but
 were never implemented.
 
-This hopefully ensures a better match between our implementation and the real protocol
-in Tor.
+This hopefully ensures a better match between our implementation and the real protocol in Tor.
 
 .. _Control Spec: https://github.com/torproject/torspec/blob/main/control-spec.txt
 .. _HTML version: https://spec.torproject.org/control-spec/index.html

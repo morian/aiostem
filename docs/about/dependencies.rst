@@ -7,7 +7,7 @@ Dependencies
 Runtime dependencies
 --------------------
 
-``aiostem`` would not be possible withou the following great projects:
+``aiostem`` would not be possible without the following great projects:
 
 - `cryptography`_: to encrypt and decrypt descriptors and many other things
 - `pydantic`_: to convert and validate data received from the controller
