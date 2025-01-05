@@ -67,6 +67,10 @@ Circuit events
    :exclude-members: SYNTAX, __init__, from_message
    :members:
 
+.. autoclass:: EventStream
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
 .. autoclass:: EventStreamBW
    :exclude-members: SYNTAX, __init__, from_message
    :members:

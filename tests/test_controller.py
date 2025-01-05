@@ -23,9 +23,9 @@ from aiostem.event import (
 from aiostem.exceptions import CommandError, ControllerError, ReplyError, ReplyStatusError
 from aiostem.structures import (
     CircuitPurpose,
-    CloseStreamReason,
     LongServerName,
     OnionServiceKeyStruct,
+    StreamCloseReasonInt,
 )
 from aiostem.utils import Message
 
@@ -198,7 +198,7 @@ class TestController:
         assert 'Unknown circuit' in reply.status_text
 
     async def test_cmd_close_stream(self, controller):
-        reply = await controller.close_stream(0, CloseStreamReason.MISC)
+        reply = await controller.close_stream(0, StreamCloseReasonInt.MISC)
         assert reply.is_error is True
         assert reply.status == 552
         assert 'Unknown stream' in reply.status_text

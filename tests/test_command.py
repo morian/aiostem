@@ -50,7 +50,6 @@ from aiostem.event import EventWord
 from aiostem.exceptions import CommandError
 from aiostem.structures import (
     CircuitPurpose,
-    CloseStreamReason,
     DescriptorPurpose,
     HsDescAuthCookie,
     HsDescAuthTypeInt,
@@ -62,6 +61,7 @@ from aiostem.structures import (
     OnionServiceKeyType,
     OnionServiceNewKeyStruct,
     Signal,
+    StreamCloseReasonInt,
     VirtualPort,
 )
 from aiostem.utils import ArgumentKeyword, ArgumentString, QuoteStyle, TrEd25519PrivateKey
@@ -237,7 +237,7 @@ class TestCommands:
         assert cmd.serialize() == 'REDIRECTSTREAM 1234 127.0.0.1 8443\r\n'
 
     def test_close_stream(self):
-        cmd = CommandCloseStream(stream=1234, reason=CloseStreamReason.TIMEOUT)
+        cmd = CommandCloseStream(stream=1234, reason=StreamCloseReasonInt.TIMEOUT)
         assert cmd.serialize() == 'CLOSESTREAM 1234 7\r\n'
 
     def test_close_circuit(self):

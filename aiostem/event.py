@@ -20,7 +20,6 @@ from .structures import (
     CircuitEvent,
     CircuitHiddenServiceState,
     CircuitPurpose,
-    CloseOrConnReason,
     GuardEventStatus,
     HiddenServiceAddress,
     HsDescAction,
@@ -30,6 +29,8 @@ from .structures import (
     LogSeverity,
     LongServerName,
     OnionRouterConnStatus,
+    OrConnCloseReason,
+    RemapSource,
     Signal,
     StatusActionClient,
     StatusActionGeneral,
@@ -52,6 +53,12 @@ from .structures import (
     StatusServerNameserverStatus,
     StatusServerReachabilityFailed,
     StatusServerReachabilitySucceeded,
+    StreamClientProtocol,
+    StreamCloseReason,
+    StreamPurpose,
+    StreamStatus,
+    StreamTarget,
+    TcpAddressPort,
 )
 from .types import (
     AnyAddress,
@@ -98,6 +105,9 @@ class EventWord(StrEnum):
     CIRC = 'CIRC'
 
     #: Stream status changed.
+    #:
+    #: See Also:
+    #:     :class:`EventStream`
     STREAM = 'STREAM'
 
     #: OR Connection status changed.
@@ -452,6 +462,91 @@ GenericStatsMap: TypeAlias = Annotated[
 
 
 @dataclass(kw_only=True, slots=True)
+class EventStream(EventSimple):
+    """
+    Structure for a :attr:`~EventWord.STREAM` event.
+
+    See Also:
+        https://spec.torproject.org/control-spec/replies.html#STREAM
+
+    """
+
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=5,
+        args_map=(None, 'stream', 'status', 'circuit', 'target'),
+        kwargs_map={
+            'CLIENT_PROTOCOL': 'client_protocol',
+            'ISO_FIELDS': 'iso_fields',
+            'NYM_EPOCH': 'nym_epoch',
+            'PURPOSE': 'purpose',
+            'REASON': 'reason',
+            'REMOTE_REASON': 'remote_reason',
+            'SESSION_GROUP': 'session_group',
+            'SOURCE': 'source',
+            'SOURCE_ADDR': 'source_addr',
+            'SOCKS_USERNAME': 'socks_username',
+            'SOCKS_PASSWORD': 'socks_password',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
+    )
+    TYPE = EventWord.STREAM
+
+    #: Stream identifier reported in this event.
+    stream: int
+    #: Status of the stream event reported here.
+    status: StreamStatus
+    #: Circuit ID linked to this stream.
+    circuit: int
+    #: Target address or server of this stream (or ``0`` when unattached).
+    target: StreamTarget
+
+    #: The protocol that was used by a client to initiate this stream.
+    client_protocol: (
+        Annotated[
+            StreamClientProtocol | str,
+            Field(union_mode='left_to_right'),
+        ]
+        | None
+    ) = None
+
+    #: Indicates the set of STREAM event fields for which stream isolation is enabled.
+    iso_fields: Annotated[AbstractSet[str], TrBeforeStringSplit()] | None = None
+    #: Nym epoch that was active when a client initiated this stream.
+    nym_epoch: NonNegativeInt | None = None
+    #: Provided only for NEW and NEWRESOLVE events
+    purpose: Annotated[StreamPurpose | str, Field(union_mode='left_to_right')] | None = None
+
+    #: Provided only for ``FAILED``, ``CLOSED``, and ``DETACHED`` events,
+    reason: (
+        Annotated[
+            StreamCloseReason | str,
+            Field(union_mode='left_to_right'),
+        ]
+        | None
+    ) = None
+
+    #: Provided only when we receive a RELAY_END message.
+    remote_reason: (
+        Annotated[
+            StreamCloseReason | str,
+            Field(union_mode='left_to_right'),
+        ]
+        | None
+    ) = None
+
+    #: Indicates the session group of the listener port that a client used for this stream.
+    session_group: int | None = None
+    #: Username used by a SOCKS client to connect to Tor and initiate this circuit.
+    socks_username: str | None = None
+    #: Password used by a SOCKS client to connect to Tor and initiate this circuit.
+    socks_password: str | None = None
+    #: Generally either ``CACHE`` or ``EXIT``, used with :attr:`.StreamStatus.REMAP`.
+    source: Annotated[RemapSource | str, Field(union_mode='left_to_right')] | None = None
+    #: Source (local) address.
+    source_addr: TcpAddressPort | None = None
+
+
+@dataclass(kw_only=True, slots=True)
 class EventOrConn(EventSimple):
     """
     Structure for a :attr:`~EventWord.ORCONN` event.
@@ -475,16 +570,12 @@ class EventOrConn(EventSimple):
 
     #: Onion router server name reported in this event.
     server: LongServerName
-
     #: Status of the connection to the onion router.
     status: OnionRouterConnStatus
-
     #: When :attr:`status` is ``FAILED`` or ``CLOSED``, this is the reason why.
-    reason: CloseOrConnReason | None = None
-
+    reason: Annotated[OrConnCloseReason | str, Field(union_mode='left_to_right')] | None = None
     #: Counts both established and pending circuits.
-    circuit_count: int | None = None
-
+    circuit_count: NonNegativeInt | None = None
     #: Connection identifier.
     conn_id: int | None = None
 
@@ -911,12 +1002,12 @@ class EventCellStats(EventSimple):
         args_map=(None,),
         kwargs_map={
             'ID': 'circuit',
-            'InboundConn': 'inbound_conn',
+            'InboundConn': 'inbound_conn_id',
             'InboundQueue': 'inbound_queue',
             'InboundAdded': 'inbound_added',
             'InboundRemoved': 'inbound_removed',
             'InboundTime': 'inbound_time',
-            'OutboundConn': 'outbound_conn',
+            'OutboundConn': 'outbound_conn_id',
             'OutboundQueue': 'outbound_queue',
             'OutboundAdded': 'outbound_added',
             'OutboundRemoved': 'outbound_removed',
@@ -932,7 +1023,7 @@ class EventCellStats(EventSimple):
     #: InboundQueue is the identifier of the inbound circuit queue of this circuit.
     inbound_queue: int | None = None
     #: Locally unique IDs of inbound OR connection.
-    inbound_conn: int | None = None
+    inbound_conn_id: int | None = None
     #: Total number of cells by cell type added to inbound queue.
     inbound_added: CellsByType | None = None
     #: Total number of cells by cell type processed from inbound queue.
@@ -943,7 +1034,7 @@ class EventCellStats(EventSimple):
     #: OutboundQueue is the identifier of the outbound circuit queue of this circuit.
     outbound_queue: int | None = None
     #: Locally unique IDs of outbound OR connection.
-    outbound_conn: int | None = None
+    outbound_conn_id: int | None = None
     #: Total number of cells by cell type added to outbound queue.
     outbound_added: CellsByType | None = None
     #: Total number of cells by cell type processed from outbound queue.
@@ -1651,6 +1742,7 @@ _EVENT_MAP = {
     'STATUS_GENERAL': EventStatusGeneral,
     'STATUS_CLIENT': EventStatusClient,
     'STATUS_SERVER': EventStatusServer,
+    'STREAM': EventStream,
     'STREAM_BW': EventStreamBW,
     'TB_EMPTY': EventTbEmpty,
     'TRANSPORT_LAUNCHED': EventTransportLaunched,

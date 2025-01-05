@@ -9,8 +9,11 @@ This package provides many common structures generally used in :class:`.Command`
 :class:`.Reply` or :class:`.Event`.
 
 
-Common classes
---------------
+Enumerations
+------------
+
+These classes are used to enumerate various items such as list of purposes, error reasons,
+available flags, authentication methods, etc...
 
 .. autoclass:: AuthMethod
    :undoc-members:
@@ -32,11 +35,7 @@ Common classes
    :undoc-members:
    :members:
 
-.. autoclass:: CloseOrConnReason
-   :undoc-members:
-   :members:
-
-.. autoclass:: CloseStreamReason
+.. autoclass:: OrConnCloseReason
    :undoc-members:
    :members:
 
@@ -56,7 +55,45 @@ Common classes
    :undoc-members:
    :members:
 
+.. autoclass:: LogSeverity
+   :undoc-members:
+   :members:
+
+.. autoclass:: RemapSource
+   :undoc-members:
+   :members:
+
+.. autoclass:: Signal
+   :undoc-members:
+   :members:
+
+.. autoclass:: StreamClientProtocol
+   :undoc-members:
+   :members:
+
+.. autoclass:: StreamCloseReason
+   :undoc-members:
+   :members:
+
+.. autoclass:: StreamCloseReasonInt
+   :undoc-members:
+   :members:
+
+.. autoclass:: StreamPurpose
+   :undoc-members:
+   :members:
+
+.. autoclass:: StreamStatus
+   :undoc-members:
+   :members:
+
    .. automethod:: __bool__
+
+
+Helper classes
+--------------
+
+These are annotated structures generally built from a single string.
 
 .. autoclass:: LongServerName
    :no-show-inheritance:
@@ -64,11 +101,8 @@ Common classes
    :undoc-members:
    :members:
 
-.. autoclass:: LogSeverity
-   :undoc-members:
-   :members:
-
-.. autoclass:: Signal
+.. autoclass:: StreamTarget
+   :no-show-inheritance:
    :undoc-members:
    :members:
 

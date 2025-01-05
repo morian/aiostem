@@ -25,6 +25,7 @@ from aiostem.event import (
     EventNewDesc,
     EventOrConn,
     EventSignal,
+    EventStream,
     EventStreamBW,
     EventTbEmpty,
     EventUnknown,
@@ -213,7 +214,7 @@ class TestEvents:
         assert isinstance(event, EventCellStats)
         assert event.circuit == 14
         assert event.inbound_queue is None
-        assert event.outbound_conn == 15
+        assert event.outbound_conn_id == 15
         assert event.outbound_queue == 19403
         assert event.outbound_added['create_fast'] == 1
         assert event.outbound_added['relay_early'] == 2
@@ -241,6 +242,44 @@ class TestEvents:
         assert event.last.microseconds == 100000
         assert event.read.microseconds == 0
         assert event.written.microseconds == 0
+
+    async def test_stream_new(self):
+        line = (
+            '650 STREAM 210420 NEW 0 1.1.1.1:53 SOURCE_ADDR=172.18.0.1:54640 '
+            'PURPOSE=USER CLIENT_PROTOCOL=SOCKS4 NYM_EPOCH=16 SESSION_GROUP=-11 '
+            'ISO_FIELDS=SOCKS_USERNAME,SOCKS_PASSWORD,CLIENTADDR,SESSION_GROUP,NYM_EPOCH'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventStream)
+        assert event.status == 'NEW'
+        assert event.stream == 210420
+        assert event.target.host == IPv4Address('1.1.1.1')
+        assert event.target.node is None
+        assert event.target.port == 53
+        assert event.nym_epoch == 16
+        assert event.session_group == -11
+        assert len(event.iso_fields) == 5
+
+    async def test_stream_closed(self):
+        line = (
+            '650 STREAM 210427 CLOSED 282747 '
+            '94.16.31.131.$0B4190C676FAAD34EB2DCB9A288939476CEBCF32.exit:443 '
+            'REASON=END REMOTE_REASON=DONE CLIENT_PROTOCOL=UNKNOWN NYM_EPOCH=0 '
+            'SESSION_GROUP=-2 ISO_FIELDS=SESSION_GROUP'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventStream)
+        assert event.status == 'CLOSED'
+        assert event.stream == 210427
+        assert event.circuit == 282747
+        assert event.target.host == IPv4Address('94.16.31.131')
+        assert event.target.node is not None
+        assert event.target.port == 443
+        assert event.nym_epoch == 0
+        assert event.session_group == -2
+        assert len(event.iso_fields) == 1
 
     async def test_or_conn(self):
         line = (

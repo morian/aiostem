@@ -13,7 +13,6 @@ from .event import EventWord
 from .exceptions import CommandError
 from .structures import (
     CircuitPurpose,
-    CloseStreamReason,
     DescriptorPurpose,
     Feature,
     HiddenServiceAddress,
@@ -28,6 +27,7 @@ from .structures import (
     OnionServiceNewKey,
     OnionServiceNewKeyStruct,
     Signal,
+    StreamCloseReasonInt,
     VirtualPort,
 )
 from .types import AnyHost, AnyPort, Base16Bytes, BoolYesNo
@@ -949,7 +949,7 @@ class CommandCloseStream(Command):
     #: Identifier to the stream to close.
     stream: int
     #: Provide a reason for the stream to be closed.
-    reason: CloseStreamReason
+    reason: StreamCloseReasonInt
 
     def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``CLOSESTREAM`` specific arguments."""

@@ -90,7 +90,6 @@ from .reply import (
 )
 from .structures import (
     CircuitPurpose,
-    CloseStreamReason,
     HiddenServiceAddress,
     HiddenServiceAddressV3,
     HsDescClientAuth,
@@ -100,6 +99,7 @@ from .structures import (
     OnionServiceKeyType,
     OnionServiceNewKeyStruct,
     Signal,
+    StreamCloseReasonInt,
     VirtualPortTarget,
 )
 from .utils import Message, messages_from_stream
@@ -729,7 +729,11 @@ class Controller:
         message = await self.request(command)
         return ReplyCloseCircuit.from_message(message)
 
-    async def close_stream(self, stream: int, reason: CloseStreamReason) -> ReplyCloseStream:
+    async def close_stream(
+        self,
+        stream: int,
+        reason: StreamCloseReasonInt,
+    ) -> ReplyCloseStream:
         """
         Tell the server to close the specified stream.
 

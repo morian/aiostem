@@ -139,36 +139,10 @@ class CircuitPurpose(StrEnum):
     MEASURE_TIMEOUT = 'MEASURE_TIMEOUT'
     #: Path-bias testing circuit.
     PATH_BIAS_TESTING = 'PATH_BIAS_TESTING'
+    #: A controller should never see these, actually.
     SERVER = 'SERVER'
     #: Testing circuit.
     TESTING = 'TESTING'
-
-
-class CloseOrConnReason(StrEnum):
-    """All possible reasons why an OR connection is closed."""
-
-    #: The OR connection has shut down cleanly.
-    DONE = 'DONE'
-    #: We got an ECONNREFUSED while connecting to the target OR.
-    CONNECTREFUSED = 'CONNECTREFUSED'
-    #: We connected to the OR, but found that its identity was not what we expected.
-    IDENTITY = 'IDENTITY'
-    #: We got an ECONNRESET or similar IO error from the connection with the OR.
-    CONNECTRESET = 'CONNECTRESET'
-    #: We got an ETIMEOUT or similar IO error from the connection with the OR.
-    TIMEOUT = 'TIMEOUT'
-    #: We got an ENETUNREACH, EHOSTUNREACH, or similar error while connecting to the OR.
-    NOROUTE = 'NOROUTE'
-    #: We got some other IO error on our connection to the OR.
-    IOERROR = 'IOERROR'
-    #: We don't have enough OS resources (file descriptors, etc.) to connect to the OR.
-    RESOURCELIMIT = 'RESOURCELIMIT'
-    #:  Problem in TLS protocol.
-    TLS_ERROR = 'TLS_ERROR'
-    #: The OR connection closed for some other reason.
-    MISC = 'MISC'
-    #: No pluggable transport was available.
-    PT_MISSING = 'PT_MISSING'
 
 
 @dataclass(kw_only=True, slots=True)
@@ -186,45 +160,6 @@ class ClockSkewSource:
 
     #: Optional address of the source (:obj:`None` with ``CONSENSUS``).
     address: TcpAddressPort | None = None
-
-
-class CloseStreamReason(IntEnum):
-    """
-    All reasons provided to close a stream.
-
-    See Also:
-        https://spec.torproject.org/tor-spec/closing-streams.html#closing-streams
-
-    """
-
-    #: Catch-all for unlisted reasons.
-    MISC = 1
-    #: Couldn't look up hostname.
-    RESOLVEFAILED = 2
-    #: Remote host refused connection.
-    CONNECTREFUSED = 3
-    #: Relay refuses to connect to host or port.
-    EXITPOLICY = 4
-    #: Circuit is being destroyed.
-    DESTROY = 5
-    #: Anonymized TCP connection was closed.
-    DONE = 6
-    #: Anonymized TCP connection was closed while connecting.
-    TIMEOUT = 7
-    #: Routing error while attempting to contact destination.
-    NOROUTE = 8
-    #: Relay is temporarily hibernating.
-    HIBERNATING = 9
-    #: Internal error at the relay.
-    INTERNAL = 10
-    #: Relay has no resources to fulfill request.
-    RESOURCELIMIT = 11
-    #: Connection was unexpectedly reset.
-    CONNRESET = 12
-    #: Sent when closing connection because of Tor protocol violations.
-    TORPROTOCOL = 13
-    #: Client sent ``RELAY_BEGIN_DIR`` to a non-directory relay.
-    NOTDIRECTORY = 14
 
 
 class DescriptorPurpose(StrEnum):
@@ -245,7 +180,7 @@ class Feature(StrEnum):
 
 
 class GuardEventStatus(StrEnum):
-    """Possible statuses for a :attr:`~EventWord.GUARD` event."""
+    """Possible statuses for a :attr:`~.EventWord.GUARD` event."""
 
     #: This node was not previously used as a guard.
     #:
@@ -758,6 +693,33 @@ class OnionRouterConnStatus(StrEnum):
     FAILED = 'FAILED'
     #: The OR connection closed in an unremarkable way.
     CLOSED = 'CLOSED'
+
+
+class OrConnCloseReason(StrEnum):
+    """All possible reasons why an OR connection is closed."""
+
+    #: The OR connection has shut down cleanly.
+    DONE = 'DONE'
+    #: We got an ECONNREFUSED while connecting to the target OR.
+    CONNECTREFUSED = 'CONNECTREFUSED'
+    #: We connected to the OR, but found that its identity was not what we expected.
+    IDENTITY = 'IDENTITY'
+    #: We got an ECONNRESET or similar IO error from the connection with the OR.
+    CONNECTRESET = 'CONNECTRESET'
+    #: We got an ETIMEOUT or similar IO error from the connection with the OR.
+    TIMEOUT = 'TIMEOUT'
+    #: We got an ENETUNREACH, EHOSTUNREACH, or similar error while connecting to the OR.
+    NOROUTE = 'NOROUTE'
+    #: We got some other IO error on our connection to the OR.
+    IOERROR = 'IOERROR'
+    #: We don't have enough OS resources (file descriptors, etc.) to connect to the OR.
+    RESOURCELIMIT = 'RESOURCELIMIT'
+    #:  Problem in TLS protocol.
+    TLS_ERROR = 'TLS_ERROR'
+    #: The OR connection closed for some other reason.
+    MISC = 'MISC'
+    #: No pluggable transport was available.
+    PT_MISSING = 'PT_MISSING'
 
 
 def _discriminate_client_auth_private_key(v: Any) -> str | None:
@@ -1324,6 +1286,15 @@ class ExternalAddressResolveMethod(StrEnum):
     RESOLVED = 'RESOLVED'
 
 
+class RemapSource(StrEnum):
+    """All known remapping sources."""
+
+    #: Tor client decided to remap the address because of a cached answer.
+    CACHE = 'CACHE'
+    #: The remote node we queried gave us the new address as a response.
+    EXIT = 'EXIT'
+
+
 @dataclass(kw_only=True, slots=True)
 class ReplyDataMapAddressItem:
     """
@@ -1514,6 +1485,243 @@ class StatusServerHibernationStatus:
     status: Literal['AWAKE', 'SOFT', 'HARD']
 
 
+class StreamClientProtocol(StrEnum):
+    """All known client protocols for a stream."""
+
+    #: Connecting using SocksV4.
+    SOCKS4 = 'SOCKS4'
+    #: Connecting using SocksV5.
+    SOCKS5 = 'SOCKS5'
+    #: Transparent connections redirected by pf or netfilter.
+    TRANS = 'TRANS'
+    #: Transparent connections redirected by natd.
+    NATD = 'NATD'
+    #: DNS requests.
+    DNS = 'DNS'
+    #: HTTP CONNECT tunnel connections.
+    HTTPCONNECT = 'HTTPCONNECT'
+    #: Metrics query connections.
+    METRICS = 'METRICS'
+    #: Unknown client protocol type.
+    UNKNOWN = 'UNKNOWN'
+
+
+class StreamCloseReason(StrEnum):
+    """
+    All reasons provided to close a stream (as a string).
+
+    See Also:
+        https://spec.torproject.org/tor-spec/closing-streams.html#closing-streams
+
+    """
+
+    #: Catch-all for unlisted reasons.
+    MISC = 'MISC'
+    #: Couldn't look up hostname.
+    RESOLVEFAILED = 'RESOLVEFAILED'
+    #: Remote host refused connection.
+    CONNECTREFUSED = 'CONNECTREFUSED'
+    #: Relay refuses to connect to host or port.
+    EXITPOLICY = 'EXITPOLICY'
+    #: Circuit is being destroyed.
+    DESTROY = 'DESTROY'
+    #: Anonymized TCP connection was closed.
+    DONE = 'DONE'
+    #: Anonymized TCP connection was closed while connecting.
+    TIMEOUT = 'TIMEOUT'
+    #: Routing error while attempting to contact destination.
+    NOROUTE = 'NOROUTE'
+    #: Relay is temporarily hibernating.
+    HIBERNATING = 'HIBERNATING'
+    #: Internal error at the relay.
+    INTERNAL = 'INTERNAL'
+    #: Relay has no resources to fulfill request.
+    RESOURCELIMIT = 'RESOURCELIMIT'
+    #: Connection was unexpectedly reset.
+    CONNRESET = 'CONNRESET'
+    #: Sent when closing connection because of Tor protocol violations.
+    TORPROTOCOL = 'TORPROTOCOL'
+    #: Client sent ``RELAY_BEGIN_DIR`` to a non-directory relay.
+    NOTDIRECTORY = 'NOTDIRECTORY'
+
+    #: The client tried to connect to a private address like 127.0.0.1 or 10.0.0.1 over Tor.
+    PRIVATE_ADDR = 'PRIVATE_ADDR'
+    #: We received a RELAY_END message from the other side of this stream.
+    END = 'END'
+
+
+class StreamCloseReasonInt(IntEnum):
+    """
+    All reasons provided to close a stream.
+
+    See Also:
+        https://spec.torproject.org/tor-spec/closing-streams.html#closing-streams
+
+    """
+
+    #: Catch-all for unlisted reasons.
+    MISC = 1
+    #: Couldn't look up hostname.
+    RESOLVEFAILED = 2
+    #: Remote host refused connection.
+    CONNECTREFUSED = 3
+    #: Relay refuses to connect to host or port.
+    EXITPOLICY = 4
+    #: Circuit is being destroyed.
+    DESTROY = 5
+    #: Anonymized TCP connection was closed.
+    DONE = 6
+    #: Anonymized TCP connection was closed while connecting.
+    TIMEOUT = 7
+    #: Routing error while attempting to contact destination.
+    NOROUTE = 8
+    #: Relay is temporarily hibernating.
+    HIBERNATING = 9
+    #: Internal error at the relay.
+    INTERNAL = 10
+    #: Relay has no resources to fulfill request.
+    RESOURCELIMIT = 11
+    #: Connection was unexpectedly reset.
+    CONNRESET = 12
+    #: Sent when closing connection because of Tor protocol violations.
+    TORPROTOCOL = 13
+    #: Client sent ``RELAY_BEGIN_DIR`` to a non-directory relay.
+    NOTDIRECTORY = 14
+
+
+class StreamPurpose(StrEnum):
+    """All known purposes for a stream."""
+
+    #: This stream is generated internally to Tor for fetching directory information.
+    DIR_FETCH = 'DIR_FETCH'
+    #: An internal stream for uploading information to a directory authority.
+    DIR_UPLOAD = 'DIR_UPLOAD'
+    #: A stream we're using to test our own directory port to make sure it's reachable.
+    DIRPORT_TEST = 'DIRPORT_TEST'
+    #: A user-initiated DNS request.
+    DNS_REQUEST = 'DNS_REQUEST'
+    #: This stream is handling user traffic.
+    #:
+    #: I can also be internal to Tor, but it doesn't match one of the other purposes.
+    USER = 'USER'
+
+
+class StreamStatus(StrEnum):
+    """All possible statuses for a stream."""
+
+    #: New request to connect.
+    NEW = 'NEW'
+    #: New request to resolve an address.
+    NEWRESOLVE = 'NEWRESOLVE'
+    #: Address re-mapped to another.
+    REMAP = 'REMAP'
+    #: Sent a connect message along a circuit.
+    SENTCONNECT = 'SENTCONNECT'
+    #: Sent a resolve message along a circuit.
+    SENTRESOLVE = 'SENTRESOLVE'
+    #: Received a reply; stream established.
+    SUCCEEDED = 'SUCCEEDED'
+    #: Stream failed and not retriable.
+    FAILED = 'FAILED'
+    #: Stream closed.
+    CLOSED = 'CLOSED'
+    #: Detached from circuit; still retriable.
+    DETACHED = 'DETACHED'
+    #: Waiting for controller to use ATTACHSTREAM.
+    CONTROLLER_WAIT = 'CONTROLLER_WAIT'
+    #: XOFF has been sent for this stream.
+    XOFF_SENT = 'XOFF_SENT'
+    #: XOFF has been received for this stream.
+    XOFF_RECV = 'XOFF_RECV'
+    #: XON has been sent for this stream.
+    XON_SENT = 'XON_SENT'
+    #: XON has been received for this stream.
+    XON_RECV = 'XON_RECV'
+
+
+@dataclass(frozen=True, slots=True)
+class StreamTarget:
+    """Describe the target of a stream."""
+
+    #: Target server for the stream.
+    host: AnyAddress | str
+    #: Exit node (if any).
+    node: LongServerName | None
+    #: Target port.
+    port: AnyPort
+
+    def __str__(self) -> str:
+        """Get the string representation of this connection."""
+        host = str(self.host)
+        if isinstance(self.host, IPv6Address):
+            host = f'[{host}]'
+
+        suffix = ''
+        if isinstance(self.node, LongServerName):
+            fphex = self.node.fingerprint.hex().upper()
+            suffix = f'.${fphex}.exit'
+
+        return f'{host}{suffix}:{self.port:d}'
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Declare schema and validator for a stream target."""
+        return core_schema.no_info_before_validator_function(
+            function=cls._pydantic_validator,
+            schema=handler(source),
+            serialization=core_schema.to_string_ser_schema(when_used='always'),
+        )
+
+    @classmethod
+    def _pydantic_validator(cls, value: Any) -> Any:
+        """
+        Build a new instance from a single string.
+
+        Note:
+            This parsing results from ``write_stream_target_to_buf`` in Tor.
+
+        Returns:
+            An instance of this class properly parsed from the provided string value.
+
+        """
+        if isinstance(value, str):
+            host: AnyAddress | LongServerName | str
+            node = None  # type: LongServerName | None
+
+            if '.exit:' in value:
+                # This is an exit node, extract the fingerprint form the IP address.
+                if value.startswith('['):
+                    ipv6, suffix = value[1:].split('].$', maxsplit=1)
+                    fphex, port = suffix.split(':', maxsplit=1)
+                    fphex = fphex.removesuffix('.exit')
+                    node = LongServerName(fingerprint=bytes.fromhex(fphex))
+                    host = IPv6Address(ipv6)
+                else:
+                    str_host, port = value.split(':', maxsplit=1)
+                    ipv4, fphex = str_host.removesuffix('.exit').split('.$', maxsplit=1)
+                    node = LongServerName(fingerprint=bytes.fromhex(fphex))
+                    host = IPv4Address(ipv4)
+            else:
+                if value.startswith('['):
+                    str_host, port = value.removeprefix('[').split(']:', maxsplit=1)
+                    host = IPv6Address(str_host)
+                else:
+                    str_host, port = value.split(':', maxsplit=1)
+                    try:
+                        host = IPv4Address(str_host)
+                    except ValueError:
+                        # In the end it turns out it was just a domain name.
+                        host = str_host
+
+            value = cls(host=host, node=node, port=int(port))
+
+        return value
+
+
 @dataclass(frozen=True, slots=True)
 class TcpAddressPort:
     """Describe a TCP target with a host and a port."""
@@ -1551,7 +1759,7 @@ class TcpAddressPort:
         Build a new instance from a single string.
 
         Returns:
-            An instance of this class properly parsed from the provided string.
+            An instance of this class properly parsed from the provided string value.
 
         """
         if isinstance(value, str):

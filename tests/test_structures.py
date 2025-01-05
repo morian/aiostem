@@ -26,6 +26,7 @@ from aiostem.structures import (
     OnionClientAuthKey,
     OnionServiceKey,
     OnionServiceKeyStruct,
+    StreamTarget,
     TcpAddressPort,
 )
 from aiostem.utils import TrEd25519PrivateKey
@@ -282,6 +283,55 @@ class TestTcpAddressPort:
         target = TcpAddressPort(host=host, port=port)
         serial = self.ADAPTER.dump_python(target)
         assert serial == string
+
+
+class TestStreamTarget:
+    ADAPTER = TypeAdapter(StreamTarget)
+
+    def test_ipv4_port(self):
+        line = '127.0.0.1:53'
+        target = self.ADAPTER.validate_python(line)
+        assert target.host == IPv4Address('127.0.0.1')
+        assert target.node is None
+        assert target.port == 53
+        assert str(target) == line
+
+        # Check that the target can be provided again and this is valid.
+        assert self.ADAPTER.validate_python(target) == target
+
+    def test_ipv6_port(self):
+        line = '[::1]:443'
+        target = self.ADAPTER.validate_python(line)
+        assert target.host == IPv6Address('::1')
+        assert target.node is None
+        assert target.port == 443
+        assert str(target) == line
+
+    def test_domain_port(self):
+        line = 'www.torproject.org:443'
+        target = self.ADAPTER.validate_python(line)
+        assert target.host == 'www.torproject.org'
+        assert target.node is None
+        assert target.port == 443
+        assert str(target) == line
+
+    def test_ipv4_exit_node(self):
+        fphex = '3629DC5393D25D9588F2D613CF4185A98E405C1BFAC747F75A4B4619F47CAEA7'
+        line = f'1.1.1.1.${fphex}.exit:443'
+        target = self.ADAPTER.validate_python(line)
+        assert target.host == IPv4Address('1.1.1.1')
+        assert target.node.fingerprint.hex().upper() == fphex
+        assert target.port == 443
+        assert str(target) == line
+
+    def test_ipv6_exit_node(self):
+        fphex = '3629DC5393D25D9588F2D613CF4185A98E405C1BFAC747F75A4B4619F47CAEA7'
+        line = f'[::1].${fphex}.exit:443'
+        target = self.ADAPTER.validate_python(line)
+        assert target.host == IPv6Address('::1')
+        assert target.node.fingerprint.hex().upper() == fphex
+        assert target.port == 443
+        assert str(target) == line
 
 
 class TestOnionClientAuthKey:
