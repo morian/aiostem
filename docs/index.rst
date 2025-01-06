@@ -3,5 +3,6 @@
 .. toctree::
    :hidden:
 
+   tutorial/index
    reference/index
    about/index

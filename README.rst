@@ -21,30 +21,34 @@ community-maintained `stem`_ controller.
 Why should we have another library?
 -----------------------------------
 
-``Stem`` is not meant to be used in asynchronous python and the (today) unreleased patches
-does not seem to really implement the core protocol in an asynchronous fashion.
-Instead it seems to communicate with a synchronous instance spawned in another thread.
+``Stem`` was not meant to be used with asynchronous python and despite `an attempt`_
+to provide this feature, it has `never really worked`_ well and was never merged.
+Additionally it does not use a true asynchronous connection but instead uses
+worker threads in order not to break existing codes.
 
-The initial goal of ``aiostem`` is to offer better support for events, as there can be many
-of them coming at a high rate. Moreover, I feel like `stem`_ has become too complex and
-too bloated with legacy support, while Tor ``v0.4.x`` is out for many years now.
+.. _an attempt: https://gitlab.torproject.org/legacy/trac/-/issues/22627
+.. _never really worked: https://github.com/torproject/stem/issues/77
 
-This is also why this library can only connect to ``Tor v0.4.5`` and later.
+The initial goal of ``aiostem`` was to offer better support for events, as there can be many
+of them coming at a high rate and I noticed that ``stem`` quickly ran into deadlocks and high
+CPU usage. Moreover, I feel like `stem`_ has become too complex and bloated with legacy support,
+both for a large range of Python versions and support for older versions of Tor.
 
-
-Current development status
---------------------------
-
-All commands and replies were implemented from the protocol point of view, but only a few
-events are currently parsed appropriately. There is still work in progress on this side.
+``Tor v0.4.x`` has been released for many years now, therefore ``aiostem`` focuses the support for 
+``Tor v0.4.5`` and later, as well as Python 3.11 and later.
 
 
 Installation
 ------------
 
-This package requires Python ≥ 3.11 and pulls a few other packages as dependencies.
+This package requires Python ≥ 3.11 and pulls a few other packages as dependencies
+such as pydantic_ for serialization, deserialization and validation of received data,
+and cryptography_ to deal with the various keys used by Tor.
 
 To install the latest version use the following command:
+
+.. _cryptography: https://github.com/pyca/cryptography
+.. _pydantic: https://github.com/pydantic/pydantic
 
 .. code-block:: console
 
@@ -58,6 +62,8 @@ This simple example shows how to use the controller in asynchronous python.
 No extra thread is involved here, everything runs in the event loop.
 
 .. code-block:: python
+
+   #!/usr/bin/env python
 
    import asyncio
    from aiostem import Controller
@@ -86,3 +92,25 @@ No extra thread is involved here, everything runs in the event loop.
 
    if __name__ == '__main__':
        asyncio.run(main())
+
+For further details, please refer to the documentation_.
+
+.. _documentation: https://aiostem.readthedocs.io/en/latest/
+
+
+Contributing
+------------
+
+Contributions, bug reports and feedbacks are very welcome, feel free to open
+an issue_, send a `pull request`_. or `start a discussion`_.
+
+Participants must uphold the `code of conduct`_.
+
+.. _issue: https://github.com/morian/aiostem/issues/new
+.. _pull request: https://github.com/morian/aiostem/compare/
+.. _start a discussion: https://github.com/morian/aiostem/discussions
+.. _code of conduct: https://github.com/morian/aiostem/blob/master/CODE_OF_CONDUCT.md
+
+``aiostem`` is released under the `MIT license`_.
+
+.. _MIT license: https://github.com/morian/aiostem/blob/master/LICENSE

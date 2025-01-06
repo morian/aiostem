@@ -13,14 +13,15 @@ The format is based on `Keep a Changelog`_ and this project adheres to `Semantic
 
 This is a major rework of this library as the whole underlying implementation has changed.
 All internal helpers were moved to `aiostem.utils` and were re-implemented, using pydantic_
-for type conversion and data validation.
+for serialization, deserialization and data validation.
 
 This refactoring breaks all previous APIs although the `Controller` stays quite familiar.
 
 Added
 -----
-- Added a preliminary sphinx documentation
+- Added complete sphinx documentation
 - Added support for Python 3.13
+- First public release (both on Github and Pypi).
 - Many docstrings for all common APIs
 
 Changed
