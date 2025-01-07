@@ -47,4 +47,5 @@ Tutorial
 .. toctree::
 
    connect
+   authenticate
 
