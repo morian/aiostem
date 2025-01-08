@@ -10,9 +10,11 @@ async def main():
 
     print(f'[>] Connecting to {host} on port {port}')
     async with Controller.from_port(host, int(port)) as ctrl:
-        reply = await ctrl.protocol_info()
+        reply = await ctrl.authenticate()
         reply.raise_for_status()
-        print(f'[+] Connected to Tor v{reply.data.tor_version}')
+
+        print('[+] Authentication successful!')
 
 if __name__ == '__main__':
     asyncio.run(main())
+

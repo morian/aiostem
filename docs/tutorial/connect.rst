@@ -5,7 +5,7 @@
 
 There are several ways to connect to Tor's control port, depending on the daemon configuration.
 Tor configuration is out of this scope, to find out how to configure the control port, please
-have a look at the `torrc manpage`_ and specifically the ``ControlPort`` option.
+take a look at the `torrc manpage`_ and specifically the ``ControlPort`` option.
 
 .. _torrc manpage: https://manpages.debian.org/bookworm/tor/torrc.5.en.html
 
