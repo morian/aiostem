@@ -81,8 +81,7 @@ class TestEvents:
 
     async def test_guard(self):
         line = (
-            '650 GUARD ENTRY '
-            '$669E9D3CF2C1BF3A9E7A0B7FD89F8B4B5E1EF516~PalestineWillBeFree NEW'
+            '650 GUARD ENTRY $669E9D3CF2C1BF3A9E7A0B7FD89F8B4B5E1EF516~PalestineWillBeFree NEW'
         )
         message = await create_message([line])
         event = event_from_message(message)
@@ -508,8 +507,7 @@ class TestEvents:
 
     async def test_status_pt_log(self):
         line = (
-            '650 PT_LOG PT=/usr/bin/obs4proxy SEVERITY=debug '
-            'MESSAGE="Connected to bridge A"'
+            '650 PT_LOG PT=/usr/bin/obs4proxy SEVERITY=debug MESSAGE="Connected to bridge A"'
         )
         message = await create_message([line])
         event = event_from_message(message)
