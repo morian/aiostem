@@ -272,9 +272,9 @@ class TestReplies:
         assert reply.data.server_nonce == bytes.fromhex(server_nonce)
 
         cookie = b'e8a05005deb487f5d9a0db9a026d28ad'
-        with pytest.raises(ReplyError, match='No client_nonce was found or provided.'):
+        with pytest.raises(ReplyError, match='No client_nonce was found or provided'):
             reply.build_client_hash(cookie)
-        with pytest.raises(ReplyError, match='No client_nonce was found or provided.'):
+        with pytest.raises(ReplyError, match='No client_nonce was found or provided'):
             reply.build_server_hash(cookie)
 
     async def test_auth_challenge_syntax_error(self):
@@ -288,9 +288,9 @@ class TestReplies:
 
         cookie = b'e8a05005deb487f5d9a0db9a026d28ad'
         nonce = 'I am a nonce!'
-        with pytest.raises(ReplyError, match='No server_nonce has been set.'):
+        with pytest.raises(ReplyError, match='No server_nonce has been set'):
             reply.build_client_hash(cookie, nonce)
-        with pytest.raises(ReplyError, match='No server_nonce has been set.'):
+        with pytest.raises(ReplyError, match='No server_nonce has been set'):
             reply.build_server_hash(cookie, nonce)
 
     async def test_auth_challenge_error(self):

@@ -89,5 +89,5 @@ class TestArgument:
             str(arg)
 
     def test_keyword_key_and_value_none(self):
-        with pytest.raises(CommandError, match='Both key and value cannot be None.'):
+        with pytest.raises(CommandError, match='Both key and value cannot be None'):
             ArgumentKeyword(None, None)

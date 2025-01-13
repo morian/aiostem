@@ -416,7 +416,7 @@ class HiddenServiceAddressV3(BaseHiddenServiceAddress):
 
         raise PydanticCustomError(
             'invalid_onion_v3',
-            'Invalid v3 hidden service address: "{address}"',
+            f'Invalid v3 hidden service address: "{address}"',
             {'address': address},
         )
 

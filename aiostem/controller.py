@@ -498,8 +498,8 @@ class Controller:
                 raise ControllerError(msg)
 
             # Casts are valid here since we check `self.connected`.
-            replies = cast(asyncio.Queue[Message | None], self._replies)
-            writer = cast(asyncio.StreamWriter, self._writer)
+            replies = cast('asyncio.Queue[Message | None]', self._replies)
+            writer = cast('asyncio.StreamWriter', self._writer)
 
             frame = command.serialize()
             writer.write(frame.encode('ascii'))

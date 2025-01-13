@@ -169,7 +169,7 @@ class TestReplySyntax:
             flags=ReplySyntaxFlag.KW_ENABLE,
         )
         message = Message(status=250, header='KEY="Hello word"')
-        with pytest.raises(ReplySyntaxError, match='Got an unexpected quoted value.'):
+        with pytest.raises(ReplySyntaxError, match='Got an unexpected quoted value'):
             syntax.parse(message)
 
     def test_bad_parse_no_omit_vals(self):

@@ -395,7 +395,7 @@ class TestTrRSAPrivateKey:
 
     def test_using_ed25519_private_key(self):
         key = 'MC4CAQAwBQYDK2VwBCIEIOt6WDTJqbRry3WJ30ZNynCPwLaFQ114NaYr3spHpvVi'
-        with pytest.raises(TypeError, match='Loaded key is not a valid RSA private key.'):
+        with pytest.raises(TypeError, match='Loaded key is not a valid RSA private key'):
             self.ADAPTER_ENC.validate_python(key)
 
 
@@ -439,7 +439,7 @@ class TestTrRSAPublicKey:
 
     def test_using_ed25519_private_key(self):
         key = 'MCowBQYDK2VwAyEA5AcvvI6f7k6+VGVxr9KLRrjoHE9CZQGDSj5XnAXDUeY'
-        with pytest.raises(TypeError, match='Loaded key is not a valid RSA public key.'):
+        with pytest.raises(TypeError, match='Loaded key is not a valid RSA public key'):
             self.ADAPTER_ENC.validate_python(key)
 
 

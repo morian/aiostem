@@ -133,7 +133,7 @@ class TestController:
     @pytest.mark.timeout(2)
     async def test_cmd_auth_challenge(self, controller_unauth):
         res = await controller_unauth.auth_challenge(b'NOT A TOKEN')
-        with pytest.raises(ReplyError, match='Server hash provided by Tor is invalid.'):
+        with pytest.raises(ReplyError, match='Server hash provided by Tor is invalid'):
             res.raise_for_server_hash_error(b'THIS IS A COOKIE')
 
         token = res.build_client_hash(b'THIS IS A COOKIE')
@@ -446,7 +446,7 @@ class TestControllerEvents:
 
     async def test_cmd_add_event_handler_error(self, controller):
         controller.error_on_set_events = True
-        with pytest.raises(ReplyStatusError, match='Triggered by PyTest.'):
+        with pytest.raises(ReplyStatusError, match='Triggered by PyTest'):
             await controller.add_event_handler('STATUS_CLIENT', lambda: None)
         assert len(controller.event_handlers) == 0
 
@@ -459,7 +459,7 @@ class TestControllerEvents:
 
         controller.error_on_set_events = True
 
-        with pytest.raises(ReplyStatusError, match='Triggered by PyTest.'):
+        with pytest.raises(ReplyStatusError, match='Triggered by PyTest'):
             await controller.del_event_handler('STATUS_CLIENT', callback)
         assert len(controller.event_handlers) == 1
 
