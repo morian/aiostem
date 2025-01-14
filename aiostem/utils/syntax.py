@@ -206,15 +206,15 @@ class ReplySyntax:
 
             if not omit_vals:
                 if len(string):
-                    if string[0] == '"':
+                    if self.flags & ReplySyntaxFlag.KW_RAW:
+                        val = string
+                        string = ''
+                    elif string[0] == '"':
                         if not (self.flags & ReplySyntaxFlag.KW_QUOTED):
                             msg = 'Got an unexpected quoted value.'
                             raise ReplySyntaxError(msg)
 
                         val, string = _string_unescape(string)
-                    elif self.flags & ReplySyntaxFlag.KW_RAW:
-                        val = string
-                        string = ''
                     else:
                         idx = _string_indexof(string, ' \t\r\v\n')
                         val = string[:idx]
