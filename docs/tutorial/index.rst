@@ -48,4 +48,5 @@ Tutorial
 
    connect
    authenticate
+   commands
 
