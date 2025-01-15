@@ -1,5 +1,5 @@
-03. Run commands
-================
+03. Commands
+============
 
 .. currentmodule:: aiostem
 

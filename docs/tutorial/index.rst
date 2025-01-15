@@ -49,4 +49,6 @@ Tutorial
    connect
    authenticate
    commands
+   events
+   monitor
 

@@ -380,6 +380,7 @@ class EventAddrMap(EventSimple):
         args_map=(None, 'original', 'replacement'),
         kwargs_map={
             None: 'expires_local',
+            'error': 'error',
             'EXPIRES': 'expires',
             'CACHED': 'cached',
             'STREAMID': 'stream',

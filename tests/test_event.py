@@ -551,6 +551,7 @@ class TestEvents:
         assert event.expires.tzinfo == UTC
         assert event.stream == 110330
         assert event.cached is False
+        assert event.error == 'yes'
 
     async def test_addr_map_permanent(self):
         line = '650 ADDRMAP dns.google 8.8.8.8 NEVER CACHED="YES"'
