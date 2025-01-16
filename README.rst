@@ -55,43 +55,61 @@ To install the latest version use the following command:
    python -m pip install aiostem
 
 
-Use example
------------
+Usage
+-----
 
 This simple example shows how to use the controller in asynchronous python.
 No extra thread is involved here, everything runs in the event loop.
+
+It shows how to open a controller, authenticate, subscribe to an event, run a
+command and wait for the DNS resolution event to complete.
 
 .. code-block:: python
 
    #!/usr/bin/env python
 
    import asyncio
+   from functools import partial
    from aiostem import Controller
+   from aiostem.event import EventAddrMap
 
-   async def on_hs_desc_content(event):
-       print(event.address)
-       print(event.descriptor)
+   def on_addrmap_event(done, event):
+       if isinstance(event, EventAddrMap):
+           print(f'{event.original} is at {event.replacement}')
+           done.set()
 
    async def main():
+       # Simple asyncio event to exit when the event has been received.
+       done = asyncio.Event()
+
        # Create a new controller with the default port (9051).
-       async with Controller.from_port() as controller:
-           # Authenticate automatically with a secure method.
-           await controller.authenticate()
+       async with Controller.from_port() as ctrl:
+           # Authenticate automatically with a secure method (on localhost only).
+           reply = await ctrl.authenticate()
+           reply.raise_for_status()
 
-           # Be notified when hidden service descriptor content is available.
-           await controller.add_event_handler('HS_DESC_CONTENT', on_hs_desc_content)
+           # Register a callback for ``ADDRMAP`` events.
+           await ctrl.add_event_handler('ADDRMAP', partial(on_addrmap_event, done))
 
-           # Request a new identity from the controller (this flushes caches).
-           await controller.signal('NEWNYM')
+           # Request DNS resolution for ``github.com``.
+           # The output here is received as an ``ADDRMAP`` event.
+           reply = await ctrl.resolve(['github.com'])
+           reply.raise_for_status()
 
-           # Perform a descriptor request for this onion domain.
-           await controller.hs_fetch('reconponydonugup.onion')
-
-           # Wait a little bit until the descriptor is fetched.
-           await asyncio.sleep(10)
+           # Wait until the address is resolved.
+           await done.wait()
 
    if __name__ == '__main__':
        asyncio.run(main())
+
+
+This code, when executed displays the following output:
+
+.. code-block:: console
+
+   $ python examples/usage.py
+   github.com is at 140.82.121.4
+
 
 For further details, please refer to the documentation_.
 
