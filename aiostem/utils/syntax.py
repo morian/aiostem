@@ -109,6 +109,8 @@ class ReplySyntax:
         - :attr:`args_max` is set to ``max(args_max, len(args_map))``.
         - :attr:`args_min` cannot be greater than :attr:`args_max`.
         - :attr:`kwargs_map` must be empty when :data:`~ReplySyntaxFlag.KW_ENABLE` is not set.
+        - :attr:`args_min` must be equal to :attr:`args_max` when
+          :data:`~ReplySyntaxFlag.KW_ENABLE` is set.
         - :data:`~ReplySyntaxFlag.POS_REMAIN` is mutually exclusive with
           :data:`~ReplySyntaxFlag.KW_ENABLE`.
         - :data:`~ReplySyntaxFlag.KW_QUOTED` is mutually exclusive with
@@ -138,6 +140,10 @@ class ReplySyntax:
 
         if len(self.kwargs_map) and not (self.flags & ReplySyntaxFlag.KW_ENABLE):
             msg = 'Keywords are disabled but we found items in its map.'
+            raise RuntimeError(msg)
+
+        if self.args_min < args_max and (self.flags & ReplySyntaxFlag.KW_ENABLE):
+            msg = 'Cannot have optional argument along with keyword arguments.'
             raise RuntimeError(msg)
 
         # Cannot capture positional remains and enable KW flags

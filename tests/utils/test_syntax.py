@@ -47,6 +47,7 @@ class TestReplySyntax:
 
     def test_keyword(self):
         syntax = ReplySyntax(
+            args_min=1,
             args_map=['positional'],
             kwargs_map={'ControlPort': 'control_port'},
             flags=ReplySyntaxFlag.KW_ENABLE,
@@ -186,14 +187,28 @@ class TestReplySyntax:
 
     def test_bad_syntax_min_max(self):
         with pytest.raises(RuntimeError, match='Minimum argument count is greater'):
-            ReplySyntax(args_min=2, args_map=['version'])
+            ReplySyntax(
+                args_min=2,
+                args_map=['version'],
+            )
+
+    def test_bad_syntax_opt_arg_with_kwarg(self):
+        msg = 'Cannot have optional argument along with keyword arguments'
+        with pytest.raises(RuntimeError, match=msg):
+            ReplySyntax(
+                args_min=0,
+                args_map=['version'],
+                flags=ReplySyntaxFlag.KW_ENABLE,
+            )
 
     def test_bad_syntax_remain_vs_kw(self):
-        with pytest.raises(RuntimeError, match='Positional remain and keywords are mutually'):
+        msg = 'Positional remain and keywords are mutually exclusive'
+        with pytest.raises(RuntimeError, match=msg):
             ReplySyntax(flags=ReplySyntaxFlag.POS_REMAIN | ReplySyntaxFlag.KW_ENABLE)
 
     def test_bad_syntax_keys_vs_vals(self):
-        with pytest.raises(RuntimeError, match='KW_OMIT_KEYS and KW_OMIT_VALS are mutually'):
+        msg = 'KW_OMIT_KEYS and KW_OMIT_VALS are mutually exclusive'
+        with pytest.raises(RuntimeError, match=msg):
             ReplySyntax(flags=ReplySyntaxFlag.KW_OMIT_KEYS | ReplySyntaxFlag.KW_OMIT_VALS)
 
     def test_bad_syntax_raw_vs_quoted(self):

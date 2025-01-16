@@ -529,6 +529,7 @@ class ReplyAuthChallenge(Reply):
         b'Tor safe cookie authentication server-to-controller hash'
     )
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
+        args_min=1,
         args_map=(None,),
         kwargs_map={
             'SERVERHASH': 'server_hash',

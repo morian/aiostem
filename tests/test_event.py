@@ -177,6 +177,17 @@ class TestEvents:
         assert event.event == CircuitEvent.PURPOSE_CHANGED
         assert len(event.path) == 3
 
+    async def test_circ_minor_no_path(self):
+        line = (
+            '650 CIRC_MINOR 27329 PURPOSE_CHANGED '
+            'BUILD_FLAGS=NEED_CAPACITY,NEED_UPTIME PURPOSE=MEASURE_TIMEOUT '
+            'TIME_CREATED=2025-01-16T17:55:02.368535 OLD_PURPOSE=CONFLUX_UNLINKED'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventCircMinor)
+        assert event.path is None
+
     async def test_conn_bw(self):
         line = '650 CONN_BW ID=123 TYPE=EXIT READ=234 WRITTEN=345'
         message = await create_message([line])

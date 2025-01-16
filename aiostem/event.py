@@ -376,7 +376,7 @@ class EventAddrMap(EventSimple):
     """
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
-        args_min=2,
+        args_min=3,
         args_map=(None, 'original', 'replacement'),
         kwargs_map={
             None: 'expires_local',
@@ -854,7 +854,7 @@ class EventBuildTimeoutSet(EventSimple):
     """
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
-        args_min=1,
+        args_min=2,
         args_map=(None, 'kind'),
         kwargs_map={
             'TOTAL_TIMES': 'total_times',
@@ -1010,8 +1010,9 @@ class EventCircMinor(EventSimple):
 
     SYNTAX = ReplySyntax(
         args_min=3,
-        args_map=(None, 'circuit', 'event', 'path'),
+        args_map=(None, 'circuit', 'event'),
         kwargs_map={
+            None: 'path',
             'BUILD_FLAGS': 'build_flags',
             'HS_STATE': 'hs_state',
             'PURPOSE': 'purpose',
@@ -1020,7 +1021,7 @@ class EventCircMinor(EventSimple):
             'OLD_HS_STATE': 'old_hs_state',
             'OLD_PURPOSE': 'old_purpose',
         },
-        flags=ReplySyntaxFlag.KW_ENABLE,
+        flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_OMIT_KEYS,
     )
     TYPE = EventWord.CIRC_MINOR
 
@@ -1267,13 +1268,14 @@ class EventHsDesc(EventSimple):
 
     SYNTAX = ReplySyntax(
         args_min=5,
-        args_map=(None, 'action', 'address', 'auth_type', 'hs_dir', 'descriptor_id'),
+        args_map=(None, 'action', 'address', 'auth_type', 'hs_dir'),
         kwargs_map={
+            None: 'descriptor_id',
             'REASON': 'reason',
             'REPLICA': 'replica',
             'HSDIR_INDEX': 'hs_dir_index',
         },
-        flags=ReplySyntaxFlag.KW_ENABLE,
+        flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_OMIT_KEYS,
     )
     TYPE = EventWord.HS_DESC
 
