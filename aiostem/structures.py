@@ -1020,6 +1020,39 @@ OnionServiceKey: TypeAlias = Annotated[
 ]
 
 
+@dataclass(kw_only=True, slots=True)
+class PortPolicy:
+    """A port policy for outgoing streams out of a router."""
+
+    #: Type of policy (``accept`` or ``reject``).
+    policy: Literal['accept', 'reject']
+    #: List of ports or port ranges.
+    ports: Annotated[
+        Sequence[
+            Union[  # noqa: UP007
+                AnyPort,
+                Annotated[
+                    PortRange,
+                    TrBeforeStringSplit(
+                        dict_keys=('port_min', 'port_max'),
+                        maxsplit=1,
+                        separator='-',
+                    ),
+                ],
+            ],
+        ],
+        TrBeforeStringSplit(separator=','),
+    ]
+
+
+@dataclass(kw_only=True, slots=True)
+class PortRange:
+    """A range of ports."""
+
+    port_min: AnyPort
+    port_max: AnyPort
+
+
 class Signal(StrEnum):
     """All possible signals that can be sent to Tor."""
 
@@ -1516,24 +1549,34 @@ class RouterStatus:
 
     #: Server nickname.
     nickname: str
+
     #: Unique router fingerprint.
     identity: Base64Bytes
+
     #: Hash of its most recent descriptor as signed.
     digest: Base64Bytes
+
     #: Current IPv4 address.
     ip: IPv4Address
+
     #: Current onion routing port.
     or_port: int
+
     #: Optional directory port.
     dir_port: Annotated[Union[int | None], TrBeforeSetToNone({'0', 0})] = None  # noqa: UP007
 
     #: Other known onion routing addresses
     addresses: Sequence[TcpAddressPort] | None = None
 
+    #: Port policy for outgoing streams.
+    port_policy: PortPolicy | None = None
+
     #: An estimate of the bandwidth of this relay (in KB/s).
     bandwidth: int | None = None
+
     #: Measured bandwidth currently produced by measuring stream capacities.
     bw_measured: int | None = None
+
     #: Bandwidth value is not based on a threshold of 3 or more measurements.
     bw_unmeasured: bool | None = None
 

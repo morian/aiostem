@@ -801,6 +801,7 @@ class EventClientsSeen(EventSimple):
 class EventBaseNetworkStatus(Event):
     """Base class for network status events."""
 
+    SYNTAX_P = ReplySyntax(args_min=2, args_map=('policy', 'ports'))
     SYNTAX_R = ReplySyntax(
         args_min=8,
         args_map=(
@@ -843,6 +844,9 @@ class EventBaseNetworkStatus(Event):
                     addresses = current.setdefault('addresses', [])
                     addresses.append(data)
 
+                case 'p':
+                    current['port_policy'] = cls.SYNTAX_P.parse_string(data)
+
                 case 'r':
                     if current:
                         routers.append(current)
@@ -857,7 +861,7 @@ class EventBaseNetworkStatus(Event):
                     current.update(cls.SYNTAX_W.parse_string(data))
 
                 case _:  # pragma: no cover
-                    logger.warn('Unhandled network status type %s: %s', verb, data)
+                    logger.warning('Unhandled network status type %s: %s', verb, data)
 
         if current:  # pragma: no branch
             routers.append(current)

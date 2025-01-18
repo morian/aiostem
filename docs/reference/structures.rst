@@ -113,6 +113,16 @@ These are annotated structures generally built from a single string.
    :undoc-members:
    :members:
 
+.. autoclass:: PortPolicy
+   :no-show-inheritance:
+   :undoc-members:
+   :members:
+
+.. autoclass:: PortRange
+   :no-show-inheritance:
+   :undoc-members:
+   :members:
+
 .. autoclass:: RouterStatus
    :no-show-inheritance:
    :undoc-members:

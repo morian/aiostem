@@ -136,17 +136,28 @@ class TestEvents:
             ),
             's Fast Running Stable V2Dir Valid',
             'w Bandwidth=1100',
+            (
+                'r artikel10ber116 /9C5SdBnbxB2uySP5ABl0tpGVQk ZthfzyM7LX7XdlCW7gJvxZJ6O6U '
+                '2038-01-01 00:00:00 185.220.101.29 9004 0'
+            ),
+            'a [2a0b:f4c2::29]:9004',
+            's Exit Fast Running Stable Valid',
+            'w Bandwidth=44000',
+            'p accept 20-21,80,443,853,873,989-990,1194,2086,3690,5222',
             '.',
             '650 OK',
         ]
         message = await create_message(lines)
         event = event_from_message(message)
         assert isinstance(event, EventNewConsensus)
-        assert len(event.routers) == 2
+        assert len(event.routers) == 3
         assert event.routers[0].bandwidth == 40000
         assert len(event.routers[0].flags) == 5
         assert len(event.routers[0].addresses) == 1
+        assert event.routers[0].port_policy is None
         assert event.routers[0].dir_port is None
+        assert event.routers[2].port_policy.policy == 'accept'
+        assert len(event.routers[2].port_policy.ports) == 10
 
     async def test_conf_changed_empty(self):
         lines = ['650-CONF_CHANGED', '650 OK']

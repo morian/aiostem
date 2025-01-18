@@ -66,6 +66,8 @@ source = [
 addopts = "--cov=aiostem"
 asyncio_default_fixture_loop_scope = 'function'
 asyncio_mode = 'strict'
+log_cli = true
+log_cli_level = 'WARNING'
 testpaths = ['tests']
 
 [tool.ruff]
