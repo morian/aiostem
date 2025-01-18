@@ -115,6 +115,10 @@ Log events
 Status events
 -------------
 
+.. autoclass:: EventBaseNetworkStatus
+   :exclude-members: SYNTAX, __init__, from_message
+   :members:
+
 .. autoclass:: EventDescChanged
    :exclude-members: SYNTAX, __init__, from_message
    :members:

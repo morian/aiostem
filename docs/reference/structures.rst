@@ -71,6 +71,10 @@ available flags, authentication methods, etc...
    :undoc-members:
    :members:
 
+.. autoclass:: RouterFlags
+   :undoc-members:
+   :members:
+
 .. autoclass:: Signal
    :undoc-members:
    :members:
@@ -106,6 +110,11 @@ These are annotated structures generally built from a single string.
 .. autoclass:: LongServerName
    :no-show-inheritance:
    :special-members: __str__
+   :undoc-members:
+   :members:
+
+.. autoclass:: RouterStatus
+   :no-show-inheritance:
    :undoc-members:
    :members:
 

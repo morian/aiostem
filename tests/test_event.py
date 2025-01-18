@@ -21,7 +21,6 @@ from aiostem.event import (
     EventGuard,
     EventHsDesc,
     EventHsDescContent,
-    EventNetworkStatus,
     EventNewConsensus,
     EventNewDesc,
     EventOrConn,
@@ -121,24 +120,33 @@ class TestEvents:
         with pytest.raises(ReplySyntaxError, match='has no data attached to it'):
             event_from_message(message)
 
-    @pytest.mark.parametrize(
-        ('verb', 'cls'),
-        [
-            ('NEWCONSENSUS', EventNewConsensus),
-            ('NS', EventNetworkStatus),
-        ],
-    )
-    async def test_consensus_with_data(self, verb, cls):
+    async def test_new_consensus_with_data(self):
         lines = [
-            f'650+{verb}',
-            'Hello',
+            '650+NEWCONSENSUS',
+            (
+                'r eisbaer AGHSKv0fBtTm81AGvT2cIdeYHqk W3YydCbm7DgcoHQxlxbjmJoCpWA '
+                '2038-01-01 00:00:00 109.70.100.70 9002 0'
+            ),
+            'a [2a03:e600:100::70]:9002',
+            's Exit Fast Running Stable Valid',
+            'w Bandwidth=40000',
+            (
+                'r WishMaster ASPb4bj4Hgs1B5TP5K4XLhL9pAE 3z7CNbMYDiOzzHUoHc7hjUtkJc4 '
+                '2038-01-01 00:00:00 31.192.107.132 443 0'
+            ),
+            's Fast Running Stable V2Dir Valid',
+            'w Bandwidth=1100',
             '.',
             '650 OK',
         ]
         message = await create_message(lines)
         event = event_from_message(message)
-        assert isinstance(event, cls)
-        assert event.status == 'Hello'
+        assert isinstance(event, EventNewConsensus)
+        assert len(event.routers) == 2
+        assert event.routers[0].bandwidth == 40000
+        assert len(event.routers[0].flags) == 5
+        assert len(event.routers[0].addresses) == 1
+        assert event.routers[0].dir_port is None
 
     async def test_conf_changed_empty(self):
         lines = ['650-CONF_CHANGED', '650 OK']

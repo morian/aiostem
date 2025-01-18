@@ -33,6 +33,7 @@ from .structures import (
     OnionRouterConnStatus,
     OrConnCloseReason,
     RemapSource,
+    RouterStatus,
     Signal,
     StatusActionClient,
     StatusActionGeneral,
@@ -519,6 +520,9 @@ class EventCirc(EventSimple):
     ) = None
 
     #: Hidden service proof of work effort as a tuple of (version, effort).
+    #:
+    #: See also:
+    #:    https://spec.torproject.org/hspow-spec/index.html
     hs_pow: Annotated[tuple[str, int], TrBeforeStringSplit()] | None = None
 
     # Current hidden service state when applicable.
@@ -794,7 +798,75 @@ class EventClientsSeen(EventSimple):
 
 
 @dataclass(kw_only=True, slots=True)
-class EventNetworkStatus(Event):
+class EventBaseNetworkStatus(Event):
+    """Base class for network status events."""
+
+    SYNTAX_R = ReplySyntax(
+        args_min=8,
+        args_map=(
+            'nickname',
+            'identity',
+            'digest',
+            'exp_date',
+            'exp_time',
+            'ip',
+            'or_port',
+            'dir_port',
+        ),
+    )
+    SYNTAX_W = ReplySyntax(
+        kwargs_map={
+            'Bandwidth': 'bandwidth',
+            'Measured': 'bw_measured',
+            'Unmeasured': 'bw_unmeasured',
+        },
+        flags=ReplySyntaxFlag.KW_ENABLE,
+    )
+
+    #: Raw content of the new network status.
+    routers: Sequence[RouterStatus]
+
+    @classmethod
+    def from_message(cls, message: Message) -> Self:
+        """Build an event dataclass from a received message."""
+        if not len(message.items) or not isinstance(message.items[0], MessageData):
+            msg = "Event 'NS' has no data attached to it!"
+            raise ReplySyntaxError(msg)
+
+        current = {}  # type: dict[str | None, Any]
+        routers = []  # type: list[dict[str | None, Any]]
+        content = message.items[0].data
+        for line in content.splitlines():
+            verb, data = line.split(' ', maxsplit=1)
+            match verb:
+                case 'a':
+                    addresses = current.setdefault('addresses', [])
+                    addresses.append(data)
+
+                case 'r':
+                    if current:
+                        routers.append(current)
+
+                    current = {}
+                    current.update(cls.SYNTAX_R.parse_string(data))
+
+                case 's':
+                    current['flags'] = data.split(' ')
+
+                case 'w':
+                    current.update(cls.SYNTAX_W.parse_string(data))
+
+                case _:  # pragma: no cover
+                    logger.warn('Unhandled network status type %s: %s', verb, data)
+
+        if current:  # pragma: no branch
+            routers.append(current)
+
+        return cls.adapter().validate_python({'routers': routers})
+
+
+@dataclass(kw_only=True, slots=True)
+class EventNetworkStatus(EventBaseNetworkStatus):
     """
     Structure for a :attr:`~EventWord.NS` event.
 
@@ -805,21 +877,9 @@ class EventNetworkStatus(Event):
 
     TYPE = EventWord.NS
 
-    #: Raw content of the new network status.
-    status: str
-
-    @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build an event dataclass from a received message."""
-        if not len(message.items) or not isinstance(message.items[0], MessageData):
-            msg = "Event 'NS' has no data attached to it!"
-            raise ReplySyntaxError(msg)
-
-        return cls.adapter().validate_python({'status': message.items[0].data})
-
 
 @dataclass(kw_only=True, slots=True)
-class EventNewConsensus(Event):
+class EventNewConsensus(EventBaseNetworkStatus):
     """
     Structure for a :attr:`~EventWord.NEWCONSENSUS` event.
 
@@ -829,18 +889,6 @@ class EventNewConsensus(Event):
     """
 
     TYPE = EventWord.NEWCONSENSUS
-
-    #: Raw content of the received consensus.
-    status: str
-
-    @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build an event dataclass from a received message."""
-        if not len(message.items) or not isinstance(message.items[0], MessageData):
-            msg = "Event 'NEWCONSENSUS' has no data attached to it!"
-            raise ReplySyntaxError(msg)
-
-        return cls.adapter().validate_python({'status': message.items[0].data})
 
 
 @dataclass(kw_only=True, slots=True)

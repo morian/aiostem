@@ -29,7 +29,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
-from pydantic import BeforeValidator, Discriminator, NonNegativeInt, Tag, WrapSerializer
+from pydantic import BeforeValidator, Discriminator, Field, NonNegativeInt, Tag, WrapSerializer
 from pydantic_core import PydanticCustomError, core_schema
 
 from .types import (
@@ -42,6 +42,7 @@ from .types import (
     X25519PublicKeyBase32,
 )
 from .utils import (
+    TrBeforeSetToNone,
     TrBeforeStringSplit,
     TrCast,
     TrEd25519PrivateKey,
@@ -1468,6 +1469,73 @@ class ReplyDataOnionClientAuthView:
 
     #: List of authorized clients and their private key.
     clients: Sequence[OnionClientAuth] = field(default_factory=list)
+
+
+class RouterFlags(StrEnum):
+    """All possible flags for an onion router."""
+
+    #: Is a directory authority.
+    AUTHORITY = 'Authority'
+    #: Is believed to be useless as an exit node
+    BAD_EXIT = 'BadExit'
+    #: Supports commonly used exit ports.
+    EXIT = 'Exit'
+    #: Is suitable for high-bandwidth circuits.
+    FAST = 'Fast'
+    #: Is suitable for use as an entry guard.
+    GUARD = 'Guard'
+    #: Is considered a v2 hidden service directory.
+    HSDIR = 'HSDir'
+    #: Is considered unsuitable for usage other than as a middle relay.
+    MIDDLE_ONLY = 'MiddleOnly'
+    #: Any Ed25519 key in the descriptor does not reflect authority consensus.
+    NO_ED_CONSENSUS = 'NoEdConsensus'
+    #: Is suitable for long-lived circuits.
+    STABLE = 'Stable'
+    #: Should upload a new descriptor because the old one is too old.
+    STALE_DESC = 'StaleDesc'
+    #: Is currently usable over all its published ORPorts.
+    RUNNING = 'Running'
+    #: Has been 'validated'.
+    VALID = 'Valid'
+    #: Implements the v2 directory protocol or higher.
+    V2DIR = 'V2Dir'
+
+
+@dataclass(kw_only=True, slots=True)
+class RouterStatus:
+    """Router status V3 item."""
+
+    #: Router status flags describing router properties.
+    flags: AbstractSet[
+        Annotated[
+            RouterFlags | str,
+            Field(union_mode='left_to_right'),
+        ],
+    ]
+
+    #: Server nickname.
+    nickname: str
+    #: Unique router fingerprint.
+    identity: Base64Bytes
+    #: Hash of its most recent descriptor as signed.
+    digest: Base64Bytes
+    #: Current IPv4 address.
+    ip: IPv4Address
+    #: Current onion routing port.
+    or_port: int
+    #: Optional directory port.
+    dir_port: Annotated[Union[int | None], TrBeforeSetToNone({'0', 0})] = None  # noqa: UP007
+
+    #: Other known onion routing addresses
+    addresses: Sequence[TcpAddressPort] | None = None
+
+    #: An estimate of the bandwidth of this relay (in KB/s).
+    bandwidth: int | None = None
+    #: Measured bandwidth currently produced by measuring stream capacities.
+    bw_measured: int | None = None
+    #: Bandwidth value is not based on a threshold of 3 or more measurements.
+    bw_unmeasured: bool | None = None
 
 
 @dataclass(kw_only=True, slots=True)
