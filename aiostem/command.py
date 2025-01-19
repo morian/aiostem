@@ -141,7 +141,7 @@ class CommandWord(StrEnum):
     #:     - Reply implementation: :class:`.ReplyAttachStream`
     ATTACHSTREAM = 'ATTACHSTREAM'
 
-    #: This message informs the server about a new descriptor.
+    #: This message informs the server about a new router descriptor.
     #:
     #: See Also:
     #:     - Controller method: :meth:`.Controller.post_descriptor`
@@ -863,9 +863,7 @@ class CommandPostDescriptor(Command):
 
     command: ClassVar[CommandWord] = CommandWord.POSTDESCRIPTOR
 
-    #: If specified must be :attr:`~.DescriptorPurpose.GENERAL`,
-    #: :attr:`~.DescriptorPurpose.CONTROLLER`, :attr:`~.DescriptorPurpose.BRIDGE`,
-    #: default is :attr:`~.DescriptorPurpose.GENERAL`.
+    #: Purpose of the provided descriptor.
     purpose: DescriptorPurpose | None = None
 
     #: Cache the provided descriptor internally.

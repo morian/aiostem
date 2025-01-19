@@ -828,16 +828,20 @@ class EventBaseNetworkStatus(Event):
     routers: Sequence[RouterStatus]
 
     @classmethod
-    def from_message(cls, message: Message) -> Self:
-        """Build an event dataclass from a received message."""
-        if not len(message.items) or not isinstance(message.items[0], MessageData):
-            msg = "Event 'NS' has no data attached to it!"
-            raise ReplySyntaxError(msg)
+    def parse_router_statuses(cls, body: str) -> Sequence[dict[str | None, Any]]:
+        """
+        Parse router statuses to raw structures.
 
+        Args:
+            body: raw text containing router statuses.
+
+        Returns:
+            A list of dictonaries required to build a router status sequence.
+
+        """
         current = {}  # type: dict[str | None, Any]
         routers = []  # type: list[dict[str | None, Any]]
-        content = message.items[0].data
-        for line in content.splitlines():
+        for line in body.splitlines():
             verb, data = line.split(' ', maxsplit=1)
             match verb:
                 case 'a':
@@ -865,7 +869,16 @@ class EventBaseNetworkStatus(Event):
 
         if current:  # pragma: no branch
             routers.append(current)
+        return routers
 
+    @classmethod
+    def from_message(cls, message: Message) -> Self:
+        """Build an event dataclass from a received message."""
+        if not len(message.items) or not isinstance(message.items[0], MessageData):
+            msg = "Event 'NS' has no data attached to it!"
+            raise ReplySyntaxError(msg)
+
+        routers = cls.parse_router_statuses(message.items[0].data)
         return cls.adapter().validate_python({'routers': routers})
 
 

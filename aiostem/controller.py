@@ -90,6 +90,7 @@ from .reply import (
 )
 from .structures import (
     CircuitPurpose,
+    DescriptorPurpose,
     HiddenServiceAddress,
     HiddenServiceAddressV3,
     HsDescClientAuth,
@@ -1094,13 +1095,13 @@ class Controller:
         descriptor: str,
         *,
         cache: bool | None = None,
-        purpose: CircuitPurpose | None = None,
+        purpose: DescriptorPurpose | None = None,
     ) -> ReplyPostDescriptor:
         """
-        Inform the server about a new descriptor.
+        Inform the server about a new router descriptor.
 
         Args:
-            descriptor: The descriptor content.
+            descriptor: The router descriptor content.
 
         Keyword Args:
             cache: Whether to cache the provided descriptor internally.
