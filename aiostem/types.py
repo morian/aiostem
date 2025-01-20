@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, TypeAlias, Union
 
+from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from pydantic import Field
 
@@ -15,6 +16,7 @@ from .utils import (
     TrAfterAsTimezone,
     TrBeforeTimedelta,
     TrBoolYesNo,
+    TrRSAPublicKey,
     TrX25519PrivateKey,
     TrX25519PublicKey,
 )
@@ -49,6 +51,13 @@ DatetimeUTC: TypeAlias = Annotated[datetime, TrAfterAsTimezone()]
 TimedeltaMilliseconds: TypeAlias = Annotated[
     timedelta,
     TrBeforeTimedelta(milliseconds=True),
+]
+
+#: Base64 encoded bytes parsed as a public RSA key.
+RSAPublicKeyBase64: TypeAlias = Annotated[
+    RSAPublicKey,
+    EncodedBytes(encoder=Base64Encoder),
+    TrRSAPublicKey(),
 ]
 
 #: A :class:`~datetime.timedelta` parsed from an integer value in seconds.

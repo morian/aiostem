@@ -37,6 +37,14 @@ handle the heavy lifting.
    :no-show-inheritance:
    :members:
 
+.. autoclass:: TrRSAPrivateKey
+   :no-show-inheritance:
+   :members:
+
+.. autoclass:: TrRSAPublicKey
+   :no-show-inheritance:
+   :members:
+
 .. autoclass:: TrX25519PrivateKey
    :no-show-inheritance:
    :members:

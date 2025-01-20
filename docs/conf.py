@@ -1,3 +1,4 @@
+# noqa: INP001
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -35,7 +36,7 @@ sys.path.insert(0, os.path.abspath('..'))
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 author = 'Romain Bezut'
 project = 'aiostem'
-copyright = f'2021-2025, {author}'
+copyright = f'2021-2025, {author}'  # noqa: A001
 
 extensions = [
     'sphinx.ext.autodoc',
@@ -73,7 +74,7 @@ autodoc_default_options = {
 autodoc_class_signature = 'separated'
 autodoc_preserve_defaults = False
 autodoc_type_aliases = {
-    'EventCallbackType':  '~aiostem.controller.EventCallbackType',
+    'EventCallbackType': '~aiostem.controller.EventCallbackType',
     'AnyHost': '~aiostem.types.AnyHost',
     'Argument': '~aiostem.utils.argument.Argument',
     'KeyTypes': '~aiostem.utils.argument.KeyTypes',
@@ -105,6 +106,9 @@ intersphinx_mapping = {
 # Map of references known to be broken by default.
 # We register a custom mapper linked to intersphinx.
 _reftarget_fixmap = {
+    'cryptography.hazmat.primitives._serialization.PublicFormat': (
+        'cryptography.hazmat.primitives.serialization.PublicFormat'
+    ),
     'PydanticCustomError': 'pydantic_core.PydanticCustomError',
     'asyncio.locks.Condition': 'asyncio.Condition',
     'asyncio.streams.StreamReader': 'asyncio.StreamReader',
@@ -249,7 +253,7 @@ suppress_warnings = ['config.cache']
 
 
 def typehints_formatter(annotation: Any, config: Config | None = None) -> str | None:
-    """Custom formatter for type hints."""
+    """Format type hints with some custom additions."""
     if isinstance(annotation, TypeAliasForwardRef):
         return f':py:data:`{annotation.name}`'
 

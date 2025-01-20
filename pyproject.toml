@@ -117,6 +117,7 @@ select = [
 	'W',      # pycodestyle warnings
 ]
 ignore = [
+	'B019',   # Use of lru_cache or cache from functools can lead to memory leaks
 	'COM812', # missing-trailing-comma
 	'D100',   # Missing docstring in public module
 	'D104',   # Missing docstring in public package

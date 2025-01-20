@@ -280,7 +280,7 @@ class TrGenericKey(ABC, Generic[KeyType]):
         source: type[Any],
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
-        """Declare schema and validator for a X25519 private key."""
+        """Declare schema and validator for any kind of keys."""
         key_type = self._get_type()
 
         if not issubclass(source, key_type):

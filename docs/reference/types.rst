@@ -16,6 +16,7 @@ These are helper types used to describe common types encountered throughout his 
 .. autodata:: Base32Bytes
 .. autodata:: Base64Bytes
 .. autodata:: DatetimeUTC
+.. autodata:: RSAPublicKeyBase64
 .. autodata:: TimedeltaMilliseconds
 .. autodata:: TimedeltaSeconds
 .. autodata:: X25519PrivateKeyBase64

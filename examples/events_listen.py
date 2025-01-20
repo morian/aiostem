@@ -6,7 +6,8 @@ import sys
 from aiostem import Controller
 
 def on_event(event):
-    print(event)
+    # print(event)
+    pass
 
 async def main():
     password = os.environ.get('AIOSTEM_PASS', 'password')

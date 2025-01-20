@@ -183,14 +183,26 @@ Hidden Service structures
    :undoc-members:
    :members:
 
+.. autoclass:: HsDescBase
+   :no-show-inheritance:
+   :members:
+
 .. autoclass:: HsDescClientAuth
    :undoc-members:
    :members:
 
 .. autodata:: HsDescClientAuthV2
 
+.. autodata:: HsDescClientAuthV3
+
+.. autoclass:: HsDescV2
+   :members:
+
 .. autoclass:: HsDescFailReason
    :undoc-members:
+   :members:
+
+.. autoclass:: HsIntroPointV2
    :members:
 
 .. autoclass:: OnionClientAuthKeyStruct

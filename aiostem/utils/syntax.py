@@ -127,7 +127,7 @@ class ReplySyntax:
     #: Correspondance map for keyword arguments.
     kwargs_map: Mapping[str | None, str] = field(default_factory=dict)
     #: These KW mapping keys can hold multiple values.
-    kwargs_multi: AbstractSet[str | None] = field(default_factory=frozenset)
+    kwargs_multi: AbstractSet[str] = field(default_factory=frozenset)
     #: List of parsing flags.
     flags: ReplySyntaxFlag = field(default_factory=lambda: ReplySyntaxFlag(0))
 
@@ -235,7 +235,7 @@ class ReplySyntax:
     def parse(
         self,
         message: BaseMessage,
-    ) -> Mapping[str | None, Sequence[str | None] | str | None]:
+    ) -> Mapping[str, Sequence[str | None] | str | None]:
         """
         Parse the provided message.
 
@@ -253,7 +253,7 @@ class ReplySyntax:
             msg = 'Received too few arguments on the reply.'
             raise ReplySyntaxError(msg)
 
-        result = OrderedDict()  # type: OrderedDict[str | None, list[str | None] | str | None]
+        result = OrderedDict()  # type: OrderedDict[str, list[str | None] | str | None]
         for i in range(min(len(items), len(self.args_map))):
             key = self.args_map[i]
             if key is not None:
@@ -276,7 +276,7 @@ class ReplySyntax:
                 else:
                     do_include = False
 
-                if do_include:
+                if do_include and key is not None:
                     if key in self.kwargs_multi:
                         existing = result.setdefault(key, [])
                         if isinstance(existing, list):  # pragma: no branch
@@ -291,7 +291,7 @@ class ReplySyntax:
     def parse_string(
         self,
         string: str,
-    ) -> Mapping[str | None, Sequence[str | None] | str | None]:
+    ) -> Mapping[str, Sequence[str | None] | str | None]:
         """
         Parse the provided string.
 

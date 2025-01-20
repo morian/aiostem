@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import base64
+import hashlib
 import logging
 from datetime import UTC, datetime, timedelta
 from ipaddress import IPv4Address, IPv6Address
 
 import pytest
+import pytest_asyncio
 from pydantic import ValidationError
 
 from aiostem.event import (
@@ -38,11 +41,13 @@ from aiostem.structures import (
     CircuitEvent,
     HsDescAction,
     HsDescFailReason,
+    HsDescV2,
     LogSeverity,
     LongServerName,
     Signal,
     StatusActionGeneral,
 )
+from aiostem.utils import TrRSAPublicKey
 
 from .test_reply import create_message
 
@@ -140,6 +145,7 @@ class TestEvents:
                 'r artikel10ber116 /9C5SdBnbxB2uySP5ABl0tpGVQk ZthfzyM7LX7XdlCW7gJvxZJ6O6U '
                 '2038-01-01 00:00:00 185.220.101.29 9004 0'
             ),
+            '',  # This extra new-line is on purpose to make sure we skip it!
             'a [2a0b:f4c2::29]:9004',
             's Exit Fast Running Stable Valid',
             'w Bandwidth=44000',
@@ -608,3 +614,47 @@ class TestEvents:
         assert isinstance(event, EventSignal)
         assert event.signal == Signal.RELOAD
         assert event.TYPE == EventWord.SIGNAL
+
+
+class TestHsDescriptors:
+    """Check parsing of onion descriptors."""
+
+    @pytest_asyncio.fixture(scope='session')
+    def hs_desc_v2_lines(self):
+        address = 'facebookcorewwwi'
+        path = f'tests/samples/{address}/content.txt'
+        with open(path) as fp:
+            return list(map(str.rstrip, fp))
+
+    @pytest_asyncio.fixture(scope='session')
+    def hs_desc_v3_lines(self):
+        address = 'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid'
+        path = f'tests/samples/{address}/content.txt'
+        with open(path) as fp:
+            return list(map(str.rstrip, fp))
+
+    async def test_hs_desc_v2(self, hs_desc_v2_lines):
+        message = await create_message(hs_desc_v2_lines)
+        event = event_from_message(message)
+        assert isinstance(event, EventHsDescContent)
+        assert event.address == 'facebookcorewwwi'
+        assert isinstance(event.descriptor, HsDescV2)
+
+        # Check general purpose fields from the descriptor.
+        desc = event.descriptor
+        assert desc.protocol_versions == {2, 3}
+        assert desc.version == 2
+
+        # Check that the key matches the domain name!
+        pubkey = TrRSAPublicKey().to_bytes(desc.permanent_key)
+        digest = hashlib.sha1(pubkey).digest()  # noqa: S324
+        computed = base64.b32encode(digest[:10]).decode('ascii')
+        assert computed.lower() == event.address
+
+        # Parse and get a list of introduction points.
+        intros = desc.introduction_points()
+        assert len(intros) == 10
+
+        first_intro = intros[0]
+        assert first_intro.ip == IPv4Address('212.74.233.20')
+        assert first_intro.onion_port == 9101

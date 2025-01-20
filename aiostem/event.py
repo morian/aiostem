@@ -9,6 +9,7 @@ from collections.abc import (
 )
 from dataclasses import dataclass, field
 from enum import StrEnum
+from functools import cached_property
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Self, TypeAlias, Union
 
 from pydantic import BeforeValidator, Discriminator, Field, NonNegativeInt, Tag, TypeAdapter
@@ -24,9 +25,11 @@ from .structures import (
     CircuitStatus,
     GuardEventStatus,
     HiddenServiceAddress,
+    HiddenServiceAddressV2,
     HsDescAction,
     HsDescAuthTypeStr,
     HsDescFailReason,
+    HsDescV2,
     LivenessStatus,
     LogSeverity,
     LongServerName,
@@ -828,7 +831,7 @@ class EventBaseNetworkStatus(Event):
     routers: Sequence[RouterStatus]
 
     @classmethod
-    def parse_router_statuses(cls, body: str) -> Sequence[dict[str | None, Any]]:
+    def parse_router_statuses(cls, body: str) -> Sequence[dict[str, Any]]:
         """
         Parse router statuses to raw structures.
 
@@ -839,33 +842,37 @@ class EventBaseNetworkStatus(Event):
             A list of dictonaries required to build a router status sequence.
 
         """
-        current = {}  # type: dict[str | None, Any]
-        routers = []  # type: list[dict[str | None, Any]]
+        current = {}  # type: dict[str, Any]
+        routers = []  # type: list[dict[str, Any]]
         for line in body.splitlines():
-            verb, data = line.split(' ', maxsplit=1)
-            match verb:
+            if not len(line):
+                continue
+
+            key, *args = line.split(' ', maxsplit=1)
+            match key:
                 case 'a':
                     addresses = current.setdefault('addresses', [])
-                    addresses.append(data)
+                    addresses.append(args[0])
 
                 case 'p':
-                    current['port_policy'] = cls.SYNTAX_P.parse_string(data)
+                    current['port_policy'] = cls.SYNTAX_P.parse_string(args[0])
 
                 case 'r':
                     if current:
                         routers.append(current)
 
                     current = {}
-                    current.update(cls.SYNTAX_R.parse_string(data))
+                    current.update(cls.SYNTAX_R.parse_string(args[0]))
 
                 case 's':
-                    current['flags'] = data.split(' ')
+                    current['flags'] = args[0].split(' ')
 
                 case 'w':
-                    current.update(cls.SYNTAX_W.parse_string(data))
+                    current.update(cls.SYNTAX_W.parse_string(args[0]))
 
                 case _:  # pragma: no cover
-                    logger.warning('Unhandled network status type %s: %s', verb, data)
+                    content = args[0] if len(args) else '__NONE__'
+                    logger.warning('Unhandled network status type %s: %s', key, content)
 
         if current:  # pragma: no branch
             routers.append(current)
@@ -1363,7 +1370,7 @@ class EventHsDesc(EventSimple):
     replica: int | None = None
 
 
-@dataclass(kw_only=True, slots=True)
+@dataclass(kw_only=True)
 class EventHsDescContent(Event):
     """
     Structure for a :attr:`~EventWord.HS_DESC_CONTENT` event.
@@ -1387,6 +1394,17 @@ class EventHsDescContent(Event):
     descriptor_id: Base32Bytes | Base64Bytes | None = None
     #: Text content of the hidden service descriptor.
     descriptor_text: str
+
+    @cached_property
+    def descriptor(self) -> HsDescV2:
+        """Get the parsed descriptor."""
+        match self.address:
+            case HiddenServiceAddressV2():
+                return HsDescV2.from_text(self.descriptor_text)
+
+            case _:  # pragma: no cover
+                msg = 'Unhandled hidden service descriptor format.'
+                raise NotImplementedError(msg)
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
@@ -1444,7 +1462,7 @@ class EventLog(Event):
     @classmethod
     def from_message(cls, message: Message) -> Self:
         """Build an event dataclass from a received message."""
-        result = {}  # type: dict[str | None, Any]
+        result = {}  # type: dict[str, Any]
         if len(message.items) and isinstance(message.items[0], MessageData):
             result.update(cls.SYNTAX.parse(message.items[0]))
             result['message'] = message.items[0].data
@@ -1567,7 +1585,7 @@ class EventStatus(Event):
     @classmethod
     def from_message(cls, message: Message) -> Self:
         """Build an event dataclass from a received message."""
-        result = {'arguments': None}  # type: dict[str | None, Any]
+        result = {'arguments': None}  # type: dict[str, Any]
         result.update(cls.SYNTAX.parse(message))
 
         argstring = result.pop('argstring', '')
@@ -1576,7 +1594,7 @@ class EventStatus(Event):
             syntax = cls.SUBSYNTAXES[action]
             if syntax is not None:
                 # `action` here is used as a discriminator.
-                arguments = {'action': action}  # type: dict[str | None, Any]
+                arguments = {'action': action}  # type: dict[str, Any]
                 arguments.update(syntax.parse_string(argstring))
                 result['arguments'] = arguments
         else:

@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import logging
 import secrets
 from collections.abc import (
+    Iterator,
+    Mapping,
     Sequence,
     Set as AbstractSet,
 )
+from contextlib import suppress
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from functools import cached_property
@@ -29,15 +33,28 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
-from pydantic import BeforeValidator, Discriminator, Field, NonNegativeInt, Tag, WrapSerializer
+from pydantic import (
+    BeforeValidator,
+    Discriminator,
+    Field,
+    NonNegativeInt,
+    PositiveInt,
+    Tag,
+    TypeAdapter,
+    WrapSerializer,
+)
 from pydantic_core import PydanticCustomError, core_schema
 
+from .exceptions import ReplySyntaxError
 from .types import (
     AnyAddress,
     AnyHost,
     AnyPort,
     Base16Bytes,
+    Base32Bytes,
     Base64Bytes,
+    DatetimeUTC,
+    RSAPublicKeyBase64,
     TimedeltaSeconds,
     X25519PublicKeyBase32,
 )
@@ -53,6 +70,44 @@ from .utils import (
 if TYPE_CHECKING:
     from pydantic import GetCoreSchemaHandler
     from pydantic_core.core_schema import CoreSchema, SerializerFunctionWrapHandler
+
+logger = logging.getLogger(__package__)
+
+
+def _parse_block(lines: Iterator[str], kind: str, *, inner: bool = True) -> str:
+    """
+    Parse a block.
+
+    Args:
+        lines: An iterator on a list of data lines.
+        kind: Type of block we are expected to parse.
+
+    Keyword Args:
+        inner: Return the inner content instead of the full content.
+
+    Returns:
+        The full content (newline delimited) or the inner content (concatenated).
+
+    """
+    exp_head = f'-----BEGIN {kind}-----'
+    exp_tail = f'-----END {kind}-----'
+    results = []  # type: list[str]
+
+    line = next(lines)
+    if line != exp_head:
+        msg = f'Unexpected block start for {kind}: {line}'
+        raise ReplySyntaxError(msg)
+
+    results.append(line)
+    while True:
+        line = next(lines)
+        results.append(line)
+        if line == exp_tail:
+            break
+
+    if inner:
+        return ''.join(results[1:-1])
+    return '\n'.join(results)
 
 
 class AuthMethod(StrEnum):
@@ -558,6 +613,7 @@ class HsDescClientAuth:
     cookie: HsDescAuthCookie | None = None
 
 
+#: Annotated structure for hidden service v2 client auth.
 HsDescClientAuthV2: TypeAlias = Annotated[
     HsDescClientAuth,
     TrBeforeStringSplit(
@@ -566,6 +622,7 @@ HsDescClientAuthV2: TypeAlias = Annotated[
         separator=':',
     ),
 ]
+#: Annotated structure for hidden service v3 client auth.
 HsDescClientAuthV3: TypeAlias = X25519PublicKeyBase32
 
 
@@ -586,6 +643,225 @@ class HsDescFailReason(StrEnum):
     UNEXPECTED = 'UNEXPECTED'
     #: Descriptor was rejected by HS directory.
     UPLOAD_REJECTED = 'UPLOAD_REJECTED'
+
+
+@dataclass(kw_only=True)
+class HsDescBase:
+    """Hidden service descriptor base class."""
+
+    #: Cached adapter used while deserializing the message.
+    ADAPTER: ClassVar[TypeAdapter[Self] | None] = None
+
+    @classmethod
+    def adapter(cls) -> TypeAdapter[Self]:
+        """Get a cached type adapter to deserialize this object."""
+        if cls.ADAPTER is None:  # pragma: no branch
+            cls.ADAPTER = TypeAdapter(cls)
+        return cls.ADAPTER
+
+
+@dataclass(kw_only=True, slots=True)
+class HsIntroPointV2:
+    """A single intoduction point for a v2 descriptor."""
+
+    #: The identifier of this introduction point.
+    introduction_point: Base32Bytes
+
+    #: The IP address of this introduction point.
+    ip: IPv4Address
+
+    #: The TCP port on which the introduction point is listening for incoming requests.
+    onion_port: AnyPort
+
+    #: The public key that can be used to encrypt messages to this introduction point.
+    onion_key: RSAPublicKeyBase64
+
+    #: The public key that can be used to encrypt messages to the hidden service.
+    service_key: RSAPublicKeyBase64
+
+    @classmethod
+    def text_to_mapping_list(cls, body: str) -> Sequence[Mapping[str, Any]]:
+        """
+        Parse ``body`` to a list of raw introduction points mapppings.
+
+        Args:
+            body: The raw content of the descriptors.
+
+        Returns:
+            A list of mapppings for introduction points.
+
+        """
+        current = {}  # type: dict[str, Any]
+        intros = []  # type: list[dict[str, Any]]
+
+        lines = iter(body.splitlines())
+        with suppress(StopIteration):
+            while True:
+                line = next(lines)
+                if not len(line):
+                    continue
+
+                key, *args = line.split(' ', maxsplit=1)
+                match key:
+                    case 'introduction-point':
+                        if current:
+                            intros.append(current)
+                        current = {'introduction_point': args[0]}
+
+                    case 'ip-address':
+                        current['ip'] = args[0]
+
+                    case 'onion-port':
+                        current['onion_port'] = args[0]
+
+                    case 'onion-key':
+                        current['onion_key'] = _parse_block(lines, 'RSA PUBLIC KEY')
+
+                    case 'service-key':
+                        current['service_key'] = _parse_block(lines, 'RSA PUBLIC KEY')
+
+                    case _:  # pragma: no cover
+                        content = args[0] if len(args) else '__NONE__'
+                        logger.warning('Unhandled HsIntroPointV2 key %s: %s', key, content)
+
+        if current:  # pragma: no branch
+            intros.append(current)
+        return intros
+
+
+@dataclass(kw_only=True)
+class HsDescV2(HsDescBase):
+    """Hidden service descriptor for v2 onions."""
+
+    #: Adapter used to list introduction points.
+    INTROS_ADAPTER: ClassVar[TypeAdapter[Sequence[HsIntroPointV2]]] = TypeAdapter(
+        Sequence[HsIntroPointV2]
+    )
+
+    #: Periodically changing identifier of 160 bits.
+    descriptor_id: Base32Bytes
+
+    #: The version number of this descriptor's format.
+    version: PositiveInt
+
+    #: Permanent public RSA key linked to this onion service.
+    permanent_key: RSAPublicKeyBase64
+
+    #: Secret id so we can verify that the signed descriptor belongs to "descriptor-id".
+    secret_id_part: Base32Bytes
+
+    #: A timestamp when this descriptor has been created.
+    published: DatetimeUTC
+
+    #: A comma-separated list of recognized and permitted version numbers.
+    #:
+    #: For use in INTRODUCE cells.
+    protocol_versions: Annotated[AbstractSet[int], TrBeforeStringSplit(separator=',')]
+
+    #: Content of the introduction points.
+    introduction_points_bytes: Base64Bytes
+
+    #: A signature of all fields with the service's private key.
+    signature: Base64Bytes
+
+    def introduction_points(
+        self,
+        auth_cookie: HsDescAuthCookie | None = None,
+    ) -> Sequence[HsIntroPointV2]:
+        """
+        Parse introduction points for this descriptor.
+
+        Note that decryption is not implemented and will probably never be since onion v2
+        has been deprecated for a long time now. Instead it raises :exc:`NotImplementedError`.
+
+        Args:
+            auth_cookie: Optional authentication cookie used to decrypt introduction points.
+
+        Raises:
+            NotImplementedError: When ``auth_cookie`` is not :obj:`None`.
+
+        Returns:
+            A list of introduction points used in this descriptor.
+
+        """
+        # This will not be implemented since OnionV2 has been deprecated for a long time.
+        if auth_cookie is not None:  # pragma: no cover
+            msg = 'Authentication cookie for V2 descriptor is not yet implemented.'
+            raise NotImplementedError(msg)
+
+        body = self.introduction_points_bytes.decode('ascii')
+        intros = HsIntroPointV2.text_to_mapping_list(body)
+        return self.INTROS_ADAPTER.validate_python(intros)
+
+    @classmethod
+    def text_to_mapping(cls, body: str) -> Mapping[str, Any]:
+        """
+        Parse ``body`` to a raw descriptor to mappping.
+
+        Args:
+            body: The content of the descriptor.
+
+        Returns:
+            A map suitable for parsing from pydantic.
+
+        """
+        results = {}  # type: dict[str, Any]
+        lines = iter(body.splitlines())
+        with suppress(StopIteration):
+            while True:
+                line = next(lines)
+                # Ignore any empty line not part of an item.
+                if not len(line):  # pragma: no cover
+                    continue
+
+                key, *args = line.split(' ', maxsplit=1)
+                match key:
+                    case 'rendezvous-service-descriptor':
+                        results['descriptor_id'] = args[0]
+
+                    case 'version':
+                        results['version'] = args[0]
+
+                    case 'permanent-key':
+                        block = _parse_block(lines, 'RSA PUBLIC KEY')
+                        results['permanent_key'] = block
+
+                    case 'secret-id-part':
+                        results['secret_id_part'] = args[0]
+
+                    case 'publication-time':
+                        results['published'] = args[0]
+
+                    case 'protocol-versions':
+                        results['protocol_versions'] = args[0]
+
+                    case 'introduction-points':
+                        block = _parse_block(lines, 'MESSAGE')
+                        results['introduction_points_bytes'] = block
+
+                    case 'signature':
+                        block = _parse_block(lines, 'SIGNATURE')
+                        results['signature'] = block
+
+                    case _:  # pragma: no cover
+                        content = args[0] if len(args) else '__NONE__'
+                        logger.warning('Unhandled HsDescV2 key %s: %s', key, content)
+
+        return results
+
+    @classmethod
+    def from_text(cls, body: str) -> Self:
+        """
+        Build a HsDescV2 object from a text descriptor.
+
+        Args:
+            body: The content of the descriptor.
+
+        Returns:
+            A parsed descriptor.
+
+        """
+        return cls.adapter().validate_python(cls.text_to_mapping(body))
 
 
 class LivenessStatus(StrEnum):

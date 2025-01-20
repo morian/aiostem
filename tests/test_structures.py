@@ -16,6 +16,7 @@ from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 from packaging.version import Version
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
+from aiostem.exceptions import ReplySyntaxError
 from aiostem.structures import (
     HiddenServiceAddressV2,
     HiddenServiceAddressV3,
@@ -28,6 +29,7 @@ from aiostem.structures import (
     OnionServiceKeyStruct,
     StreamTarget,
     TcpAddressPort,
+    _parse_block,
 )
 from aiostem.utils import TrEd25519PrivateKey
 
@@ -404,3 +406,29 @@ class TestOnionServiceKey:
     def test_user_warning(self):
         with pytest.warns(UserWarning, match='Unhandled onion service key type'):
             self.ADAPTER.dump_python('xxxx')
+
+
+class TestBlockParsing:
+    """Checks on our block parsing."""
+
+    LINES: ClassVar[Sequence[str]] = [
+        '-----BEGIN MESSAGE-----',
+        'SbD0e0NOZ1K5Q7utFGWocGEyLGPi2KFPwniLMZb1VDymcJ7yOILYMk52kxQ+j7Cvjt/1nwdbG0Wk',
+        'iBCE0R9y0oXTP9K0A2TG7sLudILSmCP35g9W3XRtYnrJNVIx3OzfKOKIo+j6SLD7xUeP1SBop3jn',
+        '6s9Hd2mjPGH27gLRDbvYa3pVgUb495UnvqONbHf50SzzFe+ZsKoJSWG3jhI3Q0Db9nBwK3KLzEtc',
+        'HPCshn1ZEPmMrCG3Wk4FkRb8NC6RyrY/k+Tuxem5iwb9bqkX1tqSAeP6q/7o5Q2xm6prMod/Behj',
+        'vcvVixkIdFci7uCwaxfmGIUdHUa2hBviDJpX3Q==',
+        '-----END MESSAGE-----',
+    ]
+
+    def test_invalid_block(self):
+        with pytest.raises(ReplySyntaxError, match='Unexpected block start'):
+            _parse_block(iter(self.LINES), 'PUBLIC KEY')
+
+    def test_content_inner(self):
+        inner = _parse_block(iter(self.LINES), 'MESSAGE', inner=True)
+        assert inner == ''.join(self.LINES[1:-1])
+
+    def test_content_outer(self):
+        inner = _parse_block(iter(self.LINES), 'MESSAGE', inner=False)
+        assert inner == '\n'.join(self.LINES)
