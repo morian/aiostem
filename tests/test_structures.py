@@ -352,7 +352,8 @@ class TestOnionClientAuthKey:
         reason='No UserWarning is emitted on pydantic < 2.9',
     )
     def test_user_warning(self):
-        with pytest.warns(UserWarning, match='Unhandled onion client auth key type'):
+        msg = 'Unhandled onion client authentication key type'
+        with pytest.warns(UserWarning, match=msg):
             self.ADAPTER.dump_python('xxxx')
 
 
