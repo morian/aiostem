@@ -557,7 +557,7 @@ class TrX25519PublicKey(TrGenericKey[X25519PublicKey]):
 
 @dataclass(frozen=True, slots=True)
 class TrBoolYesNo:
-    """Transform yes/no to and from a bool."""
+    """Transform yes/no to and from a boolean."""
 
     #: What we use when this value is :obj:`True`.
     true: str = 'yes'

@@ -507,19 +507,19 @@ class HsDescAuthCookie:
 
     #: Length of the random key generated here.
     REND_DESC_COOKIE_LEN: ClassVar[int] = 16
-    #: Length of the base64 value without the usefless padding.
+    #: Length of the base64 value without the useless padding.
     REND_DESC_COOKIE_LEN_BASE64: ClassVar[int] = 22
-    #: Length of the base64 value with the usefless padding.
+    #: Length of the base64 value with the useless padding.
     REND_DESC_COOKIE_LEN_EXT_BASE64: ClassVar[int] = 24
 
-    #: Allowed values describing the type of auth cookie we have.
+    #: Allowed values describing the type of authentication cookie we have.
     auth_type: Literal[HsDescAuthTypeInt.BASIC_AUTH, HsDescAuthTypeInt.STEALTH_AUTH]
 
     #: Raw cookie value as 16 random bytes.
     cookie: bytes
 
     def __str__(self) -> str:
-        """Get the string representation of this auth cookie."""
+        """Get the string representation of this authentication cookie."""
         raw = list(self.cookie)
         raw.append((int(self.auth_type) - 1) << 4)
         return base64.b64encode(bytes(raw)).decode('ascii')
@@ -530,7 +530,7 @@ class HsDescAuthCookie:
         source: type[Any],
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
-        """Declare schema and validator for an onion v2 auth cookie."""
+        """Declare schema and validator for an onion v2 authentication cookie."""
         return core_schema.union_schema(
             choices=[
                 # Case were we already have a nice structure.
@@ -562,7 +562,7 @@ class HsDescAuthCookie:
     @classmethod
     def from_string(cls, value: str) -> Self:
         """Get the bytes from a standard string."""
-        # Add the padding to make b64decode happy.
+        # Add the padding to make ``b64decode`` happy.
         if len(value) == cls.REND_DESC_COOKIE_LEN_BASE64:
             value += 'A='
         return cls.from_bytes(base64.b64decode(value))
@@ -581,7 +581,7 @@ class HsDescAuthCookie:
         cls,
         auth_type: Literal[HsDescAuthTypeInt.BASIC_AUTH, HsDescAuthTypeInt.STEALTH_AUTH],
     ) -> Self:
-        """Generate a new auth cookie."""
+        """Generate a new authentication cookie."""
         return cls(auth_type=auth_type, cookie=secrets.token_bytes(cls.REND_DESC_COOKIE_LEN))
 
 
@@ -613,7 +613,7 @@ class HsDescClientAuth:
     cookie: HsDescAuthCookie | None = None
 
 
-#: Annotated structure for hidden service v2 client auth.
+#: Annotated structure for hidden service v2 client authentication.
 HsDescClientAuthV2: TypeAlias = Annotated[
     HsDescClientAuth,
     TrBeforeStringSplit(
@@ -622,7 +622,7 @@ HsDescClientAuthV2: TypeAlias = Annotated[
         separator=':',
     ),
 ]
-#: Annotated structure for hidden service v3 client auth.
+#: Annotated structure for hidden service v3 client authentication.
 HsDescClientAuthV3: TypeAlias = X25519PublicKeyBase32
 
 
@@ -662,7 +662,7 @@ class HsDescBase:
 
 @dataclass(kw_only=True, slots=True)
 class HsIntroPointV2:
-    """A single intoduction point for a v2 descriptor."""
+    """A single introduction point for a v2 descriptor."""
 
     #: The identifier of this introduction point.
     introduction_point: Base32Bytes
@@ -682,13 +682,13 @@ class HsIntroPointV2:
     @classmethod
     def text_to_mapping_list(cls, body: str) -> Sequence[Mapping[str, Any]]:
         """
-        Parse ``body`` to a list of raw introduction points mapppings.
+        Parse ``body`` to a list of raw introduction points mappings.
 
         Args:
             body: The raw content of the descriptors.
 
         Returns:
-            A list of mapppings for introduction points.
+            A list of mappings for introduction points.
 
         """
         current = {}  # type: dict[str, Any]
@@ -802,7 +802,7 @@ class HsDescV2(HsDescBase):
     @classmethod
     def text_to_mapping(cls, body: str) -> Mapping[str, Any]:
         """
-        Parse ``body`` to a raw descriptor to mappping.
+        Parse ``body`` to a raw descriptor to mapping.
 
         Args:
             body: The content of the descriptor.
@@ -1044,7 +1044,7 @@ class LongServerName:
 class OnionClientAuthFlags(StrEnum):
     """List of flags attached to a running onion service."""
 
-    #: This client's credentials should be stored in the filesystem.
+    #: This client's credentials should be stored on the file system.
     PERMANENT = 'Permanent'
 
 
@@ -1132,7 +1132,7 @@ def _onion_client_auth_key_to_struct(
             )
 
         case _:
-            msg = 'Unhandled onion client auth key type.'
+            msg = 'Unhandled onion client authentication key type.'
             raise TypeError(msg)
 
 
@@ -1152,7 +1152,7 @@ SerializeOnionClientAuthKeyToStruct = WrapSerializer(
     return_type=OnionClientAuthKeyStruct,
 )
 
-#: Parse and serialize any onion client auth key with format ``x25519:[base64]``.
+#: Parse and serialize any onion client authentication key with format ``x25519:[base64]``.
 OnionClientAuthKey: TypeAlias = Annotated[
     Union[  # noqa: UP007
         Annotated[
@@ -1392,7 +1392,7 @@ class Signal(StrEnum):
     DEBUG = 'DEBUG'
     #: Immediate shutdown, clean up and exit now.
     HALT = 'HALT'
-    #: Forget the client-side cached IPs for all host names.
+    #: Forget the client-side cached IP addresses for all host names.
     CLEARDNSCACHE = 'CLEARDNSCACHE'
     #: Switch to clean circuits, so new requests don't share any circuits with old ones.
     NEWNYM = 'NEWNYM'
@@ -1482,14 +1482,14 @@ class StatusActionServer(StrEnum):
     REACHABILITY_SUCCEEDED = 'REACHABILITY_SUCCEEDED'
     #: We successfully uploaded our server descriptor to one of the directory authorities.
     GOOD_SERVER_DESCRIPTOR = 'GOOD_SERVER_DESCRIPTOR'
-    #: One of our nameservers has changed status.
+    #: One of our name servers has changed status.
     #:
     #: See Also:
     #:    :class:`StatusServerNameserverStatus`
     NAMESERVER_STATUS = 'NAMESERVER_STATUS'
     #: All of our nameservers have gone down.
     NAMESERVER_ALL_DOWN = 'NAMESERVER_ALL_DOWN'
-    #: Our DNS provider is providing an address when it should be saying "NOTFOUND".
+    #: Our DNS provider is providing an address when it should be saying ``NOTFOUND``.
     DNS_HIJACKED = 'DNS_HIJACKED'
     #: Our DNS provider is giving a hijacked address instead of well-known websites.
     DNS_USELESS = 'DNS_USELESS'
@@ -2116,13 +2116,13 @@ class StreamStatus(StrEnum):
     SENTRESOLVE = 'SENTRESOLVE'
     #: Received a reply; stream established.
     SUCCEEDED = 'SUCCEEDED'
-    #: Stream failed and not retriable.
+    #: Stream failed and not be retried.
     FAILED = 'FAILED'
     #: Stream closed.
     CLOSED = 'CLOSED'
-    #: Detached from circuit; still retriable.
+    #: Detached from circuit; can still be retried.
     DETACHED = 'DETACHED'
-    #: Waiting for controller to use ATTACHSTREAM.
+    #: Waiting for controller to use :attr:`~.CommandWord.ATTACHSTREAM`.
     CONTROLLER_WAIT = 'CONTROLLER_WAIT'
     #: XOFF has been sent for this stream.
     XOFF_SENT = 'XOFF_SENT'
@@ -2240,7 +2240,7 @@ class TcpAddressPort:
     ) -> CoreSchema:
         """Declare schema and validator for a TCP connection."""
         # There is an issue here due to our complex handling or EventStatusClient.
-        # Our schema is not taken into account when used in a discrimated union...
+        # Our schema is not taken into account when used in a discriminated union...
         # The only way we found to have this work is to use a before validation here.
         return core_schema.no_info_before_validator_function(
             function=cls._pydantic_validator,

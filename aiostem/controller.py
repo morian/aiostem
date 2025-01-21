@@ -270,7 +270,7 @@ class Controller:
                 ...
 
         Args:
-            path: path to the unix socket on the filesystem.
+            path: path to the unix socket on the file system.
 
         Returns:
             A controller for the target unix socket.
@@ -809,7 +809,7 @@ class Controller:
             to tracking attacks over time.
 
         Note:
-            Tor also emits the ``BUILDTIMEOUT_SET RESET`` event rigth after the reply.
+            Tor also emits the ``BUILDTIMEOUT_SET RESET`` event right after the reply.
 
         Returns:
             A simple drop-timeouts reply where only the status is relevant.
@@ -987,7 +987,7 @@ class Controller:
 
         The client tells the server that future SOCKS requests for connections to any
         original address provided here should be replaced with a connection to the
-        specificed replacement address.
+        specified replacement address.
 
         The client may decline to provide a replacement address and instead provide
         a special address. This means that the server should choose the original

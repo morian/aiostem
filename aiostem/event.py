@@ -346,7 +346,7 @@ class EventSimple(Event):
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
-        """Build an event dataclass from a received message."""
+        """Build an event from a received message."""
         result = cls.SYNTAX.parse(message)
         return cls.adapter().validate_python(result)
 
@@ -365,7 +365,7 @@ class EventDisconnect(Event):
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
-        """Build an event dataclass from a received message."""
+        """Build an event from a received message."""
         return cls.adapter().validate_python({})
 
 
@@ -629,7 +629,7 @@ class EventStream(EventSimple):
     iso_fields: Annotated[AbstractSet[str], TrBeforeStringSplit()] | None = None
     #: Nym epoch that was active when a client initiated this stream.
     nym_epoch: NonNegativeInt | None = None
-    #: Provided only for NEW and NEWRESOLVE events
+    #: Only for :attr:`~.StreamStatus.NEW` and :attr:`~.StreamStatus.NEWRESOLVE` events.
     purpose: Annotated[StreamPurpose | str, Field(union_mode='left_to_right')] | None = None
 
     #: Provided only for ``FAILED``, ``CLOSED``, and ``DETACHED`` events,
@@ -880,7 +880,7 @@ class EventBaseNetworkStatus(Event):
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
-        """Build an event dataclass from a received message."""
+        """Build an event from a received message."""
         if not len(message.items) or not isinstance(message.items[0], MessageData):
             msg = "Event 'NS' has no data attached to it!"
             raise ReplySyntaxError(msg)
@@ -1357,7 +1357,7 @@ class EventHsDesc(EventSimple):
     address: HiddenServiceAddress | Literal['UNKNOWN']
     #: Client authentication here is always :attr:`~.HsDescAuthTypeStr.NO_AUTH`.
     auth_type: HsDescAuthTypeStr
-    #: The descriptor blinded key used for the index value at the "HsDir".
+    #: The descriptor blinded key used for the index value at the ``HsDir``.
     descriptor_id: Base32Bytes | Base64Bytes | None = None
     #: Hidden service directory answering this request.
     hs_dir: LongServerName | Literal['UNKNOWN']
@@ -1408,7 +1408,7 @@ class EventHsDescContent(Event):
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
-        """Build an event dataclass from a received message."""
+        """Build an event from a received message."""
         if not len(message.items) or not isinstance(message.items[0], MessageData):
             msg = "Event 'HS_DESC_CONTENT' has no data attached to it!"
             raise ReplySyntaxError(msg)
@@ -1461,7 +1461,7 @@ class EventLog(Event):
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
-        """Build an event dataclass from a received message."""
+        """Build an event from a received message."""
         result = {}  # type: dict[str, Any]
         if len(message.items) and isinstance(message.items[0], MessageData):
             result.update(cls.SYNTAX.parse(message.items[0]))
@@ -1545,7 +1545,7 @@ def _discriminate_status_by_action(v: Any) -> str:
         v: The raw value to serialize/deserialize the event.
 
     Returns:
-        The tag correspoding to the structure to parse in the `arguments` union.
+        The tag corresponding to the structure to parse in the ``arguments`` union.
 
     """
     match v:
@@ -1584,7 +1584,7 @@ class EventStatus(Event):
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
-        """Build an event dataclass from a received message."""
+        """Build an event from a received message."""
         result = {'arguments': None}  # type: dict[str, Any]
         result.update(cls.SYNTAX.parse(message))
 
@@ -1903,7 +1903,7 @@ class EventPtStatus(Event):
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
-        """Build an event dataclass from a received message."""
+        """Build an event from a received message."""
         extract = dict(cls.SYNTAX.parse(message))
         result: dict[str, Any] = {
             key: extract.pop(key, None) for key in ('program', 'transport')
@@ -1929,7 +1929,7 @@ class EventUnknown(Event):
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
-        """Build an event dataclass from a received message."""
+        """Build an event from a received message."""
         return cls.adapter().validate_python({'message': message})
 
 
@@ -1983,7 +1983,7 @@ def event_from_message(message: Message) -> Event:
         MessageError: When the message is not an event.
 
     Returns:
-        A parsed event dataclass corresponding to the event.
+        A parsed event corresponding to the event in the provided message.
 
     """
     if not message.is_event:
