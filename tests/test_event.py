@@ -660,3 +660,10 @@ class TestHsDescriptors:
         assert first_intro.onion_port == 9101
 
         assert desc.is_signature_valid() is True
+
+    async def test_hs_desc_v2_intro_errors(self, hs_desc_v2_lines):
+        message = await create_message(hs_desc_v2_lines)
+        event = event_from_message(message)
+        msg = 'Authentication cookie for V2 descriptor is not yet implemented'
+        with pytest.raises(NotImplementedError, match=msg):
+            event.descriptor.introduction_points('password')

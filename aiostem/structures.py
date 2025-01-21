@@ -791,7 +791,7 @@ class HsDescV2(HsDescBase):
 
         """
         # This will not be implemented since OnionV2 has been deprecated for a long time.
-        if auth_cookie is not None:  # pragma: no cover
+        if auth_cookie is not None:
             msg = 'Authentication cookie for V2 descriptor is not yet implemented.'
             raise NotImplementedError(msg)
 
@@ -904,12 +904,12 @@ class HsDescV2(HsDescBase):
         # 1 byte:  0x00 (separator)
         # M bytes: message
         decrypted = decrypted_int.to_bytes(blocklen, byteorder='big')
-        if not decrypted.startswith(b'\x00\x01'):  # pragma: no cover
-            return False
+        if not decrypted.startswith(b'\x00\x01'):
+            return False  # pragma: no cover
 
         message = decrypted[2:].lstrip(b'\xff')
-        if not message.startswith(b'\x00'):  # pragma: no cover
-            return False
+        if not message.startswith(b'\x00'):
+            return False  # pragma: no cover
 
         return bool(self.computed_digest == message[1:])
 
