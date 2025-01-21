@@ -658,3 +658,5 @@ class TestHsDescriptors:
         first_intro = intros[0]
         assert first_intro.ip == IPv4Address('212.74.233.20')
         assert first_intro.onion_port == 9101
+
+        assert desc.is_signature_valid() is True

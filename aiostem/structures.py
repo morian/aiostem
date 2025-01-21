@@ -761,6 +761,12 @@ class HsDescV2(HsDescBase):
     #: Content of the introduction points.
     introduction_points_bytes: Base64Bytes
 
+    #: Computed digest of this descriptor (everything except the signature).
+    #:
+    #: This field is computed and not part of the original descriptor.
+    #: It is used to check the signature against the ``permanent_key``.
+    computed_digest: Base64Bytes
+
     #: A signature of all fields with the service's private key.
     signature: Base64Bytes
 
@@ -805,8 +811,17 @@ class HsDescV2(HsDescBase):
             A map suitable for parsing from pydantic.
 
         """
-        results = {}  # type: dict[str, Any]
-        lines = iter(body.splitlines())
+        digest: bytes | None
+        lines_raw = body.splitlines()
+        try:
+            pos = lines_raw.index('signature')
+            buffer = '\n'.join(lines_raw[: pos + 1]) + '\n'
+            digest = hashlib.sha1(buffer.encode('ascii')).digest()  # noqa: S324
+        except ValueError:  # pragma: no cover
+            digest = None
+
+        results = {'computed_digest': digest}  # type: dict[str, Any]
+        lines = iter(lines_raw)
         with suppress(StopIteration):
             while True:
                 line = next(lines)
@@ -862,6 +877,41 @@ class HsDescV2(HsDescBase):
 
         """
         return cls.adapter().validate_python(cls.text_to_mapping(body))
+
+    def is_signature_valid(self) -> bool:
+        """
+        Check the provided signature.
+
+        This does not use cryptography's signature mechanism since Tor seems to have a
+        specific signature method, not implemented by cryptography.
+
+        An issue was opened by stem on this matter:
+           - https://github.com/pyca/cryptography/issues/3713
+
+        Returns:
+            Whether the signature is correct for the current descriptor.
+
+        """
+        key_nums = self.permanent_key.public_numbers()
+        blocklen = len(self.signature)
+        signature_int = int.from_bytes(self.signature, byteorder='big')
+        decrypted_int = pow(signature_int, key_nums.e, key_nums.n)
+
+        # Format for ``decrypted``:
+        # 1 byte:  0x00
+        # 1 byte:  0x01 (block identifier, always 1)
+        # N bytes: 0xff (padding)
+        # 1 byte:  0x00 (separator)
+        # M bytes: message
+        decrypted = decrypted_int.to_bytes(blocklen, byteorder='big')
+        if not decrypted.startswith(b'\x00\x01'):  # pragma: no cover
+            return False
+
+        message = decrypted[2:].lstrip(b'\xff')
+        if not message.startswith(b'\x00'):  # pragma: no cover
+            return False
+
+        return bool(self.computed_digest == message[1:])
 
 
 class LivenessStatus(StrEnum):
