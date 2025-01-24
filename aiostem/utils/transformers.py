@@ -12,7 +12,7 @@ from collections.abc import (
 )
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta, tzinfo
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, TypeVar
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, TypeVar
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
@@ -223,8 +223,11 @@ class TrBeforeStringSplit:
 class TrBeforeTimedelta:
     """Pre-validator that gets a timedelta from an int or float."""
 
-    #: Whether the input value is expected to be in milliseconds.
-    milliseconds: bool = False
+    #: Unit used to serialize and deserialize.
+    unit: Literal['milliseconds', 'seconds', 'minutes'] = 'seconds'
+
+    #: Whether to serialize / deserialize to a float number.
+    is_float: bool = True
 
     def __get_pydantic_core_schema__(
         self,
@@ -236,36 +239,69 @@ class TrBeforeTimedelta:
             msg = f"source type is not a timedelta, got '{source.__name__}'"
             raise TypeError(msg)
 
+        if self.is_float:
+            source_schema = core_schema.float_schema()  # type: CoreSchema
+        else:
+            source_schema = core_schema.int_schema()
+
         return core_schema.union_schema(
             choices=[
                 handler(source),
                 core_schema.chain_schema(
                     steps=[
-                        core_schema.float_schema(),
+                        source_schema,
                         core_schema.no_info_before_validator_function(
-                            self.from_float,
+                            self.from_number,
                             handler(source),
                         ),
                     ],
                 ),
             ],
             serialization=core_schema.plain_serializer_function_ser_schema(
-                function=self.to_float,
-                return_schema=core_schema.float_schema(),
+                function=self.to_number,
+                return_schema=source_schema,
             ),
         )
 
-    def from_float(self, value: float) -> timedelta:
-        """Parse the input value as an integer or float timedelta."""
-        if self.milliseconds:
-            value = value / 1000.0
+    def from_number(self, value: float) -> timedelta:
+        """
+        Parse the input value as an integer or float timedelta.
+
+        Args:
+            value: The input value we want to create a timedelta from.
+
+        Returns:
+            A simple timedelta built from the provided value.
+
+        """
+        match self.unit:
+            case 'milliseconds':
+                value = value / 1000.0
+            case 'minutes':
+                value = value * 60.0
         return timedelta(seconds=value)
 
-    def to_float(self, delta: timedelta) -> float:
-        """Convert the timedelta value to a float."""
+    def to_number(self, delta: timedelta) -> float | int:
+        """
+        Convert the timedelta value to a float or int.
+
+        Args:
+            delta: The timedelta value we want to serialize.
+
+        Returns:
+            A float or integer value.
+
+        """
         value = delta.total_seconds()
-        if self.milliseconds:
-            value = 1000.0 * value
+
+        match self.unit:
+            case 'milliseconds':
+                value = 1000 * value
+            case 'minutes':
+                value = value / 60.0
+
+        if not self.is_float:
+            return int(value)
         return value
 
 

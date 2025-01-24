@@ -47,12 +47,6 @@ BoolYesNo: TypeAlias = Annotated[bool, TrBoolYesNo()]
 #: A datetime that always puts or convert to UTC.
 DatetimeUTC: TypeAlias = Annotated[datetime, TrAfterAsTimezone()]
 
-#: A :class:`~datetime.timedelta` parsed from an integer value in milliseconds.
-TimedeltaMilliseconds: TypeAlias = Annotated[
-    timedelta,
-    TrBeforeTimedelta(milliseconds=True),
-]
-
 #: Base64 encoded bytes parsed as a public RSA key.
 RSAPublicKeyBase64: TypeAlias = Annotated[
     RSAPublicKey,
@@ -60,10 +54,21 @@ RSAPublicKeyBase64: TypeAlias = Annotated[
     TrRSAPublicKey(),
 ]
 
+#: A :class:`~datetime.timedelta` parsed from an integer value in milliseconds.
+TimedeltaMilliseconds: TypeAlias = Annotated[
+    timedelta,
+    TrBeforeTimedelta(unit='milliseconds'),
+]
+#: A :class:`~datetime.timedelta` parsed from an integer value in minutes.
+TimedeltaMinutes: TypeAlias = Annotated[
+    timedelta,
+    TrBeforeTimedelta(is_float=False, unit='minutes'),
+]
+
 #: A :class:`~datetime.timedelta` parsed from an integer value in seconds.
 TimedeltaSeconds: TypeAlias = Annotated[
     timedelta,
-    TrBeforeTimedelta(milliseconds=False),
+    TrBeforeTimedelta(unit='seconds'),
 ]
 
 #: Base32 encoded bytes parsed as a public x25519 key.

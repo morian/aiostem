@@ -26,10 +26,12 @@ from .structures import (
     GuardEventStatus,
     HiddenServiceAddress,
     HiddenServiceAddressV2,
+    HiddenServiceAddressV3,
     HsDescAction,
     HsDescAuthTypeStr,
     HsDescFailReason,
     HsDescV2,
+    HsDescV3,
     LivenessStatus,
     LogSeverity,
     LongServerName,
@@ -1396,11 +1398,14 @@ class EventHsDescContent(Event):
     descriptor_text: str
 
     @cached_property
-    def descriptor(self) -> HsDescV2:
+    def descriptor(self) -> HsDescV2 | HsDescV3:
         """Get the parsed descriptor."""
         match self.address:
             case HiddenServiceAddressV2():
                 return HsDescV2.from_text(self.descriptor_text)
+
+            case HiddenServiceAddressV3():
+                return HsDescV3.from_text(self.descriptor_text)
 
             case _:  # pragma: no cover
                 msg = 'Unhandled hidden service descriptor format.'

@@ -55,6 +55,7 @@ from .types import (
     Base64Bytes,
     DatetimeUTC,
     RSAPublicKeyBase64,
+    TimedeltaMinutes,
     TimedeltaSeconds,
     X25519PublicKeyBase32,
 )
@@ -912,6 +913,96 @@ class HsDescV2(HsDescBase):
             return False  # pragma: no cover
 
         return bool(self.computed_digest == message[1:])
+
+
+@dataclass(kw_only=True)
+class HsDescV3(HsDescBase):
+    """Hidden service descriptor for v3 onions."""
+
+    #: The version number of this descriptor's format.
+    hs_descriptor: PositiveInt
+
+    #: The revision number of the descriptor.
+    revision: NonNegativeInt
+
+    #: The lifetime of a descriptor in minutes.
+    lifetime: TimedeltaMinutes
+
+    #: Certificate and signing key.
+    signing_cert: Base64Bytes
+
+    #: Encrypted content of the descriptor.
+    #:
+    #: This contains the first layer (or outer layer). This can simply
+    #: be decrypted with the name of the hidden service this descriptor
+    #: is created for.
+    superencrypted: Base64Bytes
+
+    #: A signature of all fields with the service's private key.
+    signature: Base64Bytes
+
+    @classmethod
+    def text_to_mapping(cls, body: str) -> Mapping[str, Any]:
+        """
+        Parse ``body`` to a raw descriptor to mapping.
+
+        Args:
+            body: The content of the descriptor.
+
+        Returns:
+            A map suitable for parsing from pydantic.
+
+        """
+        results = {}  # type: dict[str, Any]
+        lines = iter(body.splitlines())
+        with suppress(StopIteration):
+            while True:
+                line = next(lines)
+                # Ignore any empty line not part of an item.
+                if not len(line):  # pragma: no cover
+                    continue
+
+                key, *args = line.split(' ', maxsplit=1)
+                match key:
+                    case 'hs-descriptor':
+                        results['hs_descriptor'] = args[0]
+
+                    case 'revision-counter':
+                        results['revision'] = args[0]
+
+                    case 'descriptor-lifetime':
+                        results['lifetime'] = args[0]
+
+                    case 'descriptor-signing-key-cert':
+                        block = _parse_block(lines, 'ED25519 CERT')
+                        results['signing_cert'] = block
+
+                    case 'superencrypted':
+                        block = _parse_block(lines, 'MESSAGE')
+                        results['superencrypted'] = block
+
+                    case 'signature':
+                        results['signature'] = args[0]
+
+                    case _:  # pragma: no cover
+                        content = args[0] if len(args) else '__NONE__'
+                        logger.warning('Unhandled HsDescV3 key %s: %s', key, content)
+
+        return results
+
+    @classmethod
+    def from_text(cls, body: str) -> Self:
+        """
+        Build a HsDescV3 object from a text descriptor.
+
+        Args:
+            body: The content of the descriptor.
+
+        Returns:
+            A parsed descriptor.
+
+        """
+        return cls.adapter().validate_python(cls.text_to_mapping(body))
 
 
 class LivenessStatus(StrEnum):

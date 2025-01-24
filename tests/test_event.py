@@ -42,6 +42,7 @@ from aiostem.structures import (
     HsDescAction,
     HsDescFailReason,
     HsDescV2,
+    HsDescV3,
     LogSeverity,
     LongServerName,
     Signal,
@@ -667,3 +668,16 @@ class TestHsDescriptors:
         msg = 'Authentication cookie for V2 descriptor is not yet implemented'
         with pytest.raises(NotImplementedError, match=msg):
             event.descriptor.introduction_points('password')
+
+    async def test_hs_desc_v3(self, hs_desc_v3_lines):
+        address = 'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid'
+        message = await create_message(hs_desc_v3_lines)
+        event = event_from_message(message)
+        assert isinstance(event, EventHsDescContent)
+        assert event.address == address
+        assert isinstance(event.descriptor, HsDescV3)
+
+        # Check general purpose fields from the descriptor.
+        desc = event.descriptor
+        assert desc.hs_descriptor == 3
+        print(desc)

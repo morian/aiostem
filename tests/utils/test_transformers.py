@@ -205,8 +205,31 @@ class TestStringSplit:
 
 
 class TestTimedelta:
-    ADAPTER_SECS = TypeAdapter(Annotated[timedelta, TrBeforeTimedelta(milliseconds=False)])
-    ADAPTER_MSECS = TypeAdapter(Annotated[timedelta, TrBeforeTimedelta(milliseconds=True)])
+    ADAPTER_MINS = TypeAdapter(
+        Annotated[
+            timedelta,
+            TrBeforeTimedelta(unit='minutes', is_float=False),
+        ],
+    )
+    ADAPTER_SECS = TypeAdapter(Annotated[timedelta, TrBeforeTimedelta(unit='seconds')])
+    ADAPTER_MSECS = TypeAdapter(Annotated[timedelta, TrBeforeTimedelta(unit='milliseconds')])
+
+    @pytest.mark.parametrize(
+        'entry',
+        [
+            timedelta(minutes=90),
+            '01:30:00',
+            '90',
+            90,
+        ],
+    )
+    def test_minutes_with_multiple_types(self, entry: Any):
+        delta = self.ADAPTER_MINS.validate_python(entry)
+        assert int(delta.total_seconds()) == 5400
+
+        serial = self.ADAPTER_MINS.dump_python(delta)
+        assert isinstance(serial, int)
+        assert int(serial) == 90
 
     @pytest.mark.parametrize(
         'entry',

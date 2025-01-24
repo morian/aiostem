@@ -198,6 +198,9 @@ Hidden Service structures
 .. autoclass:: HsDescV2
    :members:
 
+.. autoclass:: HsDescV3
+   :members:
+
 .. autoclass:: HsDescFailReason
    :undoc-members:
    :members:
