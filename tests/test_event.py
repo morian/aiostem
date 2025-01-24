@@ -680,4 +680,5 @@ class TestHsDescriptors:
         # Check general purpose fields from the descriptor.
         desc = event.descriptor
         assert desc.hs_descriptor == 3
-        print(desc)
+        assert desc.revision == 2602216024
+        assert int(desc.lifetime.total_seconds()) == 10800
