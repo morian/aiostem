@@ -10,6 +10,7 @@ from pydantic_core.core_schema import CoreSchema, WhenUsed
 if TYPE_CHECKING:
     from pydantic import GetCoreSchemaHandler, GetJsonSchemaHandler
     from pydantic.json_schema import JsonSchemaValue
+    from pydantic_core.core_schema import SerializerFunctionWrapHandler
 
 
 #: Generic type used for our encoders.
@@ -104,12 +105,10 @@ class Base32Encoder(EncoderProtocol[bytes]):
             The corresponding encoded string value.
 
         """
-        if isinstance(value, bytes):
-            encoded = base64.b32encode(value)
-            if cls.trim_padding:
-                encoded = encoded.rstrip(b'=')
-            return encoded.decode()
-        return value
+        encoded = base64.b32encode(value)
+        if cls.trim_padding:
+            encoded = encoded.rstrip(b'=')
+        return encoded.decode()
 
     @classmethod
     def get_json_format(cls) -> Literal['base32']:
@@ -164,12 +163,10 @@ class Base64Encoder(EncoderProtocol[bytes]):
             The corresponding encoded string value.
 
         """
-        if isinstance(value, bytes):
-            encoded = base64.standard_b64encode(value)
-            if cls.trim_padding:
-                encoded = encoded.rstrip(b'=')
-            return encoded.decode()
-        return value
+        encoded = base64.standard_b64encode(value)
+        if cls.trim_padding:
+            encoded = encoded.rstrip(b'=')
+        return encoded.decode()
 
     @classmethod
     def get_json_format(cls) -> Literal['base64']:
@@ -216,9 +213,7 @@ class Base16Encoder(EncoderProtocol[bytes]):
             The corresponding encoded string value.
 
         """
-        if isinstance(value, bytes):
-            return value.hex()
-        return value
+        return value.hex()
 
     @classmethod
     def get_json_format(cls) -> Literal['base16']:
@@ -230,7 +225,10 @@ class Base16Encoder(EncoderProtocol[bytes]):
 class EncodedBase(Generic[T]):
     """Generic encoded value to/from a string using the :class:`EncoderProtocol`."""
 
+    #: Main core validation schema.
     CORE_SCHEMA: ClassVar[CoreSchema]
+    #: Core python type associated with the schema.
+    CORE_TYPE: ClassVar[type[Any]]
 
     #: The encoder protocol to use.
     encoder: type[EncoderProtocol[T]]
@@ -243,24 +241,13 @@ class EncodedBase(Generic[T]):
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Tell the core schema and how to validate the whole thing."""
-        return core_schema.union_schema(
-            choices=[
-                # We can already be made of bytes and skip all processing from here.
-                self.CORE_SCHEMA,
-                # Otherwise we have to be a string and follow the decoding path.
-                core_schema.chain_schema(
-                    steps=[
-                        core_schema.str_schema(strict=True),
-                        core_schema.no_info_before_validator_function(
-                            function=self.from_string,
-                            schema=self.CORE_SCHEMA,
-                        ),
-                    ],
-                ),
-            ],
+        return core_schema.no_info_before_validator_function(
+            function=self._pydantic_validator,
+            schema=handler(source),
             # We are bytes and will be returned as a string.
-            serialization=core_schema.plain_serializer_function_ser_schema(
-                function=self.to_string,
+            serialization=core_schema.wrap_serializer_function_ser_schema(
+                function=self._pydantic_serializer,
+                schema=handler(source),
                 when_used=self.when_used,
             ),
         )
@@ -278,9 +265,22 @@ class EncodedBase(Generic[T]):
 
         """
         content_encoding = self.encoder.get_json_format()
-        field_schema = handler(core_schema.bytes_schema())
+        field_schema = handler(self.CORE_SCHEMA)
         field_schema.update(contentEncoding=content_encoding, type='string')
         return field_schema
+
+    def _pydantic_serializer(self, item: Any, serialize: SerializerFunctionWrapHandler) -> str:
+        """Serialize the provided item to a string."""
+        # This is needed because bytes are serialized to strings by pydantic :(.
+        if isinstance(item, self.CORE_TYPE):
+            return self.to_string(item)
+        return self.to_string(serialize(item))
+
+    def _pydantic_validator(self, value: Any) -> Any:
+        """Validate any kind of input data."""
+        if isinstance(value, str):
+            return self.from_string(value)
+        return value
 
     def from_string(self, string: str) -> T:
         """Decode a string to the underlying type."""
@@ -297,6 +297,9 @@ class EncodedBytes(EncodedBase[bytes]):
 
     #: Our core schema is for :class:`bytes`.
     CORE_SCHEMA = core_schema.bytes_schema(strict=True)
+
+    #: Core python type associated with the schema.
+    CORE_TYPE = bytes
 
     def __hash__(self) -> int:
         """

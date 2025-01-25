@@ -147,6 +147,36 @@ These are annotated structures generally built from a single string.
 .. autodata:: VirtualPort
 
 
+Ed25519 certificates
+--------------------
+
+.. autoclass:: Ed25519Certificate
+   :undoc-members:
+   :members:
+
+.. autoclass:: Ed25519CertificateV1
+   :undoc-members:
+   :members:
+
+.. autoclass:: Ed25519CertPurpose
+   :undoc-members:
+   :members:
+
+.. autoclass:: Ed25519CertExtensionFlags
+   :members:
+.. autoclass:: Ed25519CertExtensionType
+   :members:
+
+.. autoclass:: BaseEd25519CertExtension
+   :members:
+
+.. autoclass:: Ed25519CertExtensionSigningKey
+   :members:
+
+.. autoclass:: Ed25519CertExtensionUnkown
+   :members:
+
+
 Hidden services
 ---------------
 

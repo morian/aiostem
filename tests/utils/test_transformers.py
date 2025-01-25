@@ -283,15 +283,15 @@ class TestTrEd25519PrivateKey:
     ADAPTER_ENC = TypeAdapter(
         Annotated[
             Ed25519PrivateKey,
-            EncodedBytes(encoder=Base64Encoder),
             TrEd25519PrivateKey(expanded=False),
+            EncodedBytes(encoder=Base64Encoder),
         ],
     )
     ADAPTER_EXP = TypeAdapter(
         Annotated[
             Ed25519PrivateKey,
-            EncodedBytes(encoder=Base64Encoder),
             TrEd25519PrivateKey(expanded=True),
+            EncodedBytes(encoder=Base64Encoder),
         ]
     )
     TEST_KEY = 'czJbjz9SLJqx6DVIRe1cWTSWXM4UeYiRNTnAPYGDlMU='
@@ -338,8 +338,8 @@ class TestTrEd25519PublicKey:
     ADAPTER_ENC = TypeAdapter(
         Annotated[
             Ed25519PublicKey,
-            EncodedBytes(encoder=Base32Encoder),
             TrEd25519PublicKey(),
+            EncodedBytes(encoder=Base32Encoder),
         ],
     )
     TEST_KEY = 'LQGMCX7HKXJZ52KH2U5KABXIUTN6MGIYIVCNQQGMJBRF24QT5UOA===='
@@ -373,8 +373,8 @@ class TestTrRSAPrivateKey:
     ADAPTER_ENC = TypeAdapter(
         Annotated[
             RSAPrivateKey,
-            EncodedBytes(encoder=Base64Encoder),
             TrRSAPrivateKey(),
+            EncodedBytes(encoder=Base64Encoder),
         ],
     )
     # This key was generated using ADD_ONION NEW:RSA1024 on Tor 0.4.5.9
@@ -428,8 +428,8 @@ class TestTrRSAPublicKey:
     ADAPTER_ENC = TypeAdapter(
         Annotated[
             RSAPublicKey,
-            EncodedBytes(encoder=Base64Encoder),
             TrRSAPublicKey(),
+            EncodedBytes(encoder=Base64Encoder),
         ],
     )
     TEST_STRING = (
@@ -472,8 +472,8 @@ class TestTrX25519PrivateKey:
     ADAPTER_ENC = TypeAdapter(
         Annotated[
             X25519PrivateKey,
-            EncodedBytes(encoder=Base64Encoder),
             TrX25519PrivateKey(),
+            EncodedBytes(encoder=Base64Encoder),
         ],
     )
     TEST_KEY = 'yPGUxgKaC5ACyEzsdANHJEJzt5DIqDRBlAFaAWWQn0o='
@@ -518,8 +518,8 @@ class TestTrX25519PublicKey:
     ADAPTER_ENC = TypeAdapter(
         Annotated[
             X25519PublicKey,
-            EncodedBytes(encoder=Base32Encoder),
             TrX25519PublicKey(),
+            EncodedBytes(encoder=Base32Encoder),
         ],
     )
     TEST_KEY = 'K2MLQ4S2DS4YCZXDOTOVC45LCLAKKCKN7QVAXPDMOSSYPZBGQSLA===='

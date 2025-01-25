@@ -4,6 +4,8 @@ import base64
 import hashlib
 import logging
 import secrets
+import struct
+from abc import ABC, abstractmethod
 from collections.abc import (
     Iterator,
     Mapping,
@@ -12,7 +14,8 @@ from collections.abc import (
 )
 from contextlib import suppress
 from dataclasses import dataclass, field
-from enum import IntEnum, StrEnum
+from datetime import UTC, datetime
+from enum import IntEnum, IntFlag, StrEnum
 from functools import cached_property
 from ipaddress import IPv4Address, IPv6Address
 from typing import (
@@ -55,15 +58,18 @@ from .types import (
     Base64Bytes,
     DatetimeUTC,
     RSAPublicKeyBase64,
-    TimedeltaMinutes,
+    TimedeltaMinutesInt,
     TimedeltaSeconds,
     X25519PublicKeyBase32,
 )
 from .utils import (
+    Base64Encoder,
+    EncodedBytes,
     TrBeforeSetToNone,
     TrBeforeStringSplit,
     TrCast,
     TrEd25519PrivateKey,
+    TrEd25519PublicKey,
     TrRSAPrivateKey,
     TrX25519PrivateKey,
 )
@@ -283,6 +289,280 @@ class DescriptorPurpose(StrEnum):
     CONTROLLER = 'controller'
     GENERAL = 'general'
     BRIDGE = 'bridge'
+
+
+@dataclass(kw_only=True, slots=True)
+class Ed25519CertificateStruct:
+    """
+    Tor's representation of an ed25519 certificate.
+
+    See Also:
+        https://github.com/torproject/torspec/blob/main/cert-spec.txt
+
+    """
+
+    #: Version of the certificate as used by Tor.
+    version: PositiveInt
+
+    #: Raw content for this certificate.
+    content: Base64Bytes
+
+
+@dataclass(kw_only=True, slots=True)
+class Ed25519Certificate(ABC):
+    """
+    Tor's representation of an ed25519 certificate.
+
+    See Also:
+        https://github.com/torproject/torspec/blob/main/cert-spec.txt
+
+    """
+
+    #: Version of the certificate as used by Tor.
+    version: PositiveInt
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Declare schema and validator for an ed25519 certificate."""
+        return core_schema.no_info_before_validator_function(
+            function=cls._pydantic_validator,
+            schema=handler(source),
+        )
+
+    @classmethod
+    def _pydantic_validator(cls, value: Any) -> Self:
+        """Build a new instance from any value."""
+        if isinstance(value, bytes):
+            version = value[0]
+            match version:
+                case 1:
+                    value = Ed25519CertificateV1.bytes_to_mapping(value)
+                case _:  # pragma: no cover
+                    msg = f'Unknown ed25519 certificate version: {version}'
+                    raise ReplySyntaxError(msg)
+        return value
+
+    @classmethod
+    @abstractmethod
+    def bytes_to_mapping(cls, value: bytes) -> Mapping[str, Any]:
+        """Build a new instance from bytes."""
+
+
+class Ed25519CertPurpose(IntEnum):
+    """All types of ed25519 certificates."""
+
+    #: Link key certificate certified by RSA1024 identity.
+    LINK = 1
+    #: RSA1024 Identity certificate, self-signed.
+    IDENTITY = 2
+    #: RSA1024 AUTHENTICATE cell link certificate, signed with RSA1024 key.
+    AUTHENTICATE = 3
+    #: Ed25519 signing key, signed with identity key.
+    ED25519_SIGNING = 4
+    #: TLS link certificate signed with ed25519 signing key.
+    LINK_CERT = 5
+    #: Ed25519 AUTHENTICATE cell key, signed with ed25519 signing key.
+    ED25519_AUTHENTICATE = 6
+    #: Ed25519 identity, signed with RSA identity.
+    ED25519_IDENTITY = 7
+    #: Hidden service V3 signing key.
+    HS_V3_DESC_SIGNING = 8
+    #: Hidden service V3 intro authentication key.
+    HS_V3_INTRO_AUTH = 9
+    #: ``ntor-onion-key-crosscert`` in a server descriptor.
+    NTOR_ONION_KEY = 10
+    #: Cross-certification of the encryption key using the descriptor signing key.
+    HS_V3_NTOR_ENC = 11
+
+
+class Ed25519CertExtensionFlags(IntFlag):
+    """Available flags on a Ed25519CertExtension."""
+
+    #: The extension affects whether the certificate is valid.
+    AFFECTS_VALIDATION = 1
+
+
+class Ed25519CertExtensionType(IntEnum):
+    """Available types of Ed25519CertExtension."""
+
+    #: There is a signing key bundled with this certificate.
+    HAS_SIGNING_KEY = 4
+
+
+@dataclass(kw_only=True, slots=True)
+class BaseEd25519CertExtension(ABC):
+    """Describe a single ed25519 certificate extension."""
+
+    #: Type of extension.
+    kind: Ed25519CertExtensionType
+
+    #: Set of flags for this extension.
+    flags: Ed25519CertExtensionFlags
+
+    @classmethod
+    def __get_pydantic_core_schema__(
+        cls,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Declare schema and validator for this extension."""
+        return core_schema.no_info_before_validator_function(
+            function=cls._pydantic_validator,
+            schema=handler(source),
+        )
+
+    @classmethod
+    @abstractmethod
+    def _pydantic_validator(cls, value: Any) -> Any:
+        """Update the fields from this extension."""
+
+    @classmethod
+    def bytes_to_mapping_list(cls, raw: bytes) -> Sequence[Mapping[str, Any]]:
+        """Parse and extract extension structures from ``raw``."""
+        results = []  # type: list[dict[str, Any]]
+        count = raw[0]
+        pos = 1
+        for _ in range(count):
+            length, kind, flags = struct.unpack_from('!HBB', raw, pos)
+            data = raw[pos + 4 : pos + 4 + length]
+            results.append({'kind': kind, 'flags': flags, 'data': data})
+            pos += length + 4
+        return results
+
+
+@dataclass(kw_only=True, slots=True)
+class Ed25519CertExtensionSigningKey(BaseEd25519CertExtension):
+    """Describe an unknown ed25519 certificate extension."""
+
+    #: Type of extension.
+    kind: Literal[Ed25519CertExtensionType.HAS_SIGNING_KEY]
+
+    #: Public ed25519 signing key as part of this extension.
+    key: Annotated[Ed25519PublicKey, TrEd25519PublicKey()]
+
+    @classmethod
+    def _pydantic_validator(cls, value: Any) -> Any:
+        """Update the fields from this extension."""
+        if isinstance(value, Mapping):
+            value = {**value, 'key': value.get('data')}
+        return value
+
+
+@dataclass(kw_only=True, slots=True)
+class Ed25519CertExtensionUnkown(BaseEd25519CertExtension):
+    """Describe an unknown ed25519 certificate extension."""
+
+    #: Raw data for this mysterious unknown extension.
+    data: Base64Bytes
+
+    @classmethod
+    def _pydantic_validator(cls, value: Any) -> Any:
+        """Update the fields from this extension."""
+        return value
+
+
+def _discriminate_ed25519_cert_extension(v: Any) -> int:
+    """Find how to discriminate the provided key."""
+    match v:
+        case BaseEd25519CertExtension():
+            return v.kind
+        case Mapping():
+            return v.get('kind', 0)
+        case _:  # pragma: no cover
+            return 0
+
+
+Ed25519CertExtension: TypeAlias = Annotated[
+    Union[  # noqa: UP007
+        Annotated[Ed25519CertExtensionSigningKey, Tag(4)],
+        Annotated[Ed25519CertExtensionUnkown, Tag(0)],
+    ],
+    Discriminator(_discriminate_ed25519_cert_extension),
+]
+
+
+@dataclass(kw_only=True)
+class Ed25519CertificateV1(Ed25519Certificate):
+    """Version 1 of tor's representation of an ed25519 certificate."""
+
+    #: Length of the Ed25519 public key.
+    ED25519_KEY_LENGTH: ClassVar[int] = 32
+    #: Length of the Ed25519 signature.
+    ED25519_SIGNATURE_LENGTH: ClassVar[int] = 64
+
+    #: Version of the certificate as used by Tor.
+    version: Literal[1] = 1
+
+    #: Purpose of this ed25519 certificate.
+    purpose: Ed25519CertPurpose
+
+    #: Expiration date for this certificate.
+    expiration: DatetimeUTC
+
+    #: Ed25519 public key.
+    key: Annotated[Ed25519PublicKey, TrEd25519PublicKey()] | None
+
+    #: List of ed25519 extensions used along with this certificate.
+    extensions: Sequence[Ed25519CertExtension]
+
+    #: Ed25519 certificate signature.
+    signature: Base64Bytes
+
+    #: Raw content of everything covered by the signature.
+    signed_content: Base64Bytes
+
+    @classmethod
+    def bytes_to_mapping(cls, data: bytes) -> Mapping[str, Any]:
+        """Build a new instance from bytes."""
+        extlen = len(data) - 39 - cls.ED25519_SIGNATURE_LENGTH
+        fmt = f'!BBIB{cls.ED25519_KEY_LENGTH}s{extlen}s{cls.ED25519_SIGNATURE_LENGTH}s'
+        ver, pur, exp, kt, kd, ext, sig = struct.unpack_from(fmt, data)
+        signed_content = data[: -cls.ED25519_SIGNATURE_LENGTH]
+        return {
+            'version': ver,
+            'purpose': pur,
+            'expiration': 3600 * exp,
+            'key': kd if kt == 1 else None,
+            'extensions': BaseEd25519CertExtension.bytes_to_mapping_list(ext),
+            'signature': sig,
+            'signed_content': signed_content,
+        }
+
+    @property
+    def expired(self) -> bool:
+        """Tell whether this certificate has expired."""
+        return bool(datetime.now(UTC) > self.expiration)
+
+    def raise_for_invalid_signature(self, key: Ed25519PublicKey) -> None:
+        """
+        Check this certificate's signature.
+
+        Args:
+            key: A public key to check this certificate against.
+
+        """
+        key.verify(self.signature, self.signed_content)
+
+    @cached_property
+    def signing_key(self) -> Ed25519PublicKey | None:
+        """
+        Get the signing key used with this certificate.
+
+        This works by looking up for this key in the parsed extensions.
+        This key can then be used to check for this certificate's signature.
+
+        Returns:
+            The public key used to verify this certificate, if any.
+
+        """
+        for ext in self.extensions:
+            if isinstance(ext, Ed25519CertExtensionSigningKey):
+                return ext.key
+        return None
 
 
 class Feature(StrEnum):
@@ -919,6 +1199,9 @@ class HsDescV2(HsDescBase):
 class HsDescV3(HsDescBase):
     """Hidden service descriptor for v3 onions."""
 
+    #: Prefix used while checking the signature of this descriptor.
+    SIGNATURE_PREFIX: ClassVar[bytes] = b'Tor onion service descriptor sig v3'
+
     #: The version number of this descriptor's format.
     hs_descriptor: PositiveInt
 
@@ -926,10 +1209,10 @@ class HsDescV3(HsDescBase):
     revision: NonNegativeInt
 
     #: The lifetime of a descriptor in minutes.
-    lifetime: TimedeltaMinutes
+    lifetime: TimedeltaMinutesInt
 
-    #: Certificate and signing key.
-    signing_cert: Base64Bytes
+    #: Ed25519 certificate used to validate this descriptor.
+    signing_cert: Annotated[Ed25519CertificateV1, EncodedBytes(encoder=Base64Encoder)]
 
     #: Encrypted content of the descriptor.
     #:
@@ -940,6 +1223,9 @@ class HsDescV3(HsDescBase):
 
     #: A signature of all fields with the service's private key.
     signature: Base64Bytes
+
+    #: Raw content of everything covered by the signature.
+    signed_content: Base64Bytes
 
     @classmethod
     def text_to_mapping(cls, body: str) -> Mapping[str, Any]:
@@ -953,8 +1239,23 @@ class HsDescV3(HsDescBase):
             A map suitable for parsing from pydantic.
 
         """
-        results = {}  # type: dict[str, Any]
-        lines = iter(body.splitlines())
+        lines_raw = body.splitlines()
+
+        pos = None  # type: int | None
+        # Lookup at the line that has a signature prefix.
+        for i in range(len(lines_raw) - 1, -1, -1):
+            if lines_raw[i].startswith('signature '):
+                pos = i
+
+        if pos is None:
+            msg = 'No signature found on the HsV3 descriptor.'
+            raise ReplySyntaxError(msg)
+
+        signed_str = '\n'.join(lines_raw[:pos]) + '\n'
+        signed_content = signed_str.encode('ascii')
+
+        results = {'signed_content': signed_content}  # type: dict[str, Any]
+        lines = iter(lines_raw)
         with suppress(StopIteration):
             while True:
                 line = next(lines)
@@ -1003,6 +1304,17 @@ class HsDescV3(HsDescBase):
 
         """
         return cls.adapter().validate_python(cls.text_to_mapping(body))
+
+    def raise_for_invalid_signature(self) -> None:
+        """
+        Check that this descriptor is properly signed.
+
+        This is checked against :attr:`signing_cert`.
+        """
+        signing_key = self.signing_cert.key
+        if signing_key is not None:
+            signed_content = self.SIGNATURE_PREFIX + self.signed_content
+            signing_key.verify(self.signature, signed_content)
 
 
 class LivenessStatus(StrEnum):
@@ -1237,7 +1549,7 @@ def _onion_client_auth_key_from_struct(value: Any) -> Any:
 #: Validator used to extract the raw key material after discrimination.
 ExtractOnionClientAuthKeyFromStruct = BeforeValidator(_onion_client_auth_key_from_struct)
 
-#: Build a OnionClientAuthKeyStruct structure from a real key.
+#: Build a :class:`OnionClientAuthKeyStruct` structure from a real key.
 SerializeOnionClientAuthKeyToStruct = WrapSerializer(
     func=_onion_client_auth_key_to_struct,
     return_type=OnionClientAuthKeyStruct,

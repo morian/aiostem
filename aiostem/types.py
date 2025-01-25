@@ -50,8 +50,8 @@ DatetimeUTC: TypeAlias = Annotated[datetime, TrAfterAsTimezone()]
 #: Base64 encoded bytes parsed as a public RSA key.
 RSAPublicKeyBase64: TypeAlias = Annotated[
     RSAPublicKey,
-    EncodedBytes(encoder=Base64Encoder),
     TrRSAPublicKey(),
+    EncodedBytes(encoder=Base64Encoder),
 ]
 
 #: A :class:`~datetime.timedelta` parsed from an integer value in milliseconds.
@@ -60,11 +60,10 @@ TimedeltaMilliseconds: TypeAlias = Annotated[
     TrBeforeTimedelta(unit='milliseconds'),
 ]
 #: A :class:`~datetime.timedelta` parsed from an integer value in minutes.
-TimedeltaMinutes: TypeAlias = Annotated[
+TimedeltaMinutesInt: TypeAlias = Annotated[
     timedelta,
-    TrBeforeTimedelta(is_float=False, unit='minutes'),
+    TrBeforeTimedelta(unit='minutes', is_float=False),
 ]
-
 #: A :class:`~datetime.timedelta` parsed from an integer value in seconds.
 TimedeltaSeconds: TypeAlias = Annotated[
     timedelta,
@@ -74,13 +73,13 @@ TimedeltaSeconds: TypeAlias = Annotated[
 #: Base32 encoded bytes parsed as a public x25519 key.
 X25519PublicKeyBase32: TypeAlias = Annotated[
     X25519PublicKey,
-    EncodedBytes(encoder=Base32Encoder),
     TrX25519PublicKey(),
+    EncodedBytes(encoder=Base32Encoder),
 ]
 
 #: Base64 encoded bytes parsed as a private x25519 key.
 X25519PrivateKeyBase64: TypeAlias = Annotated[
     X25519PrivateKey,
-    EncodedBytes(encoder=Base64Encoder),
     TrX25519PrivateKey(),
+    EncodedBytes(encoder=Base64Encoder),
 ]

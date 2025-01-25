@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar
 
 import pytest
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 
 from aiostem.types import Base16Bytes, Base32Bytes, Base64Bytes
 from aiostem.utils import Base32Encoder, Base64Encoder, EncodedBytes
@@ -36,7 +36,7 @@ class BaseEncoderTest:
         assert model.model_dump_json() == '{"v":"' + self.ENCODED_VALUE + '"}'
 
     def test_passthough(self):
-        model = self.TEST_MODEL_OR_NONE(v=123)
+        model = self.TEST_MODEL_OR_INT(v=123)
         assert model.model_dump_json() == '{"v":123}'
 
     def test_json_schema(self):
@@ -59,7 +59,7 @@ def inject_test_values(cls):
     class TestModel(BaseModel):
         v: cls.TEST_CLASS
 
-    class TestModelOrNone(BaseModel):
+    class TestModelOrInt(BaseModel):
         v: cls.TEST_CLASS | int
 
     for name, method in BaseEncoderTest.__dict__.items():
@@ -74,7 +74,8 @@ def inject_test_values(cls):
             setattr(cls, 'test_' + name[5:], wrapper)
 
     cls.TEST_MODEL = TestModel
-    cls.TEST_MODEL_OR_NONE = TestModelOrNone
+    cls.TEST_MODEL_OR_INT = TestModelOrInt
+    cls.ADAPTER_MODEL = TypeAdapter(TestModel)
 
     return cls
 

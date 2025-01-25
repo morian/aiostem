@@ -682,3 +682,13 @@ class TestHsDescriptors:
         assert desc.hs_descriptor == 3
         assert desc.revision == 2602216024
         assert int(desc.lifetime.total_seconds()) == 10800
+
+        # Additional checks on the signing certificate.
+        signing_cert = desc.signing_cert
+        assert signing_cert.expired is True
+
+        signing_key = signing_cert.signing_key
+        assert signing_key is not None
+
+        signing_cert.raise_for_invalid_signature(signing_key)
+        desc.raise_for_invalid_signature()
