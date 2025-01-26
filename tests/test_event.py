@@ -92,7 +92,7 @@ class TestEvents:
         event = event_from_message(message)
         assert isinstance(event, EventGuard)
         assert event.name.nickname == 'PalestineWillBeFree'
-        assert event.kind == 'ENTRY'
+        assert event.type == 'ENTRY'
         assert event.status == 'NEW'
 
     async def test_clients_seen(self):
@@ -660,7 +660,7 @@ class TestHsDescriptors:
         assert first_intro.ip == IPv4Address('212.74.233.20')
         assert first_intro.onion_port == 9101
 
-        assert desc.is_signature_valid() is True
+        desc.raise_for_invalid_signature()
 
     async def test_hs_desc_v2_intro_errors(self, hs_desc_v2_lines):
         message = await create_message(hs_desc_v2_lines)
@@ -692,3 +692,20 @@ class TestHsDescriptors:
 
         signing_cert.raise_for_invalid_signature(signing_key)
         desc.raise_for_invalid_signature()
+
+        layer1 = desc.decrypt_layer1(event.address)
+        assert len(layer1.auth_clients) == 16
+
+        layer2 = desc.decrypt_layer2(event.address)
+        assert layer2.single_service is True
+
+        # Check introduction points.
+        assert len(layer2.introduction_points) == 10
+        for intro in layer2.introduction_points:
+            intro.auth_key_cert.raise_for_invalid_signature(intro.auth_key_cert.signing_key)
+            intro.enc_key_cert.raise_for_invalid_signature(intro.enc_key_cert.signing_key)
+
+        # Check a random link specifier in our structure.
+        links = layer2.introduction_points[2].link_specifiers
+        assert links[0].host == IPv4Address('193.142.147.204')
+        assert links[0].port == 9200

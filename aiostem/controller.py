@@ -99,6 +99,7 @@ from .structures import (
     OnionServiceFlags,
     OnionServiceKeyType,
     OnionServiceNewKeyStruct,
+    ReplyDataAuthChallenge,
     Signal,
     StreamCloseReasonInt,
     VirtualPortTarget,
@@ -693,7 +694,10 @@ class Controller:
             token = password.encode()  # type: ignore[union-attr]
         elif 'SAFECOOKIE' in methods:
             cookie = await protoinfo.read_cookie_file()
-            challenge = await self.auth_challenge()
+            reply = await self.auth_challenge()
+            reply.raise_for_status()
+            # We know that reply.data is set because `raise_for_status` would have raised.
+            challenge = cast(ReplyDataAuthChallenge, reply.data)
             challenge.raise_for_server_hash_error(cookie)
             token = challenge.build_client_hash(cookie)
         elif 'COOKIE' in methods:

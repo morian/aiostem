@@ -3,6 +3,7 @@
 
 * :exc:`AiostemError`
    * :exc:`ControllerError`
+   * :exc:`CryptographyError`
    * :exc:`ProtocolError`
       * :exc:`CommandError`
       * :exc:`MessageError`
@@ -22,6 +23,16 @@ class AiostemError(Exception):
 
     Note:
         No exception is raised with this sole class.
+
+    """
+
+
+class CryptographyError(AiostemError):
+    """
+    Any error raised due to an invalid cryptography check.
+
+    This is typically raised while deciphering a descriptor or when
+    an incorrect hash was computed during :attr:`~.CommandWord.AUTHCHALLENGE`.
 
     """
 
@@ -83,7 +94,7 @@ class ReplyError(ProtocolError):
     """
     Raised when something went wrong with a reply or an event.
 
-    Except for authentication checks, this is never raised without a subclass.
+    This is never raised without a subclass.
 
     """
 

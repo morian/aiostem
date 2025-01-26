@@ -62,8 +62,8 @@ class CustomController(Controller):
     async def auth_challenge(self, nonce: bytes | str | None = None) -> ReplyAuthChallenge:
         """Fix the auth challenge a little bit when needed."""
         reply = await super().auth_challenge(nonce)
-        if self.auth_cookie_data is not None:
-            reply.data.server_hash = reply.build_server_hash(self.auth_cookie_data)
+        if reply.data is not None and self.auth_cookie_data is not None:
+            reply.data.server_hash = reply.data.build_server_hash(self.auth_cookie_data)
         return reply
 
     async def push_event_message(self, message: Message) -> None:

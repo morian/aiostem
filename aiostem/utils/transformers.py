@@ -87,15 +87,20 @@ class TrCast:
     #: Type we want to cast this to!
     target: type[Any]
 
+    #: Whether to apply this transformation before or after the main handler.
+    mode: Literal['before', 'after', 'union'] = 'union'
+
     def __get_pydantic_core_schema__(
         self,
         source: type[Any],
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Declare schema and validator to cast to the provided type."""
+        schema: CoreSchema
         source_schema = handler(source)
         target_schema = handler.generate_schema(self.target)
-        return core_schema.union_schema(
+
+        union_schema = core_schema.union_schema(
             [
                 source_schema,
                 core_schema.chain_schema(
@@ -106,6 +111,28 @@ class TrCast:
                 ),
             ]
         )
+
+        match self.mode:
+            case 'before':
+                schema = core_schema.no_info_before_validator_function(
+                    function=self._pydantic_validator,
+                    schema=union_schema,
+                )
+
+            case 'after':
+                schema = core_schema.no_info_after_validator_function(
+                    function=self._pydantic_validator,
+                    schema=union_schema,
+                )
+
+            case 'union':
+                schema = union_schema
+
+        return schema
+
+    def _pydantic_validator(self, value: Any) -> Any:
+        """Do not validate, simply pass the value."""
+        return value
 
 
 @dataclass(frozen=True, slots=True)

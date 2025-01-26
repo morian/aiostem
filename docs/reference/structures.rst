@@ -139,6 +139,11 @@ These are annotated structures generally built from a single string.
    :undoc-members:
    :members:
 
+.. autoclass:: VersionRange
+   :no-show-inheritance:
+   :undoc-members:
+   :members:
+
 .. autoclass:: VirtualPortTarget
    :no-show-inheritance:
    :undoc-members:
@@ -226,9 +231,31 @@ Hidden Service structures
 .. autodata:: HsDescClientAuthV3
 
 .. autoclass:: HsDescV2
+   :undoc-members:
    :members:
 
 .. autoclass:: HsDescV3
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescV3AuthClient
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescV3FlowControl
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescV3Layer
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescV3Layer1
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescV3Layer2
+   :undoc-members:
    :members:
 
 .. autoclass:: HsDescFailReason
@@ -236,6 +263,11 @@ Hidden Service structures
    :members:
 
 .. autoclass:: HsIntroPointV2
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsIntroPointV3
+   :undoc-members:
    :members:
 
 .. autoclass:: OnionClientAuthKeyStruct

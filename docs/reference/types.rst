@@ -22,3 +22,13 @@ These are helper types used to describe common types encountered throughout his 
 .. autodata:: TimedeltaSeconds
 .. autodata:: X25519PrivateKeyBase64
 .. autodata:: X25519PublicKeyBase32
+
+
+Generic structures
+------------------
+
+.. autodata:: RangeVal
+
+.. autoclass:: GenericRange
+   :undoc-members:
+   :members:

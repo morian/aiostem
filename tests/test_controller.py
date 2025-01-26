@@ -20,7 +20,12 @@ from aiostem.event import (
     EventUnknown,
     event_from_message,
 )
-from aiostem.exceptions import CommandError, ControllerError, ReplyError, ReplyStatusError
+from aiostem.exceptions import (
+    CommandError,
+    ControllerError,
+    CryptographyError,
+    ReplyStatusError,
+)
 from aiostem.structures import (
     CircuitPurpose,
     LongServerName,
@@ -133,10 +138,12 @@ class TestController:
     @pytest.mark.timeout(2)
     async def test_cmd_auth_challenge(self, controller_unauth):
         res = await controller_unauth.auth_challenge(b'NOT A TOKEN')
-        with pytest.raises(ReplyError, match='Server hash provided by Tor is invalid'):
-            res.raise_for_server_hash_error(b'THIS IS A COOKIE')
+        res.raise_for_status()
 
-        token = res.build_client_hash(b'THIS IS A COOKIE')
+        with pytest.raises(CryptographyError, match='Server hash provided by Tor is invalid'):
+            res.data.raise_for_server_hash_error(b'THIS IS A COOKIE')
+
+        token = res.data.build_client_hash(b'THIS IS A COOKIE')
         assert isinstance(token, bytes), token
         # This is the expected length of the client hash.
         assert len(token) == 32

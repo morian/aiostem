@@ -79,6 +79,7 @@ autodoc_type_aliases = {
     'Argument': '~aiostem.utils.argument.Argument',
     'KeyTypes': '~aiostem.utils.argument.KeyTypes',
     'ValueTypes': '~aiostem.utils.argument.ValueTypes',
+    'RangeVal': '~aiostem.types.RangeVal',
 }
 autodoc_typehints = 'signature'
 autoclass_content = 'class'
@@ -115,6 +116,8 @@ _reftarget_fixmap = {
     'asyncio.streams.StreamWriter': 'asyncio.StreamWriter',
     # Fixes for aiostem.structures.
     'OnionClientAuthKey': 'aiostem.structures.OnionClientAuthKey',
+    # Fixes for aiostem.types.
+    'RangeVal': 'aiostem.types.RangeVal',
     # Fixes for aiostem.utils.argument.
     'KeyTypes': 'aiostem.utils.argument.KeyTypes',
     'ValueTypes': 'aiostem.utils.argument.ValueTypes',
@@ -131,6 +134,7 @@ _reftype_fixmap = {
     'aiostem.utils.argument.ValueTypes': 'data',
     'aiostem.utils.encoding.T': 'data',
     'aiostem.structures.OnionClientAuthKey': 'data',
+    'aiostem.types.RangeVal': 'RangeVal',
     # Sometimes these are looked up as classes.
     'typing.Annotated': 'obj',
     'typing.Final': 'obj',

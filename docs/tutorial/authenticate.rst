@@ -103,8 +103,8 @@ Then, depending on the available methods, its behavior changes:
 file content without transmitting the content itself. For this to work,
 :meth:`~.Controller.authenticate` calls :meth:`~.Controller.auth_challenge` under the hood
 with a random nonce generated using :func:`secrets.token_bytes`. The server hash is then
-checked using :attr:`.ReplyAuthChallenge.raise_for_server_hash_error` and eventually client
-authentication is performed.
+checked using :attr:`.ReplyDataAuthChallenge.raise_for_server_hash_error` and eventually
+client authentication is performed.
 
 In the end, any password-less authentication can be performed with the following code:
 

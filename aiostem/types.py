@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from ipaddress import IPv4Address, IPv6Address
-from typing import Annotated, TypeAlias, Union
+from typing import Annotated, Generic, TypeAlias, TypeVar, Union
 
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
@@ -20,6 +21,17 @@ from .utils import (
     TrX25519PrivateKey,
     TrX25519PublicKey,
 )
+
+RangeVal = TypeVar('RangeVal')
+
+
+@dataclass
+class GenericRange(Generic[RangeVal]):
+    """Any kind of numeric range."""
+
+    min: RangeVal
+    max: RangeVal
+
 
 #: Any IP address, either IPv4 or IPv6.
 AnyAddress: TypeAlias = Union[IPv4Address | IPv6Address]  # noqa: UP007
@@ -75,6 +87,13 @@ X25519PublicKeyBase32: TypeAlias = Annotated[
     X25519PublicKey,
     TrX25519PublicKey(),
     EncodedBytes(encoder=Base32Encoder),
+]
+
+#: Base64 encoded bytes parsed as a public x25519 key.
+X25519PublicKeyBase64: TypeAlias = Annotated[
+    X25519PublicKey,
+    TrX25519PublicKey(),
+    EncodedBytes(encoder=Base64Encoder),
 ]
 
 #: Base64 encoded bytes parsed as a private x25519 key.

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import hmac
 import logging
 import secrets
 import struct
@@ -16,7 +17,7 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import IntEnum, IntFlag, StrEnum
-from functools import cached_property
+from functools import cache, cached_property
 from ipaddress import IPv4Address, IPv6Address
 from typing import (
     TYPE_CHECKING,
@@ -30,12 +31,16 @@ from typing import (
     Union,
 )
 
+from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
     Ed25519PublicKey,
 )
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
+from cryptography.hazmat.primitives.ciphers import Cipher
+from cryptography.hazmat.primitives.ciphers.algorithms import AES
+from cryptography.hazmat.primitives.ciphers.modes import CTR
 from pydantic import (
     BeforeValidator,
     Discriminator,
@@ -48,7 +53,7 @@ from pydantic import (
 )
 from pydantic_core import PydanticCustomError, core_schema
 
-from .exceptions import ReplySyntaxError
+from .exceptions import CryptographyError, ReplySyntaxError
 from .types import (
     AnyAddress,
     AnyHost,
@@ -57,10 +62,12 @@ from .types import (
     Base32Bytes,
     Base64Bytes,
     DatetimeUTC,
+    GenericRange,
     RSAPublicKeyBase64,
     TimedeltaMinutesInt,
     TimedeltaSeconds,
     X25519PublicKeyBase32,
+    X25519PublicKeyBase64,
 )
 from .utils import (
     Base64Encoder,
@@ -75,6 +82,8 @@ from .utils import (
 )
 
 if TYPE_CHECKING:
+    import builtins
+
     from pydantic import GetCoreSchemaHandler
     from pydantic_core.core_schema import CoreSchema, SerializerFunctionWrapHandler
 
@@ -398,7 +407,7 @@ class BaseEd25519CertExtension(ABC):
     """Describe a single ed25519 certificate extension."""
 
     #: Type of extension.
-    kind: Ed25519CertExtensionType
+    type: Ed25519CertExtensionType
 
     #: Set of flags for this extension.
     flags: Ed25519CertExtensionFlags
@@ -406,7 +415,7 @@ class BaseEd25519CertExtension(ABC):
     @classmethod
     def __get_pydantic_core_schema__(
         cls,
-        source: type[Any],
+        source: builtins.type[Any],
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Declare schema and validator for this extension."""
@@ -429,7 +438,7 @@ class BaseEd25519CertExtension(ABC):
         for _ in range(count):
             length, kind, flags = struct.unpack_from('!HBB', raw, pos)
             data = raw[pos + 4 : pos + 4 + length]
-            results.append({'kind': kind, 'flags': flags, 'data': data})
+            results.append({'type': kind, 'flags': flags, 'data': data})
             pos += length + 4
         return results
 
@@ -439,7 +448,7 @@ class Ed25519CertExtensionSigningKey(BaseEd25519CertExtension):
     """Describe an unknown ed25519 certificate extension."""
 
     #: Type of extension.
-    kind: Literal[Ed25519CertExtensionType.HAS_SIGNING_KEY]
+    type: Literal[Ed25519CertExtensionType.HAS_SIGNING_KEY]
 
     #: Public ed25519 signing key as part of this extension.
     key: Annotated[Ed25519PublicKey, TrEd25519PublicKey()]
@@ -469,9 +478,9 @@ def _discriminate_ed25519_cert_extension(v: Any) -> int:
     """Find how to discriminate the provided key."""
     match v:
         case BaseEd25519CertExtension():
-            return v.kind
+            return v.type
         case Mapping():
-            return v.get('kind', 0)
+            return v.get('type', 0)
         case _:  # pragma: no cover
             return 0
 
@@ -544,8 +553,15 @@ class Ed25519CertificateV1(Ed25519Certificate):
         Args:
             key: A public key to check this certificate against.
 
+        Raises:
+            CryptographyError: When the signature is invalid.
+
         """
-        key.verify(self.signature, self.signed_content)
+        try:
+            key.verify(self.signature, self.signed_content)
+        except InvalidSignature as exc:
+            msg = 'Ed25519 certificate has an invalid signature'
+            raise CryptographyError(msg) from exc
 
     @cached_property
     def signing_key(self) -> Ed25519PublicKey | None:
@@ -942,7 +958,7 @@ class HsDescBase:
 
 
 @dataclass(kw_only=True, slots=True)
-class HsIntroPointV2:
+class HsIntroPointV2(HsDescBase):
     """A single introduction point for a v2 descriptor."""
 
     #: The identifier of this introduction point.
@@ -1159,7 +1175,7 @@ class HsDescV2(HsDescBase):
         """
         return cls.adapter().validate_python(cls.text_to_mapping(body))
 
-    def is_signature_valid(self) -> bool:
+    def raise_for_invalid_signature(self) -> None:
         """
         Check the provided signature.
 
@@ -1168,6 +1184,9 @@ class HsDescV2(HsDescBase):
 
         An issue was opened by stem on this matter:
            - https://github.com/pyca/cryptography/issues/3713
+
+        Raises:
+            CryptographyError: When the certificate is improperly signed.
 
         Returns:
             Whether the signature is correct for the current descriptor.
@@ -1186,16 +1205,573 @@ class HsDescV2(HsDescBase):
         # M bytes: message
         decrypted = decrypted_int.to_bytes(blocklen, byteorder='big')
         if not decrypted.startswith(b'\x00\x01'):
-            return False  # pragma: no cover
+            msg = 'Decrypted certificate signature has an invalid format.'
+            raise CryptographyError(msg)
 
         message = decrypted[2:].lstrip(b'\xff')
         if not message.startswith(b'\x00'):
-            return False  # pragma: no cover
+            msg = 'Decrypted certificate signature has an invalid format.'
+            raise CryptographyError(msg)
 
-        return bool(self.computed_digest == message[1:])
+        if self.computed_digest != message[1:]:
+            msg = 'Invalid certificate signature.'
+            raise CryptographyError(msg)
+
+
+@dataclass(kw_only=True, slots=True)
+class HsDescV3AuthClient:
+    """
+    Entry for a single authenticated client on HsDescV3.
+
+    Note:
+        When client authentication is not enabled, these values are populated
+        with random values.
+
+    """
+
+    #: Unique client identifier (8 bytes).
+    client_id: Base64Bytes
+
+    #: Initialization vector (16 bytes).
+    iv: Base64Bytes
+
+    #: Descriptor cookie cipher-text (16 bytes).
+    encrypted_cookie: Base64Bytes
+
+
+HsDescV3AuthClientType: TypeAlias = Annotated[
+    HsDescV3AuthClient,
+    TrBeforeStringSplit(
+        dict_keys=('client_id', 'iv', 'encrypted_cookie'),
+        separator=' ',
+    ),
+]
 
 
 @dataclass(kw_only=True)
+class HsDescV3Layer(ABC, HsDescBase):
+    """Base class for both layers in a hidden service v3 descriptor."""
+
+    #: Constant used while creating the decryption key material.
+    CONSTANT: ClassVar[bytes]
+
+    #: Salt length at the beginning of the encrypted blob.
+    ENC_SALT_LEN: ClassVar[int] = 16
+    #: Message authentication code length at the end of the encrypted blob.
+    ENC_MAC_LEN: ClassVar[int] = 32
+
+    #: Length of the AES key in the computed secret material.
+    SEC_KEY_LEN: ClassVar[int] = 32
+    #: Length of the IV in the computed secret material.
+    SEC_IV_LEN: ClassVar[int] = 16
+    #: Length of the MAC from the computed secret material.
+    SEC_MAC_LEN: ClassVar[int] = 32
+    #: Total length of the secret material.
+    SEC_TOTAL_LEN: ClassVar[int] = SEC_KEY_LEN + SEC_IV_LEN + SEC_MAC_LEN
+
+    @classmethod
+    def decrypt_layer(
+        cls,
+        desc: HsDescV3,
+        address: HiddenServiceAddressV3,
+        blob: bytes,
+        cookie: bytes = b'',
+    ) -> Self:
+        """
+        Decrypt the provided cipher using the provided material.
+
+        Args:
+            desc: Hidden service v3 descriptor this layer is attached to.
+            address: Hidden service v3 address the descriptor is related to.
+            blob: Raw bytes of the cipher we want to decrypt.
+            cookie: Additional bytes to add in the mix of secret_data.
+
+        Raises:
+            ReplySyntaxError: When the descriptor does not have a signing key.
+            CryptographyError: When the provided parameters to not fit.
+
+        Returns:
+            An instance of this layer.
+
+        """
+        blinded_key = desc.signing_cert.signing_key
+        if blinded_key is None:
+            msg = 'No signing key found in the descriptor.'
+            raise ReplySyntaxError(msg)
+
+        # N_hs_cred = H("credential" | public-identity-key).
+        content = b'credential' + address.public_key.public_bytes_raw()
+        hs_cred = hashlib.sha3_256(content).digest()
+
+        # N_hs_subcred = H("subcredential" | N_hs_cred | blinded-public-key).
+        blinded_key_bytes = blinded_key.public_bytes_raw()
+        content = b'subcredential' + hs_cred + blinded_key_bytes
+        hs_subcred = hashlib.sha3_256(content).digest()
+
+        # Extract parts of the blob in to salt/cipher/mac.
+        salt = blob[: cls.ENC_SALT_LEN]
+        cipher = blob[cls.ENC_SALT_LEN : -cls.ENC_MAC_LEN]
+        expected_mac = blob[-cls.ENC_MAC_LEN :]
+
+        # Build the secret key.
+        revision_bytes = struct.pack('>Q', desc.revision)
+        secret_data = blinded_key_bytes + cookie
+        content = secret_data + hs_subcred + revision_bytes + salt + cls.CONSTANT
+        keys = hashlib.shake_256(content).digest(cls.SEC_TOTAL_LEN)
+
+        # Check the MAC against what was provided to ensure everything is in control.
+        fmt = f'>Q{cls.SEC_MAC_LEN}sQ{cls.ENC_SALT_LEN}s'
+        mac_prefix = struct.pack(fmt, cls.SEC_MAC_LEN, keys[48:], cls.ENC_SALT_LEN, salt)
+        computed_mac = hashlib.sha3_256(mac_prefix + cipher).digest()
+        if computed_mac != expected_mac:
+            msg = 'Invalid MAC, something is corrupted!'
+            raise CryptographyError(msg)
+
+        # Perform the real layer decryption and enjoy the brand new layer!
+        aes_key = keys[: cls.SEC_KEY_LEN]
+        aes_iv = keys[cls.SEC_KEY_LEN : cls.SEC_KEY_LEN + cls.SEC_IV_LEN]
+        decryptor = Cipher(AES(aes_key), CTR(aes_iv)).decryptor()
+        decrypted = decryptor.update(cipher) + decryptor.finalize()
+        return cls.from_text(decrypted.rstrip(b'\x00').decode('ascii'))
+
+    @classmethod
+    @abstractmethod
+    def text_to_mapping(cls, body: str) -> Mapping[str, Any]:
+        """Parse the body of a raw layer to a mapping."""
+
+    @classmethod
+    def from_text(cls, body: str) -> Self:
+        """
+        Build a layer object from decrypted text content.
+
+        Args:
+            body: The layer content as raw text.
+
+        Returns:
+            A parsed layer.
+
+        """
+        return cls.adapter().validate_python(cls.text_to_mapping(body))
+
+
+@dataclass(kw_only=True)
+class HsDescV3Layer1(HsDescV3Layer):
+    """First layer decrypted from a hidden service v3 (outer layer)."""
+
+    #: Constant used while creating the decryption key material.
+    CONSTANT = b'hsdir-superencrypted-data'
+
+    #: Key type for client authentication.
+    auth_key_type: OnionClientAuthKeyType
+
+    #: Ephemeral x25519 public key generated by the hidden service.
+    auth_ephemeral_key: X25519PublicKeyBase64
+
+    #: List of authentication clients.
+    auth_clients: Sequence[HsDescV3AuthClientType]
+
+    #: Encrypted content of the layer.
+    #:
+    #: This contains the second layer (or inner layer).
+    encrypted: Base64Bytes
+
+    @classmethod
+    def from_descriptor(cls, desc: HsDescV3, address: HiddenServiceAddressV3) -> Self:
+        """
+        Build the layer from a hidden service v3 descriptor.
+
+        Args:
+            desc: Hidden service descriptor
+            address: Hidden service v3 address
+
+        Returns:
+            An instance of this layer.
+
+        """
+        return cls.decrypt_layer(desc, address, desc.superencrypted)
+
+    @classmethod
+    def text_to_mapping(cls, body: str) -> Mapping[str, Any]:
+        """
+        Parse the body of a raw layer1 to a mapping.
+
+        Args:
+            body: The decrypted content of the layer.
+
+        Returns:
+            A map suitable for parsing from pydantic.
+
+        """
+        results = {}  # type: dict[str, Any]
+        lines = iter(body.splitlines())
+        with suppress(StopIteration):
+            while True:
+                line = next(lines)
+                # Ignore any empty line not part of an item.
+                if not len(line):  # pragma: no cover
+                    continue
+
+                key, *args = line.split(' ', maxsplit=1)
+                match key:
+                    case 'desc-auth-type':
+                        results['auth_key_type'] = args[0]
+
+                    case 'desc-auth-ephemeral-key':
+                        results['auth_ephemeral_key'] = args[0]
+
+                    case 'auth-client':
+                        clients = results.setdefault('auth_clients', [])
+                        clients.append(args[0])
+
+                    case 'encrypted':
+                        block = _parse_block(lines, 'MESSAGE')
+                        results['encrypted'] = block
+
+                    case _:  # pragma: no cover
+                        content = args[0] if len(args) else '__NONE__'
+                        logger.warning('Unhandled HsDescV3 layer1 key %s: %s', key, content)
+
+        return results
+
+
+@dataclass(kw_only=True, slots=True)
+class VersionRange(GenericRange[NonNegativeInt]):
+    """A range of versions numbers."""
+
+
+@dataclass(kw_only=True, slots=True)
+class HsDescV3FlowControl:
+    """Flow and congestion control for a hidden service."""
+
+    #: Range of supported flow control versions.
+    version_range: Annotated[
+        VersionRange,
+        TrBeforeStringSplit(
+            dict_keys=('min', 'max'),
+            separator='-',
+        ),
+    ]
+
+    #: Comes from the service's current ``cc_sendme_inc`` consensus parameter.
+    sendme_inc: PositiveInt
+
+
+class TrLinkSpecifierList:
+    """Specific transformer for link specifiers."""
+
+    def __get_pydantic_core_schema__(
+        self,
+        source: type[Any],
+        handler: GetCoreSchemaHandler,
+    ) -> CoreSchema:
+        """Parse link specifiers to a simple dict structure."""
+        return core_schema.no_info_before_validator_function(
+            function=self._pydantic_validator,
+            schema=handler(source),
+        )
+
+    def _pydantic_validator(self, value: Any) -> Any:
+        """Parse link specifiers as binary data."""
+        if isinstance(value, bytes):
+            return self.from_bytes(value)
+        return value
+
+    def from_bytes(self, raw: bytes) -> Sequence[Mapping[str, Any]]:
+        """Parse the binary data to a list of link specifier mappings."""
+        results = []  # type: list[dict[str, Any]]
+        count = raw[0]
+        pos = 1
+        for _ in range(count):
+            type_, len_ = raw[pos : pos + 2]
+            results.append({'type': type_, 'data': raw[pos + 2 : pos + 2 + len_]})
+            pos += 2 + len_
+        return results
+
+
+class LinkSpecifierType(IntEnum):
+    """List of types of link specifiers."""
+
+    #: Relay identified by its IPv4 address/port.
+    IPV4 = 0
+    #: Relay identified by its IPv6 address/port.
+    IPV6 = 1
+    #: Relay identified by its SHA1 fingerprint.
+    FINGERPRINT = 2
+    #: Relay identified by its ed25519 fingerprint.
+    ED25519 = 3
+
+
+@dataclass(kw_only=True, frozen=True)
+class LinkSpecifierStruct:
+    """Intermediate structure used to discriminate link identifiers."""
+
+    #: Type of link identifier.
+    type: LinkSpecifierType
+    #: Raw identifier packed as bytes.
+    data: Base64Bytes
+
+
+def _discriminate_link_specifier(v: Any) -> LinkSpecifierType | None:
+    """Find how to discriminate the relay identifier."""
+    discriminant = None
+    match v:
+        case LinkSpecifierStruct():
+            discriminant = v.type
+    return discriminant
+
+
+def _link_specifier_from_struct(link: Any) -> Any:
+    """Extract the data part of our struct, if applicable."""
+    if isinstance(link, LinkSpecifierStruct):
+        match link.type:
+            case LinkSpecifierType.IPV4:
+                host, port = struct.unpack('!LH', link.data)
+                return {'host': host, 'port': port}
+            case LinkSpecifierType.IPV6:
+                host, port = struct.unpack('!16sH', link.data)
+                return {'host': host, 'port': port}
+            case LinkSpecifierType.FINGERPRINT:
+                return {'fingerprint': link.data}
+            case LinkSpecifierType.ED25519:
+                return link.data
+            case _:  # pragma: no cover
+                msg = f'Unhandled link specifier type {link.type}'
+                raise RuntimeError(msg)
+    return link
+
+
+#: Validator used to extract the appropriate structure from a link specifier.
+ExtractLinkSpecifier = BeforeValidator(_link_specifier_from_struct)
+
+
+@dataclass(kw_only=True, slots=True)
+class HsIntroPointV3(HsDescBase):
+    """A single introduction point for a v3 descriptor."""
+
+    #: Location and identities of introduction point nodes.
+    #:
+    #: These are automatically parsed from bytes as provided by the second layer.
+    link_specifiers: Annotated[
+        Sequence[
+            # This would look better as a TypeAlias but would require to move types
+            # such as TcpAddressPort and LongServerName before this declaration.
+            Annotated[
+                Union[  # noqa: UP007
+                    Annotated[
+                        TcpAddressPort,
+                        ExtractLinkSpecifier,
+                        Tag(LinkSpecifierType.IPV4),
+                    ],
+                    Annotated[
+                        TcpAddressPort,
+                        ExtractLinkSpecifier,
+                        Tag(LinkSpecifierType.IPV6),
+                    ],
+                    Annotated[
+                        LongServerName,
+                        ExtractLinkSpecifier,
+                        Tag(LinkSpecifierType.FINGERPRINT),
+                    ],
+                    Annotated[
+                        Ed25519PublicKey,
+                        TrEd25519PublicKey(),
+                        ExtractLinkSpecifier,
+                        Tag(LinkSpecifierType.ED25519),
+                    ],
+                ],
+                Discriminator(_discriminate_link_specifier),
+                TrCast(LinkSpecifierStruct, mode='before'),
+            ],
+        ],
+        TrLinkSpecifierList(),
+        EncodedBytes(encoder=Base64Encoder),
+    ]
+
+    #: Key of the introduction point Tor node used for the ``ntor`` handshake.
+    ntor_onion_key: X25519PublicKeyBase64
+
+    #: Contains the introduction authentication key.
+    auth_key_cert: Annotated[Ed25519CertificateV1, EncodedBytes(encoder=Base64Encoder)]
+
+    #: Public key used to encrypt the introduction request to service.
+    enc_key: X25519PublicKeyBase64
+
+    #: Cross-certification of the encryption key using the descriptor signing key.
+    enc_key_cert: Annotated[Ed25519CertificateV1, EncodedBytes(encoder=Base64Encoder)]
+
+    @classmethod
+    def text_to_mapping_list(cls, body: str) -> Sequence[Mapping[str, Any]]:
+        """
+        Parse body to a list of raw introduction points mappings.
+
+        Args:
+            body: The raw content of the descriptors.
+
+        Returns:
+            A list of mappings for introduction points.
+
+        """
+        current = {}  # type: dict[str, Any]
+        intros = []  # type: list[dict[str, Any]]
+
+        lines = iter(body.splitlines())
+        with suppress(StopIteration):
+            while True:
+                line = next(lines)
+                if not len(line):
+                    continue
+
+                key, *args = line.split(' ', maxsplit=1)
+                match key:
+                    case 'introduction-point':
+                        if current:
+                            intros.append(current)
+                        current = {'link_specifiers': args[0]}
+
+                    case 'onion-key':
+                        key_type, key_data = args[0].split(' ', maxsplit=1)
+                        if key_type == 'ntor':
+                            current['ntor_onion_key'] = key_data
+                        else:
+                            logger.warning("Unknown onion key type '%s'", key_type)
+
+                    case 'auth-key':
+                        block = _parse_block(lines, 'ED25519 CERT')
+                        current['auth_key_cert'] = block
+
+                    case 'enc-key':
+                        key_type, key_data = args[0].split(' ', maxsplit=1)
+                        if key_type == 'ntor':
+                            current['enc_key'] = key_data
+                        else:
+                            logger.warning("Unknown env key type '%s'", key_type)
+
+                    case 'enc-key-cert':
+                        block = _parse_block(lines, 'ED25519 CERT')
+                        current['enc_key_cert'] = block
+
+                    case _:  # pragma: no cover
+                        content = args[0] if len(args) else '__NONE__'
+                        logger.warning('Unhandled HsIntroPointV3 key %s: %s', key, content)
+
+        if current:  # pragma: no branch
+            intros.append(current)
+        return intros
+
+
+@dataclass(kw_only=True)
+class HsDescV3Layer2(HsDescV3Layer):
+    """Second layer decrypted from a hidden service v3 (inner layer)."""
+
+    #: Constant used while creating the decryption key material.
+    CONSTANT = b'hsdir-encrypted-data'
+
+    #: Flow control protocol version and congestion value (proposal 324).
+    flow_control: (
+        Annotated[
+            HsDescV3FlowControl,
+            TrBeforeStringSplit(
+                dict_keys=('version_range', 'sendme_inc'),
+                separator=' ',
+            ),
+        ]
+        | None
+    ) = None
+
+    #: ``CREATE2`` cell format numbers that the server recognizes.
+    formats: Annotated[set[PositiveInt], TrBeforeStringSplit(separator=' ')]
+
+    #: List of introduction-layer authentication types.
+    #:
+    #: A client that does not support at least one of these authentication
+    #: types will not be able to contact the host.
+    introduction_auth: Annotated[set[str], TrBeforeStringSplit(separator=' ')] | None = None
+
+    #: List of introduction points used to connect to this hidden service.
+    introduction_points: Sequence[HsIntroPointV3] = field(default_factory=list)
+
+    #: Whether this service is a single onion service (see proposal 260).
+    single_service: bool = False
+
+    @classmethod
+    def from_descriptor(
+        cls,
+        desc: HsDescV3,
+        address: HiddenServiceAddressV3,
+        client: X25519PrivateKey | None = None,
+    ) -> Self:
+        """
+        Build the layer from a hidden service v3 descriptor.
+
+        Args:
+            desc: Hidden service descriptor.
+            address: Hidden service v3 address.
+            client: An optional client authorization key.
+
+        Returns:
+            An instance of this layer.
+
+        """
+        # This is supposed to be already cached.
+        layer1 = desc.decrypt_layer1(address)
+        if client is not None:
+            msg = 'Hidden service v3 client authentication is not yet implemented.'
+            raise NotImplementedError(msg)
+        return cls.decrypt_layer(desc, address, layer1.encrypted)
+
+    @classmethod
+    def text_to_mapping(cls, body: str) -> Mapping[str, Any]:
+        """
+        Parse the body of a raw layer2 to a mapping.
+
+        Args:
+            body: The decrypted content of the layer.
+
+        Returns:
+            A map suitable for parsing from pydantic.
+
+        """
+        results = {}  # type: dict[str, Any]
+        lines = iter(body.splitlines())
+        with suppress(StopIteration):
+            while True:
+                line = next(lines)
+                # Ignore any empty line not part of an item.
+                if not len(line):  # pragma: no cover
+                    continue
+
+                key, *args = line.split(' ', maxsplit=1)
+                match key:
+                    case 'create2-formats':
+                        results['formats'] = args[0]
+
+                    case 'intro-auth-required':
+                        results['introduction_auth'] = args[0]
+
+                    case 'flow-control':
+                        results['flow_control'] = args[0]
+
+                    case 'single-onion-service':
+                        results['single_service'] = True
+
+                    case 'introduction-point':
+                        # We reached the introduction point part!
+                        intro_lines = [line]
+                        with suppress(StopIteration):
+                            while True:
+                                intro_lines.append(next(lines))
+
+                        intros = HsIntroPointV3.text_to_mapping_list('\n'.join(intro_lines))
+                        results['introduction_points'] = intros
+
+                    case _:  # pragma: no cover
+                        content = args[0] if len(args) else '__NONE__'
+                        logger.warning('Unhandled HsDescV3 layer2 key %s: %s', key, content)
+
+        return results
+
+
+@dataclass(eq=False, kw_only=True)
 class HsDescV3(HsDescBase):
     """Hidden service descriptor for v3 onions."""
 
@@ -1227,10 +1803,14 @@ class HsDescV3(HsDescBase):
     #: Raw content of everything covered by the signature.
     signed_content: Base64Bytes
 
+    def __hash__(self) -> int:
+        """Build an unsafe hash so we can use a cache."""
+        return id(self)
+
     @classmethod
     def text_to_mapping(cls, body: str) -> Mapping[str, Any]:
         """
-        Parse ``body`` to a raw descriptor to mapping.
+        Parse the ``body`` of a raw descriptor to a mapping.
 
         Args:
             body: The content of the descriptor.
@@ -1305,6 +1885,47 @@ class HsDescV3(HsDescBase):
         """
         return cls.adapter().validate_python(cls.text_to_mapping(body))
 
+    @cache
+    def decrypt_layer1(self, address: HiddenServiceAddressV3) -> HsDescV3Layer1:
+        """
+        Decrypt the descriptor's first layer using the onion address.
+
+        Args:
+            address: The hidden service v3 address.
+
+        Raises:
+            ReplySyntaxError: When no signing key was provided with this descriptor.
+            CryptographyError: When an invalid onion domain was provided.
+
+        Returns:
+            A layer1 object, containing additional data.
+
+        """
+        return HsDescV3Layer1.from_descriptor(self, address)
+
+    @cache
+    def decrypt_layer2(
+        self,
+        address: HiddenServiceAddressV3,
+        client: X25519PrivateKey | None = None,
+    ) -> HsDescV3Layer2:
+        """
+        Decrypt the descriptor's second layer using the onion address.
+
+        Args:
+            address: The hidden service v3 address.
+            client: An optional client authentication key.
+
+        Raises:
+            ReplySyntaxError: When no signing key was provided with this descriptor.
+            CryptographyError: When an invalid onion domain or client key was provided.
+
+        Returns:
+            A layer2 object, containing additional data.
+
+        """
+        return HsDescV3Layer2.from_descriptor(self, address, client)
+
     def raise_for_invalid_signature(self) -> None:
         """
         Check that this descriptor is properly signed.
@@ -1314,7 +1935,11 @@ class HsDescV3(HsDescBase):
         signing_key = self.signing_cert.key
         if signing_key is not None:
             signed_content = self.SIGNATURE_PREFIX + self.signed_content
-            signing_key.verify(self.signature, signed_content)
+            try:
+                signing_key.verify(self.signature, signed_content)
+            except InvalidSignature as exc:
+                msg = 'Descriptor has an invalid signature'
+                raise CryptographyError(msg) from exc
 
 
 class LivenessStatus(StrEnum):
@@ -1569,7 +2194,7 @@ OnionClientAuthKey: TypeAlias = Annotated[
         Annotated[OnionClientAuthKeyStruct, Tag('fallback')],
     ],
     Discriminator(_discriminate_client_auth_private_key),
-    TrCast(OnionClientAuthKeyStruct),
+    TrCast(OnionClientAuthKeyStruct, mode='before'),
     TrBeforeStringSplit(
         dict_keys=('auth_type', 'data'),
         maxsplit=1,
@@ -1740,13 +2365,18 @@ OnionServiceKey: TypeAlias = Annotated[
         Annotated[OnionServiceKeyStruct, Tag('fallback')],
     ],
     Discriminator(_discriminate_service_private_key),
-    TrCast(OnionServiceKeyStruct),
+    TrCast(OnionServiceKeyStruct, mode='before'),
     TrBeforeStringSplit(
         dict_keys=('key_type', 'data'),
         maxsplit=1,
         separator=':',
     ),
 ]
+
+
+@dataclass(kw_only=True, slots=True)
+class PortRange(GenericRange[AnyPort]):
+    """A range of ports."""
 
 
 @dataclass(kw_only=True, slots=True)
@@ -1763,7 +2393,7 @@ class PortPolicy:
                 Annotated[
                     PortRange,
                     TrBeforeStringSplit(
-                        dict_keys=('port_min', 'port_max'),
+                        dict_keys=('min', 'max'),
                         maxsplit=1,
                         separator='-',
                     ),
@@ -1772,14 +2402,6 @@ class PortPolicy:
         ],
         TrBeforeStringSplit(separator=','),
     ]
-
-
-@dataclass(kw_only=True, slots=True)
-class PortRange:
-    """A range of ports."""
-
-    port_min: AnyPort
-    port_max: AnyPort
 
 
 class Signal(StrEnum):
@@ -2183,7 +2805,16 @@ class ReplyDataAuthChallenge:
 
     """
 
-    #: Not part of the real response, but very handy to have it here.
+    CLIENT_HASH_CONSTANT: ClassVar[bytes] = (
+        b'Tor safe cookie authentication controller-to-server hash'
+    )
+    SERVER_HASH_CONSTANT: ClassVar[bytes] = (
+        b'Tor safe cookie authentication server-to-controller hash'
+    )
+
+    #: Not part of the response, but it is very nice to have it here.
+    #:
+    #: This eases the handling of cryptography routines used to check hashes.
     client_nonce: Base16Bytes | str | None = None
 
     #: Server hash as computed by the server.
@@ -2191,6 +2822,85 @@ class ReplyDataAuthChallenge:
 
     #: Server nonce as provided by the server.
     server_nonce: Base16Bytes
+
+    def build_client_hash(
+        self,
+        cookie: bytes,
+        client_nonce: str | bytes | None = None,
+    ) -> bytes:
+        """
+        Build a token suitable for authentication.
+
+        Args:
+            client_nonce: The client nonce used in :class:`.CommandAuthChallenge`.
+            cookie: The cookie value read from the cookie file.
+
+        Raises:
+            CryptographyError: When our client nonce is :obj:`None`.
+
+        Returns:
+            A value that you can authenticate with.
+
+        """
+        client_nonce = client_nonce or self.client_nonce
+        if client_nonce is None:
+            msg = 'No client_nonce was found or provided.'
+            raise CryptographyError(msg)
+
+        if isinstance(client_nonce, str):
+            client_nonce = client_nonce.encode('ascii')
+        data = cookie + client_nonce + self.server_nonce
+        return hmac.new(self.CLIENT_HASH_CONSTANT, data, hashlib.sha256).digest()
+
+    def build_server_hash(
+        self,
+        cookie: bytes,
+        client_nonce: str | bytes | None = None,
+    ) -> bytes:
+        """
+        Recompute the server hash.
+
+        Args:
+            client_nonce: The client nonce used in :class:`.CommandAuthChallenge`.
+            cookie: The cookie value read from the cookie file.
+
+        Raises:
+            CryptographyError: When our client nonce is :obj:`None`.
+
+        Returns:
+            The same value as in `server_hash` if everything went well.
+
+        """
+        client_nonce = client_nonce or self.client_nonce
+        if client_nonce is None:
+            msg = 'No client_nonce was found or provided.'
+            raise CryptographyError(msg)
+
+        if isinstance(client_nonce, str):
+            client_nonce = client_nonce.encode('ascii')
+        data = cookie + client_nonce + self.server_nonce
+        return hmac.new(self.SERVER_HASH_CONSTANT, data, hashlib.sha256).digest()
+
+    def raise_for_server_hash_error(
+        self,
+        cookie: bytes,
+        client_nonce: str | bytes | None = None,
+    ) -> None:
+        """
+        Check that our server hash is consistent with what we compute.
+
+        Args:
+            client_nonce: The client nonce used in :class:`.CommandAuthChallenge`.
+            cookie: The cookie value read from the cookie file.
+
+        Raises:
+            CryptographyError: When our server nonce does not match the one we computed.
+
+        """
+        computed = self.build_server_hash(cookie, client_nonce)
+        if computed != self.server_hash:
+            msg = 'Server hash provided by Tor is invalid.'
+            raise CryptographyError(msg)
 
 
 @dataclass(kw_only=True, slots=True)

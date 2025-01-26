@@ -27,6 +27,7 @@ Effective exception
 -------------------
 
 .. autoexception:: ControllerError
+.. autoexception:: CryptographyError
 .. autoexception:: ProtocolError
 
 Protocol exceptions

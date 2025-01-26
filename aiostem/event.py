@@ -468,7 +468,8 @@ GenericStatsMap: TypeAlias = Annotated[
                 ]
             ],
             TrBeforeStringSplit(separator=','),
-        ]
+        ],
+        mode='before',
     ),
 ]
 
@@ -737,12 +738,12 @@ class EventGuard(EventSimple):
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=4,
-        args_map=(None, 'kind', 'name', 'status'),
+        args_map=(None, 'type', 'name', 'status'),
     )
     TYPE = EventWord.GUARD
 
     #: Type of guard node, should be ``ENTRY``.
-    kind: str
+    type: str
     #: Full server name of the guard node.
     name: LongServerName
     #: Status of the guard in our event.
@@ -929,7 +930,7 @@ class EventBuildTimeoutSet(EventSimple):
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=2,
-        args_map=(None, 'kind'),
+        args_map=(None, 'type'),
         kwargs_map={
             'TOTAL_TIMES': 'total_times',
             'TIMEOUT_MS': 'timeout_ms',
@@ -945,7 +946,7 @@ class EventBuildTimeoutSet(EventSimple):
     TYPE = EventWord.BUILDTIMEOUT_SET
 
     #: Type of event we just received.
-    kind: Literal['COMPUTED', 'RESET', 'SUSPENDED', 'DISCARD', 'RESUME']
+    type: Literal['COMPUTED', 'RESET', 'SUSPENDED', 'DISCARD', 'RESUME']
     #: Integer count of timeouts stored.
     total_times: NonNegativeInt
     #: Integer timeout in milliseconds.
@@ -1174,7 +1175,8 @@ CellsByType: TypeAlias = Annotated[
                 ]
             ],
             TrBeforeStringSplit(separator=','),
-        ]
+        ],
+        mode='before',
     ),
 ]
 
@@ -1191,7 +1193,8 @@ MsecByType: TypeAlias = Annotated[
                 ]
             ],
             TrBeforeStringSplit(separator=','),
-        ]
+        ],
+        mode='before',
     ),
 ]
 
