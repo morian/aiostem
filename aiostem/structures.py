@@ -552,7 +552,7 @@ class Ed25519CertificateV1(Ed25519Certificate):
         """
         Whether this certificate can be validated.
 
-        This returns :obj:`false` when any extension we do not understand has
+        This returns :obj:`False` when any extension we do not understand has
         a :attr:`~Ed25519CertExtensionFlags.AFFECTS_VALIDATION` flag.
         """
         for ext in self.extensions:
@@ -1231,6 +1231,8 @@ class HsDescV2(HsDescBase):
             msg = 'Decrypted certificate signature has an invalid format.'
             raise CryptographyError(msg)
 
+        # This part is not covered since that would mean building and signing
+        # a new hidden service v2, which has been deprecated for a while now.
         message = decrypted[2:].lstrip(b'\xff')
         if not message.startswith(b'\x00'):
             msg = 'Decrypted certificate signature has an invalid format.'

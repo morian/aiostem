@@ -7,7 +7,6 @@ from datetime import UTC, datetime, timedelta
 from ipaddress import IPv4Address, IPv6Address
 
 import pytest
-import pytest_asyncio
 from pydantic import ValidationError
 
 from aiostem.event import (
@@ -36,7 +35,7 @@ from aiostem.event import (
     EventWordInternal,
     event_from_message,
 )
-from aiostem.exceptions import MessageError, ReplySyntaxError
+from aiostem.exceptions import CryptographyError, MessageError, ReplySyntaxError
 from aiostem.structures import (
     CircuitEvent,
     HsDescAction,
@@ -620,14 +619,14 @@ class TestEvents:
 class TestHsDescriptors:
     """Check parsing of onion descriptors."""
 
-    @pytest_asyncio.fixture(scope='session')
+    @pytest.fixture(scope='session')
     def hs_desc_v2_lines(self):
         address = 'facebookcorewwwi'
         path = f'tests/samples/{address}/content.txt'
         with open(path) as fp:
             return list(map(str.rstrip, fp))
 
-    @pytest_asyncio.fixture(scope='session')
+    @pytest.fixture(scope='session')
     def hs_desc_v3_lines(self):
         address = 'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid'
         path = f'tests/samples/{address}/content.txt'
@@ -661,6 +660,22 @@ class TestHsDescriptors:
         assert first_intro.onion_port == 9101
 
         desc.raise_for_invalid_signature()
+
+    async def test_hs_desc_v2_signature_error(self, hs_desc_v2_lines):
+        message = await create_message(hs_desc_v2_lines)
+        event = event_from_message(message)
+        assert isinstance(event, EventHsDescContent)
+
+        descriptor = event.descriptor
+        descriptor.signature = bytes.fromhex(
+            '028da11bc35e2baff1ea80054370d471fe716d3fb3428299517225e1458d271e'
+            '06cb8bcf94282b46bbbf728d834d637ccea3f0db42c0283a598d1d69beab0ad6'
+            '4403fbed851d5e305d8be95c98d94c7547570041d3a0f8c57760d20e9122d537'
+            'a283f18542df04aeb0acc6feac219285586d71f0d12e20bf3becd97e17ec1761'
+        )
+        msg = 'Decrypted certificate signature has an invalid format'
+        with pytest.raises(CryptographyError, match=msg):
+            descriptor.raise_for_invalid_signature()
 
     async def test_hs_desc_v2_intro_errors(self, hs_desc_v2_lines):
         message = await create_message(hs_desc_v2_lines)
