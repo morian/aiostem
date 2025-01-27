@@ -88,7 +88,7 @@ class TrCast:
     target: type[Any]
 
     #: Whether to apply this transformation before or after the main handler.
-    mode: Literal['before', 'after', 'union'] = 'union'
+    mode: Literal['before', 'after'] = 'before'
 
     def __get_pydantic_core_schema__(
         self,
@@ -100,33 +100,38 @@ class TrCast:
         source_schema = handler(source)
         target_schema = handler.generate_schema(self.target)
 
-        union_schema = core_schema.union_schema(
-            [
-                source_schema,
-                core_schema.chain_schema(
-                    steps=[
-                        target_schema,
-                        source_schema,
-                    ],
-                ),
-            ]
-        )
-
         match self.mode:
             case 'before':
                 schema = core_schema.no_info_before_validator_function(
                     function=self._pydantic_validator,
-                    schema=union_schema,
+                    schema=core_schema.union_schema(
+                        choices=[
+                            core_schema.chain_schema(
+                                steps=[
+                                    target_schema,
+                                    source_schema,
+                                ],
+                            ),
+                            source_schema,
+                        ]
+                    ),
                 )
 
-            case 'after':
+            case 'after':  # pragma: no branch
                 schema = core_schema.no_info_after_validator_function(
                     function=self._pydantic_validator,
-                    schema=union_schema,
+                    schema=core_schema.union_schema(
+                        choices=[
+                            core_schema.chain_schema(
+                                steps=[
+                                    source_schema,
+                                    target_schema,
+                                ],
+                            ),
+                            source_schema,
+                        ]
+                    ),
                 )
-
-            case 'union':
-                schema = union_schema
 
         return schema
 

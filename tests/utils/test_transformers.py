@@ -11,7 +11,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey, RSAPublicKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
-from pydantic import BaseModel, TypeAdapter, ValidationError
+from pydantic import BaseModel, BeforeValidator, TypeAdapter, ValidationError
 
 from aiostem.structures import AuthMethod
 from aiostem.utils import (
@@ -23,6 +23,7 @@ from aiostem.utils import (
     TrBeforeStringSplit,
     TrBeforeTimedelta,
     TrBoolYesNo,
+    TrCast,
     TrEd25519PrivateKey,
     TrEd25519PublicKey,
     TrRSAPrivateKey,
@@ -564,3 +565,30 @@ class TestTrBoolYesNo:
         assert res is bval
         ser = self.ADAPTER.dump_python(res)
         assert ser == serial
+
+
+class TestTrCast:
+    ADAPTER_AFTER = TypeAdapter(
+        Annotated[
+            int,
+            BeforeValidator(lambda x: 2 * x),
+            TrCast(float, mode='after'),
+        ],
+    )
+    ADAPTER_BEFORE = TypeAdapter(
+        Annotated[
+            int,
+            BeforeValidator(lambda x: 2 * x),
+            TrCast(float, mode='before'),
+        ],
+    )
+
+    def test_after(self):
+        r = self.ADAPTER_AFTER.validate_python('12')
+        assert isinstance(r, float)
+        assert r == 1212.0
+
+    def test_before(self):
+        r = self.ADAPTER_BEFORE.validate_python('12')
+        assert isinstance(r, int)
+        assert r == 24

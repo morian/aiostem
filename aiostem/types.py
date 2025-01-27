@@ -22,6 +22,7 @@ from .utils import (
     TrX25519PublicKey,
 )
 
+#: Any boundary of a range structure (int, float, etc...).
 RangeVal = TypeVar('RangeVal')
 
 
@@ -29,7 +30,9 @@ RangeVal = TypeVar('RangeVal')
 class GenericRange(Generic[RangeVal]):
     """Any kind of numeric range."""
 
+    #: Minimum value in the range (inclusive).
     min: RangeVal
+    #: Maximum value in the range (inclusive).
     max: RangeVal
 
 

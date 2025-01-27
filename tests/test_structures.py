@@ -5,7 +5,6 @@ from base64 import b32encode, b64encode
 from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, ClassVar
 
-import pydantic
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
@@ -13,11 +12,14 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import (
 )
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
-from packaging.version import Version
 from pydantic import BaseModel, TypeAdapter, ValidationError
 
-from aiostem.exceptions import ReplySyntaxError
+from aiostem.exceptions import CryptographyError, ReplySyntaxError
 from aiostem.structures import (
+    Ed25519CertExtension,
+    Ed25519CertExtensionSigningKey,
+    Ed25519CertExtensionUnkown,
+    Ed25519CertificateV1,
     HiddenServiceAddressV2,
     HiddenServiceAddressV3,
     HsDescAuthCookie,
@@ -347,10 +349,6 @@ class TestOnionClientAuthKey:
         serial = self.ADAPTER.dump_python(key)
         assert serial == value
 
-    @pytest.mark.skipif(
-        Version(pydantic.__version__) < Version('2.9.0'),
-        reason='No UserWarning is emitted on pydantic < 2.9',
-    )
     def test_user_warning(self):
         msg = 'Unhandled onion client authentication key type'
         with pytest.warns(UserWarning, match=msg):
@@ -400,10 +398,6 @@ class TestOnionServiceKey:
         result = self.ADAPTER.dump_python(key)
         assert result == f'ED25519-V3:{expected}'
 
-    @pytest.mark.skipif(
-        Version(pydantic.__version__) < Version('2.9.0'),
-        reason='No UserWarning is emitted on pydantic < 2.9',
-    )
     def test_user_warning(self):
         with pytest.warns(UserWarning, match='Unhandled onion service key type'):
             self.ADAPTER.dump_python('xxxx')
@@ -433,3 +427,80 @@ class TestBlockParsing:
     def test_content_outer(self):
         inner = _parse_block(iter(self.LINES), 'MESSAGE', inner=False)
         assert inner == '\n'.join(self.LINES)
+
+
+class TestEd25519Certificate:
+    """Check the parsing of ed25519 certificates."""
+
+    #: Type adapter for Ed25519CertificateV1 certificates.
+    ADAPTER: ClassVar[Ed25519CertificateV1] = TypeAdapter(Ed25519CertificateV1)
+
+    def test_good_certificate(self):
+        hexdata = (
+            '010b00075d3c01d01212e107610cde2918ac3434c2142ca1105bafccd3748b21'
+            'a7b58856654438010020040003e909560aa696560d7a132a17873c5098fb4186'
+            '3c8535227a45d4afa3478dca2c9b5035181f8682bd7ffe5d1cc512eee000a068'
+            'cf5757b3557e982194a6bb589569b76bf77bb1203ff8d87cdb38573cb770cb29'
+            'db4cde0d64919554463c0302'
+        )
+        cert1 = self.ADAPTER.validate_python(bytes.fromhex(hexdata))
+        assert isinstance(cert1, Ed25519CertificateV1)
+        cert1.raise_for_invalid_signature(cert1.signing_key)
+        assert len(cert1.extensions) == 1
+
+        # Also check that we can build from an already built structure.
+        cert2 = self.ADAPTER.validate_python(cert1)
+        assert isinstance(cert2, Ed25519CertificateV1)
+
+        # Check certificate extensions.
+        assert len(cert1.extensions) == 1
+
+        extension = cert1.extensions[0]
+        assert isinstance(extension, Ed25519CertExtensionSigningKey)
+        assert extension.flags == 0
+
+        # Simple check that an extension can be parsed again when already built.
+        adapter = TypeAdapter(Ed25519CertExtension)
+        extcheck = adapter.validate_python(extension)
+        assert extcheck == extension
+
+    def test_bad_certificate_version(self):
+        hexdata = 'ff0b00075d3c01d01212e107610cde2918ac3434c2142ca1105bafccd3748b21'
+        msg = 'Unknown ed25519 certificate version: 255'
+        with pytest.raises(ReplySyntaxError, match=msg):
+            self.ADAPTER.validate_python(bytes.fromhex(hexdata))
+
+    def test_with_no_extension(self):
+        hexdata = (
+            '010b00075d3c01d01212e107610cde2918ac3434c2142ca1105bafccd3748b21'
+            'a7b58856654438002c9b5035181f8682bd7ffe5d1cc512eee000a068cf5757b3'
+            '557e982194a6bb589569b76bf77bb1203ff8d87cdb38573cb770cb29db4cde0d'
+            '64919554463c0302'
+        )
+        cert = self.ADAPTER.validate_python(bytes.fromhex(hexdata))
+        assert len(cert.extensions) == 0
+        assert cert.signing_key is None
+
+        msg = 'Ed25519 certificate has an invalid signature'
+        with pytest.raises(CryptographyError, match=msg):
+            cert.raise_for_invalid_signature(cert.key)
+
+    def test_with_unknown_extension(self):
+        hexdata = (
+            '010b00075d3c01d01212e107610cde2918ac3434c2142ca1105bafccd3748b21'
+            'a7b58856654438010002ff01abcd2c9b5035181f8682bd7ffe5d1cc512eee000'
+            'a068cf5757b3557e982194a6bb589569b76bf77bb1203ff8d87cdb38573cb770'
+            'cb29db4cde0d64919554463c0302'
+        )
+        cert = self.ADAPTER.validate_python(bytes.fromhex(hexdata))
+        assert len(cert.extensions) == 1
+        assert cert.signing_key is None
+
+        # Check that extension.
+        extension = cert.extensions[0]
+        assert isinstance(extension, Ed25519CertExtensionUnkown)
+        assert extension.data.hex() == 'abcd'
+
+        msg = 'Ed25519 certificate has an unknown extension affecting validation'
+        with pytest.raises(CryptographyError, match=msg):
+            cert.raise_for_invalid_signature(None)

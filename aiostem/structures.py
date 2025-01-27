@@ -343,7 +343,7 @@ class Ed25519Certificate(ABC):
         )
 
     @classmethod
-    def _pydantic_validator(cls, value: Any) -> Self:
+    def _pydantic_validator(cls, value: Any) -> Any:
         """Build a new instance from any value."""
         if isinstance(value, bytes):
             version = value[0]
@@ -406,8 +406,8 @@ class Ed25519CertExtensionType(IntEnum):
 class BaseEd25519CertExtension(ABC):
     """Describe a single ed25519 certificate extension."""
 
-    #: Type of extension.
-    type: Ed25519CertExtensionType
+    #: Type of the current extension.
+    type: Ed25519CertExtensionType | NonNegativeInt
 
     #: Set of flags for this extension.
     flags: Ed25519CertExtensionFlags
@@ -448,7 +448,9 @@ class Ed25519CertExtensionSigningKey(BaseEd25519CertExtension):
     """Describe an unknown ed25519 certificate extension."""
 
     #: Type of extension.
-    type: Literal[Ed25519CertExtensionType.HAS_SIGNING_KEY]
+    type: Literal[Ed25519CertExtensionType.HAS_SIGNING_KEY] = (
+        Ed25519CertExtensionType.HAS_SIGNING_KEY
+    )
 
     #: Public ed25519 signing key as part of this extension.
     key: Annotated[Ed25519PublicKey, TrEd25519PublicKey()]
@@ -476,13 +478,17 @@ class Ed25519CertExtensionUnkown(BaseEd25519CertExtension):
 
 def _discriminate_ed25519_cert_extension(v: Any) -> int:
     """Find how to discriminate the provided key."""
+    discriminant = 0
+
     match v:
         case BaseEd25519CertExtension():
-            return v.type
-        case Mapping():
-            return v.get('type', 0)
-        case _:  # pragma: no cover
-            return 0
+            discriminant = v.type
+        case Mapping():  # pragma: no branch
+            discriminant = v.get('type', 0)
+
+    if discriminant not in Ed25519CertExtensionType:
+        discriminant = 0
+    return discriminant
 
 
 Ed25519CertExtension: TypeAlias = Annotated[
@@ -541,27 +547,23 @@ class Ed25519CertificateV1(Ed25519Certificate):
             'signed_content': signed_content,
         }
 
+    @cached_property
+    def can_validate(self) -> bool:
+        """
+        Whether this certificate can be validated.
+
+        This returns :obj:`false` when any extension we do not understand has
+        a :attr:`~Ed25519CertExtensionFlags.AFFECTS_VALIDATION` flag.
+        """
+        for ext in self.extensions:
+            if ext.flags & Ed25519CertExtensionFlags.AFFECTS_VALIDATION:
+                return False
+        return True
+
     @property
     def expired(self) -> bool:
         """Tell whether this certificate has expired."""
         return bool(datetime.now(UTC) > self.expiration)
-
-    def raise_for_invalid_signature(self, key: Ed25519PublicKey) -> None:
-        """
-        Check this certificate's signature.
-
-        Args:
-            key: A public key to check this certificate against.
-
-        Raises:
-            CryptographyError: When the signature is invalid.
-
-        """
-        try:
-            key.verify(self.signature, self.signed_content)
-        except InvalidSignature as exc:
-            msg = 'Ed25519 certificate has an invalid signature'
-            raise CryptographyError(msg) from exc
 
     @cached_property
     def signing_key(self) -> Ed25519PublicKey | None:
@@ -579,6 +581,27 @@ class Ed25519CertificateV1(Ed25519Certificate):
             if isinstance(ext, Ed25519CertExtensionSigningKey):
                 return ext.key
         return None
+
+    def raise_for_invalid_signature(self, key: Ed25519PublicKey) -> None:
+        """
+        Check this certificate's signature.
+
+        Args:
+            key: A public key to check this certificate against.
+
+        Raises:
+            CryptographyError: When the signature is invalid.
+
+        """
+        if not self.can_validate:
+            msg = 'Ed25519 certificate has an unknown extension affecting validation.'
+            raise CryptographyError(msg)
+
+        try:
+            key.verify(self.signature, self.signed_content)
+        except InvalidSignature as exc:
+            msg = 'Ed25519 certificate has an invalid signature'
+            raise CryptographyError(msg) from exc
 
 
 class Feature(StrEnum):
