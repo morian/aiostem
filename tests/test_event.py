@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 from ipaddress import IPv4Address, IPv6Address
 
 import pytest
+import pytest_asyncio
 from pydantic import ValidationError
 
 from aiostem.event import (
@@ -38,6 +39,7 @@ from aiostem.event import (
 from aiostem.exceptions import CryptographyError, MessageError, ReplySyntaxError
 from aiostem.structures import (
     CircuitEvent,
+    HiddenServiceAddressV3,
     HsDescAction,
     HsDescFailReason,
     HsDescV2,
@@ -626,6 +628,11 @@ class TestHsDescriptors:
         with open(path) as fp:
             return list(map(str.rstrip, fp))
 
+    @pytest_asyncio.fixture(scope='function')
+    async def hs_desc_v2_event(self, hs_desc_v2_lines):
+        message = await create_message(hs_desc_v2_lines)
+        return event_from_message(message)
+
     @pytest.fixture(scope='session')
     def hs_desc_v3_lines(self):
         address = 'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid'
@@ -633,9 +640,13 @@ class TestHsDescriptors:
         with open(path) as fp:
             return list(map(str.rstrip, fp))
 
-    async def test_hs_desc_v2(self, hs_desc_v2_lines):
-        message = await create_message(hs_desc_v2_lines)
-        event = event_from_message(message)
+    @pytest_asyncio.fixture(scope='function')
+    async def hs_desc_v3_event(self, hs_desc_v3_lines):
+        message = await create_message(hs_desc_v3_lines)
+        return event_from_message(message)
+
+    async def test_hs_desc_v2(self, hs_desc_v2_event):
+        event = hs_desc_v2_event
         assert isinstance(event, EventHsDescContent)
         assert event.address == 'facebookcorewwwi'
         assert isinstance(event.descriptor, HsDescV2)
@@ -661,12 +672,9 @@ class TestHsDescriptors:
 
         desc.raise_for_invalid_signature()
 
-    async def test_hs_desc_v2_signature_error(self, hs_desc_v2_lines):
-        message = await create_message(hs_desc_v2_lines)
-        event = event_from_message(message)
-        assert isinstance(event, EventHsDescContent)
-
-        descriptor = event.descriptor
+    async def test_hs_desc_v2_signature_error(self, hs_desc_v2_event):
+        assert isinstance(hs_desc_v2_event, EventHsDescContent)
+        descriptor = hs_desc_v2_event.descriptor
         descriptor.signature = bytes.fromhex(
             '028da11bc35e2baff1ea80054370d471fe716d3fb3428299517225e1458d271e'
             '06cb8bcf94282b46bbbf728d834d637ccea3f0db42c0283a598d1d69beab0ad6'
@@ -677,20 +685,18 @@ class TestHsDescriptors:
         with pytest.raises(CryptographyError, match=msg):
             descriptor.raise_for_invalid_signature()
 
-    async def test_hs_desc_v2_intro_errors(self, hs_desc_v2_lines):
-        message = await create_message(hs_desc_v2_lines)
-        event = event_from_message(message)
+    async def test_hs_desc_v2_intro_errors(self, hs_desc_v2_event):
         msg = 'Authentication cookie for V2 descriptor is not yet implemented'
         with pytest.raises(NotImplementedError, match=msg):
-            event.descriptor.introduction_points('password')
+            hs_desc_v2_event.descriptor.introduction_points('password')
 
-    async def test_hs_desc_v3(self, hs_desc_v3_lines):
+    async def test_hs_desc_v3(self, hs_desc_v3_event):
         address = 'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid'
-        message = await create_message(hs_desc_v3_lines)
-        event = event_from_message(message)
+        event = hs_desc_v3_event
+
         assert isinstance(event, EventHsDescContent)
-        assert event.address == address
         assert isinstance(event.descriptor, HsDescV3)
+        assert event.address == address
 
         # Check general purpose fields from the descriptor.
         desc = event.descriptor
@@ -724,3 +730,15 @@ class TestHsDescriptors:
         links = layer2.introduction_points[2].link_specifiers
         assert links[0].host == IPv4Address('193.142.147.204')
         assert links[0].port == 9200
+
+    async def test_hs_desc_v3_no_signing_key(self, hs_desc_v3_event):
+        # Clear all extensions (including the one holding the signing key).
+        hs_desc_v3_event.descriptor.signing_cert.extensions.clear()
+        with pytest.raises(ReplySyntaxError, match='No signing key found in the descriptor'):
+            hs_desc_v3_event.descriptor.decrypt_layer1(hs_desc_v3_event.address)
+
+    async def test_hs_desc_v3_bad_decrypt_addr(self, hs_desc_v3_event):
+        addr_str = '2gzyxa5ihm7nsggfxnu52rck2vv4rvmdlkiu3zzui5du4xyclen53wid.onion'
+        address = HiddenServiceAddressV3.from_string(addr_str)
+        with pytest.raises(CryptographyError, match='Invalid MAC, something is corrupted!'):
+            hs_desc_v3_event.descriptor.decrypt_layer1(address)

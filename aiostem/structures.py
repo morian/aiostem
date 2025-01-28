@@ -486,7 +486,7 @@ def _discriminate_ed25519_cert_extension(v: Any) -> int:
         case Mapping():  # pragma: no branch
             discriminant = v.get('type', 0)
 
-    if discriminant not in Ed25519CertExtensionType:
+    if discriminant not in set(Ed25519CertExtensionType):
         discriminant = 0
     return discriminant
 
@@ -1313,7 +1313,7 @@ class HsDescV3Layer(ABC, HsDescBase):
 
         Raises:
             ReplySyntaxError: When the descriptor does not have a signing key.
-            CryptographyError: When the provided parameters to not fit.
+            CryptographyError: When the provided parameters do not fit.
 
         Returns:
             An instance of this layer.
@@ -1643,8 +1643,8 @@ class HsIntroPointV3(HsDescBase):
         with suppress(StopIteration):
             while True:
                 line = next(lines)
-                if not len(line):
-                    continue
+                if not len(line):  # pragma: no branch
+                    continue  # pragma: no cover
 
                 key, *args = line.split(' ', maxsplit=1)
                 match key:
