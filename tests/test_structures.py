@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import secrets
 from base64 import b32encode, b64encode
+from collections.abc import Sequence
 from ipaddress import IPv4Address, IPv6Address
-from typing import TYPE_CHECKING, ClassVar
+from typing import Annotated, ClassVar
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
@@ -24,6 +25,7 @@ from aiostem.structures import (
     HiddenServiceAddressV3,
     HsDescAuthCookie,
     HsDescAuthTypeInt,
+    LinkSpecifierStruct,
     LogSeverity,
     LongServerName,
     OnionClientAuthKey,
@@ -31,13 +33,10 @@ from aiostem.structures import (
     OnionServiceKeyStruct,
     StreamTarget,
     TcpAddressPort,
+    TrLinkSpecifierList,
     _parse_block,
 )
 from aiostem.utils import TrEd25519PrivateKey
-
-if TYPE_CHECKING:
-    from collections.abc import Sequence
-
 
 HiddenServiceAdapterV2 = TypeAdapter(HiddenServiceAddressV2)
 HiddenServiceAdapterV3 = TypeAdapter(HiddenServiceAddressV3)
@@ -504,3 +503,20 @@ class TestEd25519Certificate:
         msg = 'Ed25519 certificate has an unknown extension affecting validation'
         with pytest.raises(CryptographyError, match=msg):
             cert.raise_for_invalid_signature(None)
+
+
+class TestTrLinkSpecifierList:
+    """Test a list of link specifiers."""
+
+    ADAPTER = TypeAdapter(Annotated[Sequence[LinkSpecifierStruct], TrLinkSpecifierList()])
+
+    def test_parse(self):
+        hexdata = (
+            '040006416c88b70050021415291291d81e404fb6bec16d366608590d2b024703'
+            '20db2ff9542d8472371105cbce8e8fba91196d69d25aa7bacd7c7677fdb40771'
+            '0001122a0104f9006b340800000000000000040050'
+        )
+        links = self.ADAPTER.validate_python(bytes.fromhex(hexdata))
+        assert len(links) == 4
+        assert links[0].type == 0
+        assert self.ADAPTER.validate_python(links) == links

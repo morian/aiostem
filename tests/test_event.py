@@ -8,6 +8,7 @@ from ipaddress import IPv4Address, IPv6Address
 
 import pytest
 import pytest_asyncio
+from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 from pydantic import ValidationError
 
 from aiostem.event import (
@@ -49,7 +50,7 @@ from aiostem.structures import (
     Signal,
     StatusActionGeneral,
 )
-from aiostem.utils import TrRSAPublicKey
+from aiostem.utils import MessageData, TrRSAPublicKey
 
 from .test_reply import create_message
 
@@ -731,7 +732,42 @@ class TestHsDescriptors:
         assert links[0].host == IPv4Address('193.142.147.204')
         assert links[0].port == 9200
 
-    async def test_hs_desc_v3_no_signing_key(self, hs_desc_v3_event):
+    async def test_hs_desc_v3_no_signature(self, hs_desc_v3_lines):
+        message = await create_message(hs_desc_v3_lines)
+
+        # Alter the input message to filter out the signature part (at the end).
+        lines = []
+        for line in message.items[0].data.splitlines():
+            if line.startswith('signature '):
+                break
+            lines.append(line)
+
+        # Replace the message data by a new message we are creating.
+        msgdata = MessageData(
+            status=message.items[0].status,
+            header=message.items[0].header,
+            data='\n'.join(lines),
+        )
+        message.items.clear()
+        message.items.append(msgdata)
+
+        # Check that we get an error because there is no signature.
+        event = event_from_message(message)
+        msg = 'No signature found on the HsV3 descriptor'
+        with pytest.raises(ReplySyntaxError, match=msg):
+            event.descriptor  # noqa: B018
+
+    async def test_hs_desc_v3_signature_error(self, hs_desc_v3_event):
+        hs_desc_v3_event.descriptor.signature = b'abcdf'
+        with pytest.raises(CryptographyError, match='Descriptor has an invalid signature'):
+            hs_desc_v3_event.descriptor.raise_for_invalid_signature()
+
+    async def test_hs_desc_v3_no_signing_cert_key(self, hs_desc_v3_event):
+        # Clear all extensions (including the one holding the signing key).
+        hs_desc_v3_event.descriptor.signing_cert.key = None
+        hs_desc_v3_event.descriptor.raise_for_invalid_signature()
+
+    async def test_hs_desc_v3_cert_no_signing_key(self, hs_desc_v3_event):
         # Clear all extensions (including the one holding the signing key).
         hs_desc_v3_event.descriptor.signing_cert.extensions.clear()
         with pytest.raises(ReplySyntaxError, match='No signing key found in the descriptor'):
@@ -742,3 +778,10 @@ class TestHsDescriptors:
         address = HiddenServiceAddressV3.from_string(addr_str)
         with pytest.raises(CryptographyError, match='Invalid MAC, something is corrupted!'):
             hs_desc_v3_event.descriptor.decrypt_layer1(address)
+
+    async def test_hs_desc_v3_with_client_auth(self, hs_desc_v3_event):
+        addr_str = 'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid.onion'
+        address = HiddenServiceAddressV3.from_string(addr_str)
+        msg = 'Hidden service v3 client authentication is not yet implemented'
+        with pytest.raises(NotImplementedError, match=msg):
+            hs_desc_v3_event.descriptor.decrypt_layer2(address, X25519PrivateKey.generate())

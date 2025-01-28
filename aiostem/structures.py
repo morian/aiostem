@@ -1545,23 +1545,22 @@ def _discriminate_link_specifier(v: Any) -> LinkSpecifierType | None:
     return discriminant
 
 
-def _link_specifier_from_struct(link: Any) -> Any:
+def _link_specifier_from_struct(link: LinkSpecifierStruct) -> Any:
     """Extract the data part of our struct, if applicable."""
-    if isinstance(link, LinkSpecifierStruct):
-        match link.type:
-            case LinkSpecifierType.IPV4:
-                host, port = struct.unpack('!LH', link.data)
-                return {'host': host, 'port': port}
-            case LinkSpecifierType.IPV6:
-                host, port = struct.unpack('!16sH', link.data)
-                return {'host': host, 'port': port}
-            case LinkSpecifierType.FINGERPRINT:
-                return {'fingerprint': link.data}
-            case LinkSpecifierType.ED25519:
-                return link.data
-            case _:  # pragma: no cover
-                msg = f'Unhandled link specifier type {link.type}'
-                raise RuntimeError(msg)
+    match link.type:
+        case LinkSpecifierType.IPV4:
+            host, port = struct.unpack('!LH', link.data)
+            return {'host': host, 'port': port}
+        case LinkSpecifierType.IPV6:
+            host, port = struct.unpack('!16sH', link.data)
+            return {'host': host, 'port': port}
+        case LinkSpecifierType.FINGERPRINT:
+            return {'fingerprint': link.data}
+        case LinkSpecifierType.ED25519:
+            return link.data
+        case _:  # pragma: no cover
+            msg = f'Unhandled link specifier type {link.type}'
+            raise RuntimeError(msg)
     return link
 
 
@@ -1657,7 +1656,7 @@ class HsIntroPointV3(HsDescBase):
                         key_type, key_data = args[0].split(' ', maxsplit=1)
                         if key_type == 'ntor':
                             current['ntor_onion_key'] = key_data
-                        else:
+                        else:  # pragma: no cover
                             logger.warning("Unknown onion key type '%s'", key_type)
 
                     case 'auth-key':
@@ -1668,7 +1667,7 @@ class HsIntroPointV3(HsDescBase):
                         key_type, key_data = args[0].split(' ', maxsplit=1)
                         if key_type == 'ntor':
                             current['enc_key'] = key_data
-                        else:
+                        else:  # pragma: no cover
                             logger.warning("Unknown env key type '%s'", key_type)
 
                     case 'enc-key-cert':
