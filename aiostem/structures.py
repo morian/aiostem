@@ -29,6 +29,7 @@ from typing import (
     Self,
     TypeAlias,
     Union,
+    cast,
 )
 
 from cryptography.exceptions import InvalidSignature
@@ -1263,6 +1264,20 @@ class HsDescV3AuthClient:
     #: Descriptor cookie cipher-text (16 bytes).
     encrypted_cookie: Base64Bytes
 
+    def decrypt_cookie(self, key: bytes) -> bytes:
+        """
+        Decrypt the encrypted cookie with the provided key.
+
+        Args:
+            key: The AES key needed to decrypt this cookie.
+
+        Returns:
+            A decrypted version of the authentication cookie.
+
+        """
+        decryptor = Cipher(AES(key), CTR(self.iv)).decryptor()
+        return decryptor.update(self.encrypted_cookie) + decryptor.finalize()
+
 
 HsDescV3AuthClientType: TypeAlias = Annotated[
     HsDescV3AuthClient,
@@ -1319,19 +1334,10 @@ class HsDescV3Layer(ABC, HsDescBase):
             An instance of this layer.
 
         """
-        blinded_key = desc.signing_cert.signing_key
-        if blinded_key is None:
-            msg = 'No signing key found in the descriptor.'
-            raise ReplySyntaxError(msg)
+        hs_subcred = desc.get_subcred(address)
 
-        # N_hs_cred = H("credential" | public-identity-key).
-        content = b'credential' + address.public_key.public_bytes_raw()
-        hs_cred = hashlib.sha3_256(content).digest()
-
-        # N_hs_subcred = H("subcredential" | N_hs_cred | blinded-public-key).
-        blinded_key_bytes = blinded_key.public_bytes_raw()
-        content = b'subcredential' + hs_cred + blinded_key_bytes
-        hs_subcred = hashlib.sha3_256(content).digest()
+        # This cast is valid here since ``get_subcred`` did not raise.
+        blinded_key = cast(Ed25519PublicKey, desc.signing_cert.signing_key)
 
         # Extract parts of the blob in to salt/cipher/mac.
         salt = blob[: cls.ENC_SALT_LEN]
@@ -1340,13 +1346,14 @@ class HsDescV3Layer(ABC, HsDescBase):
 
         # Build the secret key.
         revision_bytes = struct.pack('>Q', desc.revision)
-        secret_data = blinded_key_bytes + cookie
+        secret_data = blinded_key.public_bytes_raw() + cookie
         content = secret_data + hs_subcred + revision_bytes + salt + cls.CONSTANT
         keys = hashlib.shake_256(content).digest(cls.SEC_TOTAL_LEN)
 
         # Check the MAC against what was provided to ensure everything is in control.
         fmt = f'>Q{cls.SEC_MAC_LEN}sQ{cls.ENC_SALT_LEN}s'
-        mac_prefix = struct.pack(fmt, cls.SEC_MAC_LEN, keys[48:], cls.ENC_SALT_LEN, salt)
+        sec_mac = keys[cls.SEC_KEY_LEN + cls.SEC_IV_LEN :]
+        mac_prefix = struct.pack(fmt, cls.SEC_MAC_LEN, sec_mac, cls.ENC_SALT_LEN, salt)
         computed_mac = hashlib.sha3_256(mac_prefix + cipher).digest()
         if computed_mac != expected_mac:
             msg = 'Invalid MAC, something is corrupted!'
@@ -1382,6 +1389,13 @@ class HsDescV3Layer(ABC, HsDescBase):
 @dataclass(kw_only=True)
 class HsDescV3Layer1(HsDescV3Layer):
     """First layer decrypted from a hidden service v3 (outer layer)."""
+
+    #: Length of the AES key used to decrypt the authentication cookie.
+    AUTH_KEY_KEN: ClassVar[int] = 32
+    #: Length of the client identifier.
+    CLIENT_ID_LEN: ClassVar[int] = 8
+    #: Total length of the keys used to decrypt the authentication cookie.
+    AUTH_KEYS_TOTAL_LEN: ClassVar[int] = CLIENT_ID_LEN + AUTH_KEY_KEN
 
     #: Constant used while creating the decryption key material.
     CONSTANT = b'hsdir-superencrypted-data'
@@ -1457,6 +1471,45 @@ class HsDescV3Layer1(HsDescV3Layer):
                         logger.warning('Unhandled HsDescV3 layer1 key %s: %s', key, content)
 
         return results
+
+    def decrypt_auth_cookie(
+        self,
+        desc: HsDescV3,
+        address: HiddenServiceAddressV3,
+        client_key: X25519PrivateKey,
+    ) -> bytes:
+        """
+        Find and decrypt the authentication cookie so we can then decrypt the second layer.
+
+        Args:
+            desc: Hidden service v3 descriptor.
+            address: Hidden service v3 address.
+            client_key: Client's secret authorization key.
+
+        Raises:
+            CryptographyError: When no authentication client matches the provided key.
+
+        Returns:
+            The decrypted authentication cookie.
+
+        """
+        hs_subcred = desc.get_subcred(address)
+        secret_seed = client_key.exchange(self.auth_ephemeral_key)
+        keys = hashlib.shake_256(hs_subcred + secret_seed).digest(self.AUTH_KEYS_TOTAL_LEN)
+        client_id = keys[: self.CLIENT_ID_LEN]
+        aes_key = keys[self.CLIENT_ID_LEN :]
+
+        auth_client = None  # type: HsDescV3AuthClient | None
+        for client in self.auth_clients:
+            if client.client_id == client_id:
+                auth_client = client
+                break
+
+        if auth_client is None:
+            msg = 'No client matching the secret key was found in the descriptor.'
+            raise CryptographyError(msg)
+
+        return auth_client.decrypt_cookie(aes_key)
 
 
 @dataclass(kw_only=True, slots=True)
@@ -1736,12 +1789,13 @@ class HsDescV3Layer2(HsDescV3Layer):
             An instance of this layer.
 
         """
+        auth_cookie = b''
+
         # This is supposed to be already cached.
         layer1 = desc.decrypt_layer1(address)
         if client is not None:
-            msg = 'Hidden service v3 client authentication is not yet implemented.'
-            raise NotImplementedError(msg)
-        return cls.decrypt_layer(desc, address, layer1.encrypted)
+            auth_cookie = layer1.decrypt_auth_cookie(desc, address, client)
+        return cls.decrypt_layer(desc, address, layer1.encrypted, auth_cookie)
 
     @classmethod
     def text_to_mapping(cls, body: str) -> Mapping[str, Any]:
@@ -1949,6 +2003,34 @@ class HsDescV3(HsDescBase):
 
         """
         return HsDescV3Layer2.from_descriptor(self, address, client)
+
+    @cache
+    def get_subcred(self, address: HiddenServiceAddressV3) -> bytes:
+        """
+        Get the computed sub-credential bytes used decrypt layers.
+
+        Args:
+            address: Hidden service v3 address.
+
+        Raises:
+            ReplySyntaxError: When the descriptor does not have a signing key.
+
+        Returns:
+            Computed digest used as sub-credential.
+
+        """
+        blinded_key = self.signing_cert.signing_key
+        if blinded_key is None:
+            msg = 'No signing key found in the descriptor.'
+            raise ReplySyntaxError(msg)
+
+        # N_hs_cred = H("credential" | public-identity-key).
+        content = b'credential' + address.public_key.public_bytes_raw()
+        hs_cred = hashlib.sha3_256(content).digest()
+
+        # N_hs_subcred = H("subcredential" | N_hs_cred | blinded-public-key).
+        content = b'subcredential' + hs_cred + blinded_key.public_bytes_raw()
+        return hashlib.sha3_256(content).digest()
 
     def raise_for_invalid_signature(self) -> None:
         """

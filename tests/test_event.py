@@ -646,6 +646,18 @@ class TestHsDescriptors:
         message = await create_message(hs_desc_v3_lines)
         return event_from_message(message)
 
+    @pytest.fixture(scope='session')
+    def hs_desc_v3_auth_lines(self):
+        address = 'vakp3s3f4f5uopzvzsczsumurwrawuc5sexvjxqgzng6untov3gc5lyd'
+        path = f'tests/samples/{address}/content.txt'
+        with open(path) as fp:
+            return list(map(str.rstrip, fp))
+
+    @pytest_asyncio.fixture(scope='function')
+    async def hs_desc_v3_auth_event(self, hs_desc_v3_auth_lines):
+        message = await create_message(hs_desc_v3_auth_lines)
+        return event_from_message(message)
+
     async def test_hs_desc_v2(self, hs_desc_v2_event):
         event = hs_desc_v2_event
         assert isinstance(event, EventHsDescContent)
@@ -732,6 +744,18 @@ class TestHsDescriptors:
         assert links[0].host == IPv4Address('193.142.147.204')
         assert links[0].port == 9200
 
+    async def test_hs_desc_v3_auth_no_key(self, hs_desc_v3_auth_event):
+        """Check with an encrypted descriptor but with no key."""
+        desc = hs_desc_v3_auth_event.descriptor
+        assert desc.hs_descriptor == 3
+        assert desc.revision == 2634456021
+
+        layer1 = desc.decrypt_layer1(hs_desc_v3_auth_event.address)
+        assert len(layer1.auth_clients) == 16
+
+        with pytest.raises(CryptographyError, match='Invalid MAC, something is corrupted!'):
+            desc.decrypt_layer2(hs_desc_v3_auth_event.address)
+
     async def test_hs_desc_v3_no_signature(self, hs_desc_v3_lines):
         message = await create_message(hs_desc_v3_lines)
 
@@ -779,9 +803,18 @@ class TestHsDescriptors:
         with pytest.raises(CryptographyError, match='Invalid MAC, something is corrupted!'):
             hs_desc_v3_event.descriptor.decrypt_layer1(address)
 
-    async def test_hs_desc_v3_with_client_auth(self, hs_desc_v3_event):
+    async def test_hs_desc_v3_auth_with_valid_key(self, hs_desc_v3_auth_event):
+        """Check with an encrypted descriptor but with a valid key."""
+        hexkey = 'D8D9ABB522BBC0A2E35CCDDD6B4CECF2FB4D51F7698EC8D1E0F2A1D81D340950'
+        key = X25519PrivateKey.from_private_bytes(bytes.fromhex(hexkey))
+        desc = hs_desc_v3_auth_event.descriptor
+        layer2 = desc.decrypt_layer2(hs_desc_v3_auth_event.address, key)
+        assert len(layer2.introduction_points) == 3
+        assert layer2.single_service is False
+
+    async def test_hs_desc_v3_auth_with_invalid_key(self, hs_desc_v3_event):
         addr_str = 'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid.onion'
         address = HiddenServiceAddressV3.from_string(addr_str)
-        msg = 'Hidden service v3 client authentication is not yet implemented'
-        with pytest.raises(NotImplementedError, match=msg):
+        msg = 'No client matching the secret key was found in the descriptor'
+        with pytest.raises(CryptographyError, match=msg):
             hs_desc_v3_event.descriptor.decrypt_layer2(address, X25519PrivateKey.generate())
