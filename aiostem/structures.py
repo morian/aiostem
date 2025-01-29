@@ -206,6 +206,22 @@ class CircuitEvent(StrEnum):
     PURPOSE_CHANGED = 'PURPOSE_CHANGED'
 
 
+@dataclass(kw_only=True, slots=True)
+class CircuitHiddenServicePow:
+    """
+    Hidden service PoW effort attached to a circuit.
+
+    See Also:
+        https://spec.torproject.org/hspow-spec/index.html
+
+    """
+
+    #: The type of proof of work system used (currently ``v1``).
+    type: str
+    #: Proof of work effort associated with this circuit.
+    effort: NonNegativeInt
+
+
 class CircuitHiddenServiceState(StrEnum):
     """State of a hidden service circuit."""
 
@@ -647,6 +663,26 @@ class GuardEventStatus(StrEnum):
     #:
     #: Because of flags set in the consensus and/or values in the configuration.
     GOOD = 'GOOD'
+
+
+@dataclass(kw_only=True, slots=True)
+class HsDescV3PowParams:
+    """
+    PoW parameters as parsed from a hidden service v3 descriptor.
+
+    See Also:
+        https://onionservices.torproject.org/technology/pow/
+
+    """
+
+    #: The type of PoW system used.
+    type: str
+    #: A random seed that should be used as the input to the PoW hash function.
+    seed: Base64Bytes
+    #: An effort value that clients should aim for when contacting the service.
+    suggested_effort: NonNegativeInt
+    #: A timestamp after which the above seed expires.
+    expiration: DatetimeUTC
 
 
 class HiddenServiceVersion(IntEnum):
@@ -1512,7 +1548,6 @@ class HsDescV3Layer1(HsDescV3Layer):
         return auth_client.decrypt_cookie(aes_key)
 
 
-@dataclass(kw_only=True, slots=True)
 class VersionRange(GenericRange[NonNegativeInt]):
     """A range of versions numbers."""
 
@@ -1755,6 +1790,18 @@ class HsDescV3Layer2(HsDescV3Layer):
         | None
     ) = None
 
+    #: Proof of work parameters used when contacting the service.
+    pow_params: (
+        Annotated[
+            HsDescV3PowParams,
+            TrBeforeStringSplit(
+                dict_keys=('type', 'seed', 'suggested_effort', 'expiration'),
+                separator=' ',
+            ),
+        ]
+        | None
+    ) = None
+
     #: ``CREATE2`` cell format numbers that the server recognizes.
     formats: Annotated[set[PositiveInt], TrBeforeStringSplit(separator=' ')]
 
@@ -1826,11 +1873,14 @@ class HsDescV3Layer2(HsDescV3Layer):
                     case 'intro-auth-required':
                         results['introduction_auth'] = args[0]
 
+                    case 'single-onion-service':
+                        results['single_service'] = True
+
                     case 'flow-control':
                         results['flow_control'] = args[0]
 
-                    case 'single-onion-service':
-                        results['single_service'] = True
+                    case 'pow-params':
+                        results['pow_params'] = args[0]
 
                     case 'introduction-point':
                         # We reached the introduction point part!
@@ -2480,7 +2530,6 @@ OnionServiceKey: TypeAlias = Annotated[
 ]
 
 
-@dataclass(kw_only=True, slots=True)
 class PortRange(GenericRange[AnyPort]):
     """A range of ports."""
 

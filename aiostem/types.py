@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, Generic, TypeAlias, TypeVar, Union
 
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
-from pydantic import Field
+from pydantic import BaseModel, Field
 
 from .utils import (
     Base16Encoder,
@@ -26,8 +25,8 @@ from .utils import (
 RangeVal = TypeVar('RangeVal')
 
 
-@dataclass
-class GenericRange(Generic[RangeVal]):
+# Generic models do not work well with dataclasses event on recent pydantic :(.
+class GenericRange(BaseModel, Generic[RangeVal]):
     """Any kind of numeric range."""
 
     #: Minimum value in the range (inclusive).

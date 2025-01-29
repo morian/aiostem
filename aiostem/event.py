@@ -20,6 +20,7 @@ from .structures import (
     CircuitBuildFlags,
     CircuitCloseReason,
     CircuitEvent,
+    CircuitHiddenServicePow,
     CircuitHiddenServiceState,
     CircuitPurpose,
     CircuitStatus,
@@ -525,11 +526,17 @@ class EventCirc(EventSimple):
         | None
     ) = None
 
-    #: Hidden service proof of work effort as a tuple of (version, effort).
-    #:
-    #: See also:
-    #:    https://spec.torproject.org/hspow-spec/index.html
-    hs_pow: Annotated[tuple[str, int], TrBeforeStringSplit()] | None = None
+    #: Hidden service proof of work effort attached to this circuit.
+    hs_pow: (
+        Annotated[
+            CircuitHiddenServicePow,
+            TrBeforeStringSplit(
+                dict_keys=('type', 'effort'),
+                separator=',',
+            ),
+        ]
+        | None
+    ) = None
 
     # Current hidden service state when applicable.
     hs_state: (

@@ -31,6 +31,10 @@ available flags, authentication methods, etc...
    :undoc-members:
    :members:
 
+.. autoclass:: CircuitHiddenServicePow
+   :undoc-members:
+   :members:
+
 .. autoclass:: CircuitHiddenServiceState
    :undoc-members:
    :members:
@@ -201,6 +205,10 @@ Hidden services
 
 Hidden Service structures
 -------------------------
+
+.. autoclass:: HsDescV3PowParams
+   :undoc-members:
+   :members:
 
 .. autoclass:: HsDescAction
    :undoc-members:

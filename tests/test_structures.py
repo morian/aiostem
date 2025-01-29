@@ -3,6 +3,7 @@ from __future__ import annotations
 import secrets
 from base64 import b32encode, b64encode
 from collections.abc import Sequence
+from datetime import datetime
 from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, ClassVar
 
@@ -25,6 +26,7 @@ from aiostem.structures import (
     HiddenServiceAddressV3,
     HsDescAuthCookie,
     HsDescAuthTypeInt,
+    HsDescV3Layer2,
     LinkSpecifierStruct,
     LogSeverity,
     LongServerName,
@@ -520,3 +522,53 @@ class TestTrLinkSpecifierList:
         assert len(links) == 4
         assert links[0].type == 0
         assert self.ADAPTER.validate_python(links) == links
+
+
+class TestHsDescV3Layer2:
+    """Test layer2 parsing."""
+
+    ADAPTER = TypeAdapter(HsDescV3Layer2)
+
+    def test_no_introduction_point(self):
+        lines = [
+            'create2-formats 2',
+            'flow-control 1-2 31',
+        ]
+        mapping = HsDescV3Layer2.text_to_mapping('\n'.join(lines))
+        layer2 = self.ADAPTER.validate_python(mapping)
+        assert len(layer2.introduction_points) == 0
+
+    def test_with_flow_control(self):
+        lines = [
+            'create2-formats 2',
+            'flow-control 1-2 31',
+        ]
+        mapping = HsDescV3Layer2.text_to_mapping('\n'.join(lines))
+        layer2 = self.ADAPTER.validate_python(mapping)
+        assert layer2.flow_control.sendme_inc == 31
+        assert layer2.flow_control.version_range.min == 1
+        assert layer2.flow_control.version_range.max == 2
+        assert layer2.single_service is False
+
+    def test_with_good_intro_auth_required(self):
+        lines = [
+            'create2-formats 2',
+            'intro-auth-required ed25519',
+            'single-onion-service',
+        ]
+        mapping = HsDescV3Layer2.text_to_mapping('\n'.join(lines))
+        layer2 = self.ADAPTER.validate_python(mapping)
+        assert layer2.single_service is True
+        assert layer2.introduction_auth == {'ed25519'}
+        assert layer2.pow_params is None
+
+    def test_with_pow_params(self):
+        lines = [
+            'create2-formats 2',
+            'pow-params v1 FD+Ai7r8Xx1BhF42JbtJkg 2 1738188453',
+        ]
+        mapping = HsDescV3Layer2.text_to_mapping('\n'.join(lines))
+        layer2 = self.ADAPTER.validate_python(mapping)
+        assert layer2.pow_params.type == 'v1'
+        assert layer2.pow_params.suggested_effort == 2
+        assert isinstance(layer2.pow_params.expiration, datetime)

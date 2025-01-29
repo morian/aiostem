@@ -296,6 +296,17 @@ class TestEvents:
         assert len(event.build_flags) == 3
         assert isinstance(event.time_created, datetime)
 
+    async def test_circuit_hs_pow(self):
+        line = (
+            '650 CIRC 267807 LAUNCHED BUILD_FLAGS=IS_INTERNAL,NEED_CAPACITY,NEED_UPTIME '
+            'PURPOSE=HS_VANGUARDS HS_POW=v1,2 TIME_CREATED=2025-01-04T23:55:46.318138'
+        )
+        message = await create_message([line])
+        event = event_from_message(message)
+        assert isinstance(event, EventCirc)
+        assert event.hs_pow.type == 'v1'
+        assert event.hs_pow.effort == 2
+
     async def test_circuit_closed(self):
         line = (
             '650 CIRC 288979 CLOSED '
