@@ -19,10 +19,13 @@ This refactoring breaks all previous APIs although the `Controller` stays quite 
 
 Added
 -----
-- Added complete sphinx documentation
-- Added support for Python 3.13
-- First public release (both on Github and Pypi).
-- Many docstrings for all common APIs
+- Builders for all known commands as of ``Tor v0.4.8.13``
+- Parsers for all events and replies as of ``Tor v0.4.8.13``
+- Complete sphinx documentation with tutorials and examples
+- First public release (both on Github and Pypi)
+- Docstrings for all methods and structures
+- Support for Python 3.13
+- Test cases for all commands, methods and parsers
 
 Changed
 -------
@@ -33,7 +36,7 @@ Removed
 -------
 - Dependencies on aiofiles_ and stem_ were removed after refactoring
 - The whole extra part of this library, including the `aiostem-hsscan` part
-- Debian and ubuntu packages are no longer available
+- Debian and ubuntu packages are no longer provided
 - Dropped support for python 3.10 and lower
 
 .. _aiofiles: https://pypi.org/project/aiofiles/

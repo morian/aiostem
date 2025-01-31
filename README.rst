@@ -18,11 +18,11 @@ community-maintained `stem`_ controller.
 .. _stem: https://stem.torproject.org/
 
 
-Why should we have another library?
------------------------------------
+Comparison with stem
+--------------------
 
 ``Stem`` was not meant to be used with asynchronous python and despite `an attempt`_
-to provide this feature, it has `never really worked`_ well and was never merged.
+to support this framework, it has `never really worked`_ well and was never merged.
 Additionally it does not use a true asynchronous connection but instead uses
 worker threads in order not to break existing codes.
 
@@ -31,11 +31,26 @@ worker threads in order not to break existing codes.
 
 The initial goal of ``aiostem`` was to offer better support for events, as there can be many
 of them coming at a high rate and I noticed that ``stem`` quickly ran into deadlocks and high
-CPU usage. Moreover, I feel like `stem`_ has become too complex and bloated with legacy support,
-both for a large range of Python versions and support for older versions of Tor.
+CPU usage. Moreover, I feel like `stem`_ provides too many high level APIs and it is hard to
+know exactly what is performed under the hood. It has also become too complex and bloated with
+legacy code, both for a large range of Python versions and support for old versions of Tor.
 
-``Tor v0.4.x`` has been released for many years now, therefore ``aiostem`` focuses the support for 
-``Tor v0.4.5`` and later, as well as Python 3.11 and later.
+``Tor v0.4.x`` has been released for many years now, therefore ``aiostem`` focuses the support
+for ``Tor v0.4.5`` and later, as well as Python 3.11 and later.
+
+Additionally, ``stem`` does not provide a low-level API around the control protocol, which
+means that there is time waster registering and unregistering events all around. ``aistem``
+focuses on a clean implementation of the low level protocol, providing far better performances
+when dealing with a higher number of events.
+
+However, ``aiostem`` is not a drop-in replacement for ``stem`` since we do not handle the
+following features:
+- Parsing of server and relay descriptors as in ``stem.descriptor`` (we have HS descriptors).
+- Higher (and easier) level APIs mixing commands and events in a single call.
+- Run a Tor daemon from library calls as in ``stem.process``.
+- Download server descriptors as in ``stem.descriptor.remote``.
+- Command line interpreter as in ``stem.interpreter``.
+- Support for older versions of Tor and Python.
 
 
 Installation
