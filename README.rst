@@ -18,8 +18,8 @@ community-maintained `stem`_ controller.
 .. _stem: https://stem.torproject.org/
 
 
-Comparison with stem
---------------------
+What about Stem?
+----------------
 
 ``Stem`` was not meant to be used with asynchronous python and despite `an attempt`_
 to support this framework, it has `never really worked`_ well and was never merged.
@@ -45,6 +45,7 @@ when dealing with a higher number of events.
 
 However, ``aiostem`` is not a drop-in replacement for ``stem`` since we do not handle the
 following features:
+
 - Parsing of server and relay descriptors as in ``stem.descriptor`` (we have HS descriptors).
 - Higher (and easier) level APIs mixing commands and events in a single call.
 - Run a Tor daemon from library calls as in ``stem.process``.
