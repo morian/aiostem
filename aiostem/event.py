@@ -36,8 +36,8 @@ from .structures import (
     LivenessStatus,
     LogSeverity,
     LongServerName,
-    OnionRouterConnStatus,
     OrConnCloseReason,
+    OrConnStatus,
     RemapSource,
     RouterStatus,
     Signal,
@@ -697,7 +697,7 @@ class EventOrConn(EventSimple):
     #: Onion router server name reported in this event.
     server: LongServerName
     #: Status of the connection to the onion router.
-    status: OnionRouterConnStatus
+    status: OrConnStatus
     #: When :attr:`status` is ``FAILED`` or ``CLOSED``, this is the reason why.
     reason: Annotated[OrConnCloseReason | str, Field(union_mode='left_to_right')] | None = None
     #: Counts both established and pending circuits.

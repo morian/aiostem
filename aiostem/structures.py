@@ -2249,21 +2249,6 @@ class OnionClientAuthKeyStruct:
     data: Base64Bytes
 
 
-class OnionRouterConnStatus(StrEnum):
-    """All possible statuses used in :attr:`~.EventWord.ORCONN`."""
-
-    #: We have received a new incoming OR connection, and are starting the server handshake.
-    NEW = 'NEW'
-    #: We have launched a new outgoing OR connection, and are starting the client handshake.
-    LAUNCHED = 'LAUNCHED'
-    #: The OR connection has been connected and the handshake is done.
-    CONNECTED = 'CONNECTED'
-    #: Our attempt to open the OR connection failed.
-    FAILED = 'FAILED'
-    #: The OR connection closed in an unremarkable way.
-    CLOSED = 'CLOSED'
-
-
 class OrConnCloseReason(StrEnum):
     """All possible reasons why an OR connection is closed."""
 
@@ -2289,6 +2274,21 @@ class OrConnCloseReason(StrEnum):
     MISC = 'MISC'
     #: No pluggable transport was available.
     PT_MISSING = 'PT_MISSING'
+
+
+class OrConnStatus(StrEnum):
+    """All possible statuses used in :attr:`~.EventWord.ORCONN`."""
+
+    #: We have received a new incoming OR connection, and are starting the server handshake.
+    NEW = 'NEW'
+    #: We have launched a new outgoing OR connection, and are starting the client handshake.
+    LAUNCHED = 'LAUNCHED'
+    #: The OR connection has been connected and the handshake is done.
+    CONNECTED = 'CONNECTED'
+    #: Our attempt to open the OR connection failed.
+    FAILED = 'FAILED'
+    #: The OR connection closed in an unremarkable way.
+    CLOSED = 'CLOSED'
 
 
 def _discriminate_client_auth_private_key(v: Any) -> str | None:

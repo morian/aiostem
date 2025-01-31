@@ -47,10 +47,6 @@ available flags, authentication methods, etc...
    :undoc-members:
    :members:
 
-.. autoclass:: OrConnCloseReason
-   :undoc-members:
-   :members:
-
 .. autoclass:: DescriptorPurpose
    :undoc-members:
    :members:
@@ -68,6 +64,14 @@ available flags, authentication methods, etc...
    :members:
 
 .. autoclass:: LogSeverity
+   :undoc-members:
+   :members:
+
+.. autoclass:: OrConnCloseReason
+   :undoc-members:
+   :members:
+
+.. autoclass:: OrConnStatus
    :undoc-members:
    :members:
 
@@ -189,10 +193,6 @@ Ed25519 certificates
 Hidden services
 ---------------
 
-.. autoclass:: HiddenServiceVersion
-   :undoc-members:
-   :members:
-
 .. autoclass:: BaseHiddenServiceAddress
    :members:
 .. autoclass:: HiddenServiceAddressV2
@@ -202,27 +202,7 @@ Hidden services
 
 .. autodata:: HiddenServiceAddress
 
-
-Hidden Service structures
--------------------------
-
-.. autoclass:: HsDescV3PowParams
-   :undoc-members:
-   :members:
-
-.. autoclass:: HsDescAction
-   :undoc-members:
-   :members:
-
-.. autoclass:: HsDescAuthTypeInt
-   :undoc-members:
-   :members:
-
-.. autoclass:: HsDescAuthTypeStr
-   :undoc-members:
-   :members:
-
-.. autoclass:: HsDescAuthCookie
+.. autoclass:: HiddenServiceVersion
    :undoc-members:
    :members:
 
@@ -230,27 +210,11 @@ Hidden Service structures
    :no-show-inheritance:
    :members:
 
-.. autoclass:: HsDescClientAuth
-   :undoc-members:
-   :members:
-
-.. autodata:: HsDescClientAuthV2
-
-.. autodata:: HsDescClientAuthV3
-
 .. autoclass:: HsDescV2
    :undoc-members:
    :members:
 
 .. autoclass:: HsDescV3
-   :undoc-members:
-   :members:
-
-.. autoclass:: HsDescV3AuthClient
-   :undoc-members:
-   :members:
-
-.. autoclass:: HsDescV3FlowControl
    :undoc-members:
    :members:
 
@@ -262,11 +226,48 @@ Hidden Service structures
    :undoc-members:
    :members:
 
+
 .. autoclass:: HsDescV3Layer2
    :undoc-members:
    :members:
 
+.. autoclass:: HsDescAction
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescAuthCookie
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescAuthTypeInt
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescAuthTypeStr
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescClientAuth
+   :undoc-members:
+   :members:
+
+.. autodata:: HsDescClientAuthV2
+
+.. autodata:: HsDescClientAuthV3
+
 .. autoclass:: HsDescFailReason
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescV3AuthClient
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescV3FlowControl
+   :undoc-members:
+   :members:
+
+.. autoclass:: HsDescV3PowParams
    :undoc-members:
    :members:
 
@@ -296,10 +297,6 @@ Hidden Service structures
    :undoc-members:
    :members:
 
-.. autoclass:: OnionRouterConnStatus
-   :undoc-members:
-   :members:
-
 .. autoclass:: OnionServiceFlags
    :undoc-members:
    :members:
@@ -314,6 +311,72 @@ Hidden Service structures
    :members:
 
 .. autoclass:: OnionServiceNewKeyStruct
+   :no-show-inheritance:
+   :undoc-members:
+   :members:
+
+
+Reply data
+----------
+
+These are directly part of the replies when a command has been successful.
+
+.. autoclass:: ReplyDataAddOnion
+   :no-show-inheritance:
+   :members:
+
+.. autoclass:: ReplyDataAuthChallenge
+   :no-show-inheritance:
+   :members:
+
+.. autoclass:: ReplyDataExtendCircuit
+   :no-show-inheritance:
+   :members:
+
+.. autoclass:: ReplyDataMapAddressItem
+   :no-show-inheritance:
+   :members:
+
+.. autoclass:: ReplyDataOnionClientAuthView
+   :no-show-inheritance:
+   :members:
+
+.. autoclass:: ReplyDataProtocolInfo
+   :no-show-inheritance:
+   :members:
+
+
+General status
+--------------
+
+.. autoclass:: StatusActionGeneral
+   :members:
+
+.. autoclass:: StatusGeneralBug
+   :no-show-inheritance:
+   :undoc-members:
+   :members:
+
+.. autoclass:: StatusGeneralClockJumped
+   :no-show-inheritance:
+   :undoc-members:
+   :members:
+
+.. autoclass:: StatusGeneralClockSkew
+   :no-show-inheritance:
+   :undoc-members:
+   :members:
+
+.. autoclass:: StatusGeneralDangerousVersionReason
+   :undoc-members:
+   :members:
+
+.. autoclass:: StatusGeneralDangerousVersion
+   :no-show-inheritance:
+   :undoc-members:
+   :members:
+
+.. autoclass:: StatusGeneralTooManyConnections
    :no-show-inheritance:
    :undoc-members:
    :members:
@@ -355,36 +418,6 @@ These :func:`~dataclasses.dataclass` structures are specific for each action of 
 .. autoclass:: StatusClientSocksBadHostname
    :no-show-inheritance:
    :undoc-members:
-   :members:
-
-
-Reply data
-----------
-
-These are directly part of the replies when a command has been successful.
-
-.. autoclass:: ReplyDataAddOnion
-   :no-show-inheritance:
-   :members:
-
-.. autoclass:: ReplyDataAuthChallenge
-   :no-show-inheritance:
-   :members:
-
-.. autoclass:: ReplyDataExtendCircuit
-   :no-show-inheritance:
-   :members:
-
-.. autoclass:: ReplyDataMapAddressItem
-   :no-show-inheritance:
-   :members:
-
-.. autoclass:: ReplyDataOnionClientAuthView
-   :no-show-inheritance:
-   :members:
-
-.. autoclass:: ReplyDataProtocolInfo
-   :no-show-inheritance:
    :members:
 
 
@@ -441,40 +474,3 @@ Server status
    :no-show-inheritance:
    :undoc-members:
    :members:
-
-
-General status
---------------
-
-.. autoclass:: StatusActionGeneral
-   :members:
-
-.. autoclass:: StatusGeneralBug
-   :no-show-inheritance:
-   :undoc-members:
-   :members:
-
-.. autoclass:: StatusGeneralClockJumped
-   :no-show-inheritance:
-   :undoc-members:
-   :members:
-
-.. autoclass:: StatusGeneralClockSkew
-   :no-show-inheritance:
-   :undoc-members:
-   :members:
-
-.. autoclass:: StatusGeneralDangerousVersionReason
-   :undoc-members:
-   :members:
-
-.. autoclass:: StatusGeneralDangerousVersion
-   :no-show-inheritance:
-   :undoc-members:
-   :members:
-
-.. autoclass:: StatusGeneralTooManyConnections
-   :no-show-inheritance:
-   :undoc-members:
-   :members:
-
