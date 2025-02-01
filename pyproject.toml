@@ -32,6 +32,14 @@ dependencies = [
 ]
 requires-python = '>=3.11'
 
+[project.urls]
+Changelog = 'https://github.com/morian/aiostem/blob/master/CHANGELOG.rst'
+Coverage = 'https://app.codecov.io/github/morian/aiostem'
+Documentation = 'https://aiostem.readthedocs.io'
+Homepage = 'https://pypi.org/project/aiostem/'
+Issues = 'https://github.com/morian/aiostem/issues'
+Repository = 'https://github.com/morian/aiostem'
+
 [tool.setuptools.packages.find]
 include = [
 	'aiostem',
