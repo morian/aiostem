@@ -1,7 +1,16 @@
 AioStem
 =======
 
-|coverage| |docs|
+|licence| |version| |pyversions| |coverage| |docs|
+
+.. |licence| image:: https://img.shields.io/pypi/l/aiostem.svg
+   :target: https://pypi.org/project/aiostem/
+
+.. |version| image:: https://img.shields.io/pypi/v/aiostem.svg
+   :target: https://pypi.org/project/aiostem/
+
+.. |pyversions| image:: https://img.shields.io/pypi/pyversions/aiostem.svg
+   :target: https://pypi.org/project/aiostem/
 
 .. |coverage| image:: https://codecov.io/github/morian/aiostem/graph/badge.svg
    :target: https://app.codecov.io/github/morian/aiostem
