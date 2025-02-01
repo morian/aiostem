@@ -1,7 +1,5 @@
 .DEFAULT_GOAL := all
 
-DEBUILD ?= /usr/bin/debuild
-
 .PHONY: install-devel
 install-devel:
 	pip install -r tests/requirements-devel.txt
@@ -34,10 +32,6 @@ build:
 .PHONY: htmldoc
 htmldoc:
 	$(MAKE) -C docs/ html
-
-.PHONY: deb
-deb: debian/changelog
-	$(DEBUILD) -i -us -uc -b
 
 .PHONY: format
 format:
