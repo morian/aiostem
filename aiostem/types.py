@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, Generic, TypeAlias, TypeVar, Union
 
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey, X25519PublicKey
 from pydantic import BaseModel, Field
@@ -16,6 +17,7 @@ from .utils import (
     TrAfterAsTimezone,
     TrBeforeTimedelta,
     TrBoolYesNo,
+    TrEd25519PublicKey,
     TrRSAPublicKey,
     TrX25519PrivateKey,
     TrX25519PublicKey,
@@ -57,6 +59,13 @@ Base64Bytes: TypeAlias = Annotated[bytes, EncodedBytes(encoder=Base64Encoder)]
 
 #: A boolean value serialized as a yes/no string.
 BoolYesNo: TypeAlias = Annotated[bool, TrBoolYesNo()]
+
+#: Base64 encoded bytes parsed as an ed25519 public key.
+Ed25519PublicKeyBase64 = Annotated[
+    Ed25519PublicKey,
+    TrEd25519PublicKey(),
+    EncodedBytes(encoder=Base64Encoder),
+]
 
 #: A datetime that always puts or convert to UTC.
 DatetimeUTC: TypeAlias = Annotated[datetime, TrAfterAsTimezone()]

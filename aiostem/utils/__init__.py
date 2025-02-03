@@ -1,7 +1,14 @@
 from __future__ import annotations
 
 from .argument import ArgumentKeyword, ArgumentString, QuoteStyle
-from .encoding import Base16Encoder, Base32Encoder, Base64Encoder, EncodedBytes
+from .encoding import (
+    Base16Encoder,
+    Base32Encoder,
+    Base64Encoder,
+    EncodedBase,
+    EncodedBytes,
+    EncoderProtocol,
+)
 from .message import BaseMessage, Message, MessageData, MessageLine, messages_from_stream
 from .syntax import ReplySyntax, ReplySyntaxFlag
 from .transformers import (
@@ -26,7 +33,9 @@ __all__ = [
     'Base32Encoder',
     'Base64Encoder',
     'BaseMessage',
+    'EncodedBase',
     'EncodedBytes',
+    'EncoderProtocol',
     'Message',
     'MessageData',
     'MessageLine',

@@ -63,6 +63,7 @@ from .types import (
     Base32Bytes,
     Base64Bytes,
     DatetimeUTC,
+    Ed25519PublicKeyBase64,
     GenericRange,
     RSAPublicKeyBase64,
     TimedeltaMinutesInt,
@@ -470,7 +471,7 @@ class Ed25519CertExtensionSigningKey(BaseEd25519CertExtension):
     )
 
     #: Public ed25519 signing key as part of this extension.
-    key: Annotated[Ed25519PublicKey, TrEd25519PublicKey()]
+    key: Ed25519PublicKeyBase64
 
     @classmethod
     def _pydantic_validator(cls, value: Any) -> Any:
@@ -536,7 +537,7 @@ class Ed25519CertificateV1(Ed25519Certificate):
     expiration: DatetimeUTC
 
     #: Ed25519 public key.
-    key: Annotated[Ed25519PublicKey, TrEd25519PublicKey()] | None
+    key: Ed25519PublicKeyBase64 | None
 
     #: List of ed25519 extensions used along with this certificate.
     extensions: Sequence[Ed25519CertExtension]

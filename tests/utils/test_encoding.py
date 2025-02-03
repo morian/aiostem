@@ -75,7 +75,7 @@ def inject_test_values(cls):
 
     cls.TEST_MODEL = TestModel
     cls.TEST_MODEL_OR_INT = TestModelOrInt
-    cls.ADAPTER_MODEL = TypeAdapter(TestModel)
+    cls.ADAPTER = TypeAdapter(cls.TEST_CLASS)
 
     return cls
 

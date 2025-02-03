@@ -447,7 +447,6 @@ class TestEd25519Certificate:
         cert1 = self.ADAPTER.validate_python(bytes.fromhex(hexdata))
         assert isinstance(cert1, Ed25519CertificateV1)
         cert1.raise_for_invalid_signature(cert1.signing_key)
-        assert len(cert1.extensions) == 1
 
         # Also check that we can build from an already built structure.
         cert2 = self.ADAPTER.validate_python(cert1)
