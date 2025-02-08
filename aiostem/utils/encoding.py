@@ -221,7 +221,7 @@ class Base16Encoder(EncoderProtocol[bytes]):
         return 'base16'
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class EncodedBase(Generic[T]):
     """Generic encoded value to/from a string using the :class:`EncoderProtocol`."""
 
@@ -291,7 +291,7 @@ class EncodedBase(Generic[T]):
         return self.encoder.encode(value)
 
 
-@dataclass(slots=True)
+@dataclass(frozen=True, slots=True)
 class EncodedBytes(EncodedBase[bytes]):
     """Bytes that can be encoded and decoded from a string using an external encoder."""
 

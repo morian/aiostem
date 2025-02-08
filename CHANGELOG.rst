@@ -8,6 +8,18 @@ The format is based on `Keep a Changelog`_ and this project adheres to `Semantic
 .. _Semantic Versioning: https://semver.org/spec/v2.0.0.html
 
 
+0.4.1 (UNRELEASED)
+==================
+
+Added
+-----
+- `EncodedBase` and `EncoderProtocol` are now exported by `aiostem.utils`.
+
+Changed
+-------
+- Simplify pydantic schema for `TrGenericKey`.
+
+
 0.4.0 (2025-02-01)
 ==================
 

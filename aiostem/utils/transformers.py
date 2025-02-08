@@ -28,7 +28,7 @@ from cryptography.hazmat.primitives.serialization import (
     load_der_private_key,
     load_der_public_key,
 )
-from pydantic import ConfigDict, PydanticSchemaGenerationError
+from pydantic import ConfigDict
 from pydantic_core import core_schema
 from pydantic_core.core_schema import CoreSchema, WhenUsed
 
@@ -355,22 +355,13 @@ class TrGenericKey(ABC, Generic[KeyType]):
             msg = f"source type is not a {key_type.__name__}, got '{source.__name__}'"
             raise TypeError(msg)
 
-        try:
-            source_schema = handler(source)
-        except PydanticSchemaGenerationError:
-            source_schema = core_schema.bytes_schema(strict=True)
-
+        source_schema = core_schema.bytes_schema(strict=True)
         return core_schema.union_schema(
             choices=[
                 core_schema.is_instance_schema(key_type),
-                core_schema.chain_schema(
-                    steps=[
-                        source_schema,
-                        core_schema.no_info_after_validator_function(
-                            function=self.from_bytes,
-                            schema=core_schema.bytes_schema(strict=True),
-                        ),
-                    ],
+                core_schema.no_info_after_validator_function(
+                    function=self.from_bytes,
+                    schema=source_schema,
                 ),
             ],
             serialization=core_schema.plain_serializer_function_ser_schema(
