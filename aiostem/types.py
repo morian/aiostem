@@ -27,7 +27,7 @@ from .utils import (
 RangeVal = TypeVar('RangeVal')
 
 
-# Generic models do not work well with dataclasses event on recent pydantic :(.
+# Generic models do not work well with dataclasses even on recent pydantic :(.
 class GenericRange(BaseModel, Generic[RangeVal]):
     """Any kind of numeric range."""
 
