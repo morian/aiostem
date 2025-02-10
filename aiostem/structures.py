@@ -3551,8 +3551,26 @@ class VirtualPortTarget:
     target: TcpAddressPort
 
 
+def _discriminate_hidden_service_version(value: str) -> HiddenServiceVersion | None:
+    """Discriminate a hidden service version based on the string length."""
+    match value:
+        case HiddenServiceAddressV2() | HiddenServiceAddressV3():
+            return value.VERSION
+        case str():
+            if len(value) < HiddenServiceAddressV3.ADDRESS_LENGTH:
+                return HiddenServiceVersion.ONION_V2
+            return HiddenServiceVersion.ONION_V3
+    return None
+
+
 #: Any kind of onion service address.
-HiddenServiceAddress: TypeAlias = Union[HiddenServiceAddressV2 | HiddenServiceAddressV3]  # noqa: UP007
+HiddenServiceAddress: TypeAlias = Annotated[
+    Union[  # noqa: UP007
+        Annotated[HiddenServiceAddressV2, Tag(HiddenServiceVersion.ONION_V2)],
+        Annotated[HiddenServiceAddressV3, Tag(HiddenServiceVersion.ONION_V3)],
+    ],
+    Discriminator(_discriminate_hidden_service_version),
+]
 
 #: A virtual port parser and serializer from/to a :class:`VirtualPortTarget`.
 VirtualPort: TypeAlias = Annotated[

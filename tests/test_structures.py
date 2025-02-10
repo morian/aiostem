@@ -22,6 +22,7 @@ from aiostem.structures import (
     Ed25519CertExtensionSigningKey,
     Ed25519CertExtensionUnkown,
     Ed25519CertificateV1,
+    HiddenServiceAddress,
     HiddenServiceAddressV2,
     HiddenServiceAddressV3,
     HsDescAuthCookie,
@@ -40,6 +41,7 @@ from aiostem.structures import (
 )
 from aiostem.utils import TrEd25519PrivateKey
 
+HiddenServiceAdapter = TypeAdapter(HiddenServiceAddress)
 HiddenServiceAdapterV2 = TypeAdapter(HiddenServiceAddressV2)
 HiddenServiceAdapterV3 = TypeAdapter(HiddenServiceAddressV3)
 
@@ -148,6 +150,42 @@ class TestHiddenServiceV3:
         assert error['type'] == 'is_instance_of', address
         error = exc.value.errors()[1]
         assert error['type'] == errtype, address
+
+
+class TestHiddenService:
+    @pytest.mark.parametrize(
+        ('address', 'version'),
+        [
+            (HiddenServiceAddressV2.from_string('facebookcorewwwi.onion'), 2),
+            ('facebookcorewwwi.onion', 2),
+            ('facebookcorewwwi', 2),
+            (
+                HiddenServiceAddressV3.from_string(
+                    'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid.onion'
+                ),
+                3,
+            ),
+            ('facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid.onion', 3),
+            ('facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixwid', 3),
+        ],
+    )
+    def test_valid_domains(self, address, version):
+        hsaddr = HiddenServiceAdapter.validate_python(address)
+        assert version == hsaddr.VERSION
+
+    @pytest.mark.parametrize(
+        'address',
+        [
+            'facebookcorewww.onion',
+            'facebookcorewww',
+            'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixid.onion',
+            'facebookcooa4ldbat4g7iacswl3p2zrf5nuylvnhxn6kqolvojixid',
+            1234,
+        ],
+    )
+    def test_invalid_domains(self, address):
+        with pytest.raises(ValidationError, match='validation error'):
+            HiddenServiceAdapter.validate_python(address)
 
 
 HsDescAuthCookieAdapter = TypeAdapter(HsDescAuthCookie)
