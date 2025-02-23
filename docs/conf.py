@@ -15,6 +15,7 @@ import sys
 from typing import TYPE_CHECKING, Any
 
 from sphinx.ext.intersphinx import missing_reference
+from sphinx.util import typing as sphinx_typing
 from sphinx.util.inspect import TypeAliasForwardRef
 
 if TYPE_CHECKING:
@@ -30,6 +31,9 @@ if TYPE_CHECKING:
 # This seems somehow necessary to have linkcode work properly on ReadTheDocs.
 # See https://github.com/readthedocs/readthedocs.org/issues/2139#issuecomment-352188629
 sys.path.insert(0, os.path.abspath('..'))
+
+# Keep a reference on the original stringify for annotations.
+original_stringify_annotation = sphinx_typing.stringify_annotation
 
 
 # -- General configuration ---------------------------------------------------
@@ -255,6 +259,17 @@ html_baseurl = os.environ.get('READTHEDOCS_CANONICAL_URL', '')
 # See https://github.com/sphinx-doc/sphinx/issues/12300
 suppress_warnings = ['config.cache']
 
+def stringify_annotation(
+    annotation: Any,
+    /,
+    mode: str = 'fully-qualified-except-typing',
+    *,
+    short_literals: bool = False,
+) -> str:
+    """Format the annotation properly when it is an alias forward reference."""
+    if isinstance(annotation, TypeAliasForwardRef):
+        return annotation.name
+    return original_stringify_annotation(annotation, mode=mode, short_literals=short_literals)
 
 def typehints_formatter(annotation: Any, config: Config | None = None) -> str | None:
     """Format type hints with some custom additions."""
@@ -263,7 +278,6 @@ def typehints_formatter(annotation: Any, config: Config | None = None) -> str | 
 
     # Fall-back to the default behavior.
     return None
-
 
 def custom_missing_reference(
     app: Sphinx,
@@ -304,3 +318,4 @@ def custom_missing_reference(
 def setup(app: Sphinx) -> None:
     """Add a custom method for missing references."""
     app.connect('missing-reference', custom_missing_reference)
+    sphinx_typing.stringify_annotation = stringify_annotation

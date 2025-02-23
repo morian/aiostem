@@ -1,4 +1,4 @@
-coverage==7.6.11
+coverage==7.6.12
 packaging===24.2
 pytest==8.3.4
 pytest-asyncio==0.25.3
