@@ -17,6 +17,7 @@ Added
 
 Changed
 -------
+- Enhanced discriminator for `HiddenServiceAddress`.
 - Simplify pydantic schema for `TrGenericKey`.
 
 
