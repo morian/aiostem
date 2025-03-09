@@ -97,7 +97,7 @@ tests:
     AIOSTEM_HOST: 'torcontrol'
     AIOSTEM_PASS: 'aiostem'
   services:
-    - name: "${CI_REGISTRY}/${CI_PROJECT_ROOT_NAMESPACE}/docker/tor-client:0.4.8.13"
+    - name: "${CI_REGISTRY}/${CI_PROJECT_ROOT_NAMESPACE}/docker/tor-client:0.4.8.14"
       alias: torcontrol
       command: [
         'tor',
