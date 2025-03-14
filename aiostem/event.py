@@ -364,7 +364,7 @@ class EventDisconnect(Event):
 
     """
 
-    TYPE = EventWordInternal.DISCONNECT
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWordInternal.DISCONNECT
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
@@ -396,7 +396,7 @@ class EventAddrMap(EventSimple):
         | ReplySyntaxFlag.KW_QUOTED
         | ReplySyntaxFlag.KW_OMIT_KEYS,
     )
-    TYPE = EventWord.ADDRMAP
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.ADDRMAP
 
     #: Original address to replace.
     # Union is used around AnyHost to fix a weird bug with typing.get_type_hints().
@@ -427,7 +427,7 @@ class EventDescChanged(EventSimple):
     """
 
     SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(args_min=1, args_map=(None,))
-    TYPE = EventWord.DESCCHANGED
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.DESCCHANGED
 
 
 @dataclass(kw_only=True, slots=True)
@@ -444,7 +444,7 @@ class EventStreamBW(EventSimple):
         args_min=5,
         args_map=(None, 'stream', 'written', 'read', 'time'),
     )
-    TYPE = EventWord.STREAM_BW
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.STREAM_BW
 
     #: Stream identifier.
     stream: int
@@ -505,7 +505,7 @@ class EventCirc(EventSimple):
         | ReplySyntaxFlag.KW_OMIT_KEYS
         | ReplySyntaxFlag.KW_QUOTED,
     )
-    TYPE = EventWord.CIRC
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.CIRC
 
     #: Circuit identifier this event is triggered for.
     circuit: NonNegativeInt
@@ -615,7 +615,7 @@ class EventStream(EventSimple):
         },
         flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
     )
-    TYPE = EventWord.STREAM
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.STREAM
 
     #: Stream identifier reported in this event.
     stream: int
@@ -692,7 +692,7 @@ class EventOrConn(EventSimple):
         },
         flags=ReplySyntaxFlag.KW_ENABLE,
     )
-    TYPE = EventWord.ORCONN
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.ORCONN
 
     #: Onion router server name reported in this event.
     server: LongServerName
@@ -725,7 +725,7 @@ class EventBandwidth(EventSimple):
         args_min=3,
         args_map=(None, 'read', 'written'),
     )
-    TYPE = EventWord.BW
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.BW
 
     #: Total amount of bytes read.
     read: int
@@ -747,7 +747,7 @@ class EventGuard(EventSimple):
         args_min=4,
         args_map=(None, 'type', 'name', 'status'),
     )
-    TYPE = EventWord.GUARD
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.GUARD
 
     #: Type of guard node, should be ``ENTRY``.
     type: str
@@ -774,7 +774,7 @@ class EventNewDesc(EventSimple):
         kwargs_multi={'servers'},
         flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_OMIT_KEYS,
     )
-    TYPE = EventWord.NEWDESC
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.NEWDESC
 
     #: List of new server identifiers received.
     servers: Sequence[LongServerName] = field(default_factory=list)
@@ -800,7 +800,7 @@ class EventClientsSeen(EventSimple):
         },
         flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
     )
-    TYPE = EventWord.CLIENTS_SEEN
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.CLIENTS_SEEN
 
     #: When the reported summary counts started.
     time: DatetimeUTC
@@ -814,8 +814,8 @@ class EventClientsSeen(EventSimple):
 class EventBaseNetworkStatus(Event):
     """Base class for network status events."""
 
-    SYNTAX_P = ReplySyntax(args_min=2, args_map=('policy', 'ports'))
-    SYNTAX_R = ReplySyntax(
+    SYNTAX_P: ClassVar[ReplySyntax] = ReplySyntax(args_min=2, args_map=('policy', 'ports'))
+    SYNTAX_R: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=8,
         args_map=(
             'nickname',
@@ -828,7 +828,7 @@ class EventBaseNetworkStatus(Event):
             'dir_port',
         ),
     )
-    SYNTAX_W = ReplySyntax(
+    SYNTAX_W: ClassVar[ReplySyntax] = ReplySyntax(
         kwargs_map={
             'Bandwidth': 'bandwidth',
             'Measured': 'bw_measured',
@@ -909,7 +909,7 @@ class EventNetworkStatus(EventBaseNetworkStatus):
 
     """
 
-    TYPE = EventWord.NS
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.NS
 
 
 @dataclass(kw_only=True, slots=True)
@@ -922,7 +922,7 @@ class EventNewConsensus(EventBaseNetworkStatus):
 
     """
 
-    TYPE = EventWord.NEWCONSENSUS
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.NEWCONSENSUS
 
 
 @dataclass(kw_only=True, slots=True)
@@ -950,7 +950,7 @@ class EventBuildTimeoutSet(EventSimple):
         },
         flags=ReplySyntaxFlag.KW_ENABLE,
     )
-    TYPE = EventWord.BUILDTIMEOUT_SET
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.BUILDTIMEOUT_SET
 
     #: Type of event we just received.
     type: Literal['COMPUTED', 'RESET', 'SUSPENDED', 'DISCARD', 'RESUME']
@@ -982,8 +982,8 @@ class EventSignal(EventSimple):
 
     """
 
-    SYNTAX = ReplySyntax(args_min=2, args_map=(None, 'signal'))
-    TYPE = EventWord.SIGNAL
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(args_min=2, args_map=(None, 'signal'))
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.SIGNAL
 
     #: The signal received by Tor.
     signal: Signal
@@ -999,7 +999,7 @@ class EventCircBW(EventSimple):
 
     """
 
-    SYNTAX = ReplySyntax(
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=1,
         args_map=(None,),
         kwargs_map={
@@ -1018,7 +1018,7 @@ class EventCircBW(EventSimple):
         },
         flags=ReplySyntaxFlag.KW_ENABLE,
     )
-    TYPE = EventWord.CIRC_BW
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.CIRC_BW
 
     #: Records when Tor created the bandwidth event.
     time: DatetimeUTC
@@ -1069,7 +1069,7 @@ class EventConfChanged(Event, ReplyGetMap):
         )
     )
 
-    TYPE = EventWord.CONF_CHANGED
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.CONF_CHANGED
 
     @classmethod
     def from_message(cls, message: Message) -> Self:
@@ -1090,7 +1090,7 @@ class EventCircMinor(EventSimple):
 
     """
 
-    SYNTAX = ReplySyntax(
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=3,
         args_map=(None, 'circuit', 'event'),
         kwargs_map={
@@ -1105,7 +1105,7 @@ class EventCircMinor(EventSimple):
         },
         flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_OMIT_KEYS,
     )
-    TYPE = EventWord.CIRC_MINOR
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.CIRC_MINOR
 
     #: Circuit identifier.
     circuit: NonNegativeInt
@@ -1219,7 +1219,7 @@ class EventCellStats(EventSimple):
 
     """
 
-    SYNTAX = ReplySyntax(
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=1,
         args_map=(None,),
         kwargs_map={
@@ -1237,7 +1237,7 @@ class EventCellStats(EventSimple):
         },
         flags=ReplySyntaxFlag.KW_ENABLE,
     )
-    TYPE = EventWord.CELL_STATS
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.CELL_STATS
 
     #: Circuit identifier only included if the circuit originates at this node.
     circuit: NonNegativeInt | None = None
@@ -1275,7 +1275,7 @@ class EventConnBW(EventSimple):
 
     """
 
-    SYNTAX = ReplySyntax(
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=1,
         args_map=(None,),
         kwargs_map={
@@ -1286,7 +1286,7 @@ class EventConnBW(EventSimple):
         },
         flags=ReplySyntaxFlag.KW_ENABLE,
     )
-    TYPE = EventWord.CONN_BW
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.CONN_BW
 
     #: Identifier for this connection.
     conn_id: int
@@ -1311,7 +1311,7 @@ class EventTbEmpty(EventSimple):
 
     """
 
-    SYNTAX = ReplySyntax(
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=2,
         args_map=(None, 'bucket'),
         kwargs_map={
@@ -1322,7 +1322,7 @@ class EventTbEmpty(EventSimple):
         },
         flags=ReplySyntaxFlag.KW_ENABLE,
     )
-    TYPE = EventWord.TB_EMPTY
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.TB_EMPTY
 
     #: Name of the refilled bucket that was previously empty.
     bucket: Literal['GLOBAL', 'RELAY', 'ORCONN']
@@ -1350,7 +1350,7 @@ class EventHsDesc(EventSimple):
 
     """
 
-    SYNTAX = ReplySyntax(
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=5,
         args_map=(None, 'action', 'address', 'auth_type', 'hs_dir'),
         kwargs_map={
@@ -1361,7 +1361,7 @@ class EventHsDesc(EventSimple):
         },
         flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_OMIT_KEYS,
     )
-    TYPE = EventWord.HS_DESC
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.HS_DESC
 
     #: Kind of action reported in this status update.
     action: HsDescAction
@@ -1396,7 +1396,7 @@ class EventHsDescContent(Event):
         args_min=4,
         args_map=(None, 'address', 'descriptor_id', 'hs_dir'),
     )
-    TYPE = EventWord.HS_DESC_CONTENT
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.HS_DESC_CONTENT
 
     #: Onion address the report status is for (without the ``.onion`` suffix).
     address: HiddenServiceAddress | Literal['UNKNOWN']
@@ -1443,11 +1443,11 @@ class EventNetworkLiveness(EventSimple):
 
     """
 
-    SYNTAX = ReplySyntax(
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=2,
         args_map=(None, 'status'),
     )
-    TYPE = EventWord.NETWORK_LIVENESS
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.NETWORK_LIVENESS
 
     #: Current network status.
     status: LivenessStatus
@@ -1497,7 +1497,7 @@ class EventLogDebug(EventLog):
 
     """
 
-    TYPE = EventWord.DEBUG
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.DEBUG
 
 
 @dataclass(kw_only=True, slots=True)
@@ -1510,7 +1510,7 @@ class EventLogInfo(EventLog):
 
     """
 
-    TYPE = EventWord.INFO
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.INFO
 
 
 @dataclass(kw_only=True, slots=True)
@@ -1523,7 +1523,7 @@ class EventLogNotice(EventLog):
 
     """
 
-    TYPE = EventWord.NOTICE
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.NOTICE
 
 
 @dataclass(kw_only=True, slots=True)
@@ -1536,7 +1536,7 @@ class EventLogWarn(EventLog):
 
     """
 
-    TYPE = EventWord.WARN
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.WARN
 
 
 @dataclass(kw_only=True, slots=True)
@@ -1549,7 +1549,7 @@ class EventLogErr(EventLog):
 
     """
 
-    TYPE = EventWord.ERR
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.ERR
 
 
 def _discriminate_status_by_action(v: Any) -> str:
@@ -1657,7 +1657,7 @@ class EventStatusGeneral(EventStatus):
             flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
         ),
     }
-    TYPE = EventWord.STATUS_GENERAL
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.STATUS_GENERAL
 
     #: Which action this general status event is for.
     action: StatusActionGeneral
@@ -1729,7 +1729,7 @@ class EventStatusClient(EventStatus):
             flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
         ),
     }
-    TYPE = EventWord.STATUS_CLIENT
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.STATUS_CLIENT
 
     #: Which action this client status event is for.
     action: StatusActionClient
@@ -1807,7 +1807,7 @@ class EventStatusServer(EventStatus):
             flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED,
         ),
     }
-    TYPE = EventWord.STATUS_SERVER
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.STATUS_SERVER
 
     #: Which action this server status event is for.
     action: StatusActionServer
@@ -1839,11 +1839,11 @@ class EventTransportLaunched(EventSimple):
 
     """
 
-    SYNTAX = ReplySyntax(
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=5,
         args_map=(None, 'side', 'name', 'host', 'port'),
     )
-    TYPE = EventWord.TRANSPORT_LAUNCHED
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.TRANSPORT_LAUNCHED
 
     #: Which side the transport was launched for.
     side: Literal['client', 'server']
@@ -1866,7 +1866,7 @@ class EventPtLog(EventSimple):
 
     """
 
-    SYNTAX = ReplySyntax(
+    SYNTAX: ClassVar[ReplySyntax] = ReplySyntax(
         args_min=1,
         args_map=(None,),
         kwargs_map={
@@ -1876,7 +1876,7 @@ class EventPtLog(EventSimple):
         },
         flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED | ReplySyntaxFlag.KW_EXTRA,
     )
-    TYPE = EventWord.PT_LOG
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.PT_LOG
 
     #: Program path as defined in the ``TransportPlugin`` configuration option.
     program: str
@@ -1907,7 +1907,7 @@ class EventPtStatus(Event):
         },
         flags=ReplySyntaxFlag.KW_ENABLE | ReplySyntaxFlag.KW_QUOTED | ReplySyntaxFlag.KW_EXTRA,
     )
-    TYPE = EventWord.PT_STATUS
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = EventWord.PT_STATUS
 
     #: Program path as defined in the ``TransportPlugin`` configuration option.
     program: str
@@ -1937,7 +1937,7 @@ class EventUnknown(Event):
 
     """
 
-    TYPE = None
+    TYPE: ClassVar[EventWordInternal | EventWord | None] = None
 
     #: Original message received for this event.
     message: Message

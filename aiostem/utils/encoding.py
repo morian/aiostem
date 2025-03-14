@@ -296,10 +296,10 @@ class EncodedBytes(EncodedBase[bytes]):
     """Bytes that can be encoded and decoded from a string using an external encoder."""
 
     #: Our core schema is for :class:`bytes`.
-    CORE_SCHEMA = core_schema.bytes_schema(strict=True)
+    CORE_SCHEMA: ClassVar[CoreSchema] = core_schema.bytes_schema(strict=True)
 
     #: Core python type associated with the schema.
-    CORE_TYPE = bytes
+    CORE_TYPE: ClassVar[type[Any]] = bytes
 
     def __hash__(self) -> int:
         """

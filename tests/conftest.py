@@ -4,6 +4,7 @@ import asyncio
 import os
 from typing import TYPE_CHECKING
 
+import pytest
 import pytest_asyncio
 
 from aiostem import Controller
@@ -110,8 +111,8 @@ class CustomController(Controller):
         return result
 
 
-@pytest_asyncio.fixture()
-async def controller_raw():
+@pytest.fixture
+def controller_raw():
     host = os.environ.get('AIOSTEM_HOST', '127.0.0.1')
     port = int(os.environ.get('AIOSTEM_PORT', 9051))
     return CustomController.from_port(host, port)

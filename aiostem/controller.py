@@ -697,7 +697,7 @@ class Controller:
             reply = await self.auth_challenge()
             reply.raise_for_status()
             # We know that reply.data is set because `raise_for_status` would have raised.
-            challenge = cast(ReplyDataAuthChallenge, reply.data)
+            challenge = cast('ReplyDataAuthChallenge', reply.data)
             challenge.raise_for_server_hash_error(cookie)
             token = challenge.build_client_hash(cookie)
         elif 'COOKIE' in methods:

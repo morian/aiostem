@@ -1374,7 +1374,7 @@ class HsDescV3Layer(ABC, HsDescBase):
         hs_subcred = desc.get_subcred(address)
 
         # This cast is valid here since ``get_subcred`` did not raise.
-        blinded_key = cast(Ed25519PublicKey, desc.signing_cert.signing_key)
+        blinded_key = cast('Ed25519PublicKey', desc.signing_cert.signing_key)
 
         # Extract parts of the blob in to salt/cipher/mac.
         salt = blob[: cls.ENC_SALT_LEN]
@@ -1435,7 +1435,7 @@ class HsDescV3Layer1(HsDescV3Layer):
     AUTH_KEYS_TOTAL_LEN: ClassVar[int] = CLIENT_ID_LEN + AUTH_KEY_KEN
 
     #: Constant used while creating the decryption key material.
-    CONSTANT = b'hsdir-superencrypted-data'
+    CONSTANT: ClassVar[bytes] = b'hsdir-superencrypted-data'
 
     #: Key type for client authentication.
     auth_key_type: OnionClientAuthKeyType
@@ -1777,7 +1777,7 @@ class HsDescV3Layer2(HsDescV3Layer):
     """Second layer decrypted from a hidden service v3 (inner layer)."""
 
     #: Constant used while creating the decryption key material.
-    CONSTANT = b'hsdir-encrypted-data'
+    CONSTANT: ClassVar[bytes] = b'hsdir-encrypted-data'
 
     #: Flow control protocol version and congestion value (proposal 324).
     flow_control: (
