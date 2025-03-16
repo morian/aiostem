@@ -17,7 +17,7 @@ from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import IntEnum, IntFlag, StrEnum
-from functools import cache, cached_property
+from functools import cache, cached_property, wraps
 from ipaddress import IPv4Address, IPv6Address
 from typing import (
     TYPE_CHECKING,
@@ -1900,7 +1900,7 @@ class HsDescV3Layer2(HsDescV3Layer):
         return results
 
 
-@dataclass(eq=False, kw_only=True)
+@dataclass(kw_only=True)
 class HsDescV3(HsDescBase):
     """Hidden service descriptor for v3 onions."""
 
@@ -1932,9 +1932,21 @@ class HsDescV3(HsDescBase):
     #: Raw content of everything covered by the signature.
     signed_content: Base64Bytes
 
-    def __hash__(self) -> int:
-        """Build an unsafe hash so we can use a cache."""
-        return id(self)
+    def __post_init__(self) -> None:
+        """
+        Wrap some methods with their cached alternative.
+
+        These cache wrappers are set during post-init because they need to be bound
+        to this instance to avoid memory leaks.
+
+        See Also:
+            https://rednafi.com/python/lru_cache_on_methods/
+
+        """
+        for name in ('decrypt_layer1', 'decrypt_layer2', 'get_subcred'):
+            func = getattr(self, name)
+            wrapper = wraps(func)(cache(func))
+            setattr(self, name, wrapper)
 
     @classmethod
     def text_to_mapping(cls, body: str) -> Mapping[str, Any]:
@@ -2014,7 +2026,6 @@ class HsDescV3(HsDescBase):
         """
         return cls.adapter().validate_python(cls.text_to_mapping(body))
 
-    @cache
     def decrypt_layer1(self, address: HiddenServiceAddressV3) -> HsDescV3Layer1:
         """
         Decrypt the descriptor's first layer using the onion address.
@@ -2032,7 +2043,6 @@ class HsDescV3(HsDescBase):
         """
         return HsDescV3Layer1.from_descriptor(self, address)
 
-    @cache
     def decrypt_layer2(
         self,
         address: HiddenServiceAddressV3,
@@ -2055,7 +2065,6 @@ class HsDescV3(HsDescBase):
         """
         return HsDescV3Layer2.from_descriptor(self, address, client)
 
-    @cache
     def get_subcred(self, address: HiddenServiceAddressV3) -> bytes:
         """
         Get the computed sub-credential bytes used decrypt layers.

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import base64
+import gc
 import hashlib
 import logging
+import weakref
 from datetime import UTC, datetime, timedelta
 from ipaddress import IPv4Address, IPv6Address
 
@@ -754,6 +756,33 @@ class TestHsDescriptors:
         links = layer2.introduction_points[2].link_specifiers
         assert links[0].host == IPv4Address('193.142.147.204')
         assert links[0].port == 9200
+
+    async def test_hs_desc_v3_cache(self, hs_desc_v3_auth_event, hs_desc_v3_event):
+        desc1 = HsDescV3.from_text(hs_desc_v3_event.descriptor_text)
+        desc2 = HsDescV3.from_text(hs_desc_v3_auth_event.descriptor_text)
+        info1 = desc1.decrypt_layer1.cache_info()
+        info2 = desc2.decrypt_layer1.cache_info()
+        assert info1.currsize == 0
+        assert info2.currsize == 0
+
+        for _ in range(2):
+            desc1.decrypt_layer1(hs_desc_v3_event.address)
+            desc2.decrypt_layer1(hs_desc_v3_auth_event.address)
+            info1 = desc1.decrypt_layer1.cache_info()
+            info2 = desc2.decrypt_layer1.cache_info()
+            assert info1.currsize == 1
+            assert info2.currsize == 1
+
+    async def test_hs_desc_v3_cache_gc(self, hs_desc_v3_event):
+        """Check that the descriptor is properly garbage collected."""
+        desc = HsDescV3.from_text(hs_desc_v3_event.descriptor_text)
+        desc.decrypt_layer2(hs_desc_v3_event.address)
+        desc_ref = weakref.ref(desc)
+        assert desc_ref() == desc
+
+        desc = None
+        gc.collect()
+        assert desc_ref() is None
 
     async def test_hs_desc_v3_auth_no_key(self, hs_desc_v3_auth_event):
         """Check with an encrypted descriptor but with no key."""
