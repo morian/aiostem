@@ -43,6 +43,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher
 from cryptography.hazmat.primitives.ciphers.algorithms import AES
 from cryptography.hazmat.primitives.ciphers.modes import CTR
 from pydantic import (
+    BaseModel,
     BeforeValidator,
     Discriminator,
     Field,
@@ -335,8 +336,7 @@ class Ed25519CertificateStruct:
     content: Base64Bytes
 
 
-@dataclass(kw_only=True, slots=True)
-class Ed25519Certificate(ABC):
+class Ed25519Certificate(ABC, BaseModel):
     """
     Tor's representation of an ed25519 certificate.
 
@@ -420,8 +420,7 @@ class Ed25519CertExtensionType(IntEnum):
     HAS_SIGNING_KEY = 4
 
 
-@dataclass(kw_only=True, slots=True)
-class BaseEd25519CertExtension(ABC):
+class BaseEd25519CertExtension(ABC, BaseModel):
     """Describe a single ed25519 certificate extension."""
 
     #: Type of the current extension.
@@ -461,7 +460,6 @@ class BaseEd25519CertExtension(ABC):
         return results
 
 
-@dataclass(kw_only=True, slots=True)
 class Ed25519CertExtensionSigningKey(BaseEd25519CertExtension):
     """Describe an unknown ed25519 certificate extension."""
 
@@ -481,7 +479,6 @@ class Ed25519CertExtensionSigningKey(BaseEd25519CertExtension):
         return value
 
 
-@dataclass(kw_only=True, slots=True)
 class Ed25519CertExtensionUnkown(BaseEd25519CertExtension):
     """Describe an unknown ed25519 certificate extension."""
 
@@ -500,9 +497,9 @@ def _discriminate_ed25519_cert_extension(v: Any) -> int:
 
     match v:
         case BaseEd25519CertExtension():
-            discriminant = v.type
+            discriminant = int(v.type)
         case Mapping():  # pragma: no branch
-            discriminant = v.get('type', 0)
+            discriminant = int(v.get('type', 0))
 
     if discriminant not in set(Ed25519CertExtensionType):
         discriminant = 0
@@ -518,7 +515,6 @@ Ed25519CertExtension: TypeAlias = Annotated[
 ]
 
 
-@dataclass(kw_only=True)
 class Ed25519CertificateV1(Ed25519Certificate):
     """Version 1 of tor's representation of an ed25519 certificate."""
 
@@ -859,8 +855,7 @@ class HsDescAction(StrEnum):
     UPLOADED = 'UPLOADED'
 
 
-@dataclass(kw_only=True, slots=True)
-class HsDescAuthCookie:
+class HsDescAuthCookie(BaseModel):
     """An authentication cookie used for onion v2."""
 
     #: Length of the random key generated here.
@@ -2170,8 +2165,8 @@ class LogSeverity(StrEnum):
         return cls(value)
 
 
-@dataclass(frozen=True, slots=True)
-class LongServerName:
+# This class inherits from BaseModel since we had an issue with dataclass while serializing.
+class LongServerName(BaseModel):
     """A Tor Server name and its optional nickname."""
 
     #: Server fingerprint as a 20 bytes value.
@@ -2194,9 +2189,6 @@ class LongServerName:
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Declare schema and validator for a long server name."""
-        # There is an issue while serializing CommandExtendCircuit where this class
-        # is badly serialized, not taking our serialization method into account.
-        # Using a before validator fixes this issue, for an unknown reason.
         return core_schema.no_info_before_validator_function(
             function=cls._pydantic_validator,
             schema=handler(source),
@@ -3495,8 +3487,7 @@ class StreamTarget:
         return value
 
 
-@dataclass(frozen=True, slots=True)
-class TcpAddressPort:
+class TcpAddressPort(BaseModel):
     """Describe a TCP target with a host and a port."""
 
     #: Target host for the TCP connection.
@@ -3517,9 +3508,6 @@ class TcpAddressPort:
         handler: GetCoreSchemaHandler,
     ) -> CoreSchema:
         """Declare schema and validator for a TCP connection."""
-        # There is an issue here due to our complex handling or EventStatusClient.
-        # Our schema is not taken into account when used in a discriminated union...
-        # The only way we found to have this work is to use a before validation here.
         return core_schema.no_info_before_validator_function(
             function=cls._pydantic_validator,
             schema=handler(source),

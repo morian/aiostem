@@ -8,6 +8,20 @@ The format is based on `Keep a Changelog`_ and this project adheres to `Semantic
 .. _Semantic Versioning: https://semver.org/spec/v2.0.0.html
 
 
+0.4.3 (2025-04-06)
+==================
+
+Fixed
+-----
+- Provide compatibility with `pydantic 2.11+` (which broke some structures).
+
+Changed
+-------
+- Classes `Ed25519Certificate`, `BaseEd25519CertExtension`, `HsDescAuthCookie`, `LongServerName`,
+  `TcpAddressPort` and their potential subclasses now inherit from `BaseModel`, switched from
+  being a simple `dataclass`, needed following a change in pydantic.
+
+
 0.4.2 (2025-03-16)
 ==================
 
