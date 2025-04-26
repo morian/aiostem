@@ -127,9 +127,7 @@ These are annotated structures generally built from a single string.
    :members:
 
 .. autoclass:: PortRange
-   :no-show-inheritance:
-   :undoc-members:
-   :members:
+   :members: min, max
 
 .. autoclass:: RouterStatus
    :no-show-inheritance:

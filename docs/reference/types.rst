@@ -30,5 +30,4 @@ Generic structures
 .. autodata:: RangeVal
 
 .. autoclass:: GenericRange
-   :undoc-members:
-   :members:
+   :members: min, max
