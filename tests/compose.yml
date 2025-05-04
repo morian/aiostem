@@ -1,7 +1,7 @@
 ---
 services:
   tor-client:
-    image: "docker.io/morian42/tor-client:0.4.8.14"
+    image: "docker.io/morian42/tor-client:0.4.8.16"
     ports:
       - "9050:9050"
       - "9051:9051"
