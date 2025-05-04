@@ -491,6 +491,8 @@ class EventCirc(EventSimple):
         kwargs_map={
             None: 'path',
             'BUILD_FLAGS': 'build_flags',
+            'CONFLUX_ID': 'conflux_id',
+            'CONFLUX_RTT': 'conflux_rtt',
             'HS_POW': 'hs_pow',
             'HS_STATE': 'hs_state',
             'PURPOSE': 'purpose',
@@ -525,6 +527,17 @@ class EventCirc(EventSimple):
         ]
         | None
     ) = None
+
+    #: Conflux identifier
+    #:
+    #: Note:
+    #:    Available starting from Tor v0.4.8.15 (ticket 40872)
+    conflux_id: Base16Bytes | None = None
+    #: Conflux round trip time
+    #:
+    #: Note:
+    #:    Available starting from Tor v0.4.8.15 (ticket 40872)
+    conflux_rtt: TimedeltaMilliseconds | None = None
 
     #: Hidden service proof of work effort attached to this circuit.
     hs_pow: (
