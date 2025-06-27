@@ -2907,10 +2907,10 @@ class ReplyDataMapAddressItem:
     """
 
     #: Original address to replace with another one.
-    original: Optional[AnyHost] = None  # noqa: UP007
+    original: Optional[AnyHost] = None  # noqa: UP045
 
     #: Replacement item for the corresponding :attr:`original` address.
-    replacement: Optional[AnyHost] = None  # noqa: UP007
+    replacement: Optional[AnyHost] = None  # noqa: UP045
 
 
 @dataclass(kw_only=True, slots=True)
