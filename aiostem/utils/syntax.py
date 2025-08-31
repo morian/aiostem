@@ -2,12 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections import OrderedDict
-from collections.abc import (
-    Iterable,
-    Mapping,
-    Sequence,
-    Set as AbstractSet,
-)
+from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, field
 from enum import IntFlag
 from typing import TYPE_CHECKING

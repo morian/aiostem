@@ -107,21 +107,16 @@ from .structures import (
 from .utils import Message, messages_from_stream
 
 if TYPE_CHECKING:
-    from collections.abc import (  # noqa: F401
-        Mapping,
-        MutableMapping,
-        MutableSequence,
-        Sequence,
-        Set as AbstractSet,
-    )
+    from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
+    from collections.abc import Set as AbstractSet  # noqa: F401
     from types import TracebackType
-    from typing import Self
 
     from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
     from cryptography.hazmat.primitives.asymmetric.x25519 import (
         X25519PrivateKey,
         X25519PublicKey,
     )
+    from utils.backports import Self
 
     from .types import AnyHost
 
@@ -239,7 +234,7 @@ class Controller:
         cls,
         host: str = DEFAULT_CONTROL_HOST,
         port: int = DEFAULT_CONTROL_PORT,
-    ) -> Controller:
+    ) -> Self:
         """
         Create a new controller for a remote TCP host/port.
 

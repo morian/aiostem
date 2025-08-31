@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import sys
 from abc import ABC, abstractmethod
 from collections.abc import (
     ItemsView,
@@ -14,7 +15,7 @@ from collections.abc import (
 )
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, ClassVar, Self, TypeAlias, TypeVar
+from typing import Any, ClassVar, TypeAlias, TypeVar
 
 from pydantic import PositiveInt, TypeAdapter
 
@@ -28,6 +29,11 @@ from .structures import (
     ReplyDataProtocolInfo,
 )
 from .utils import BaseMessage, Message, ReplySyntax, ReplySyntaxFlag
+
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
 
 logger = logging.getLogger(__package__)
 

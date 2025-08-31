@@ -3,8 +3,7 @@ from __future__ import annotations
 import secrets
 from collections.abc import Mapping, MutableMapping, MutableSequence
 from dataclasses import dataclass, field
-from enum import StrEnum
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Self, Union
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Union
 
 from pydantic import Discriminator, NonNegativeInt, Tag, TypeAdapter
 from pydantic_core import core_schema
@@ -32,11 +31,19 @@ from .structures import (
 )
 from .types import AnyHost, AnyPort, Base16Bytes, BoolYesNo
 from .utils.argument import ArgumentKeyword, ArgumentString, QuoteStyle
+from .utils.backports import StrEnum
 from .utils.transformers import TrBeforeStringSplit
 
 if TYPE_CHECKING:
     from pydantic import GetCoreSchemaHandler
     from pydantic_core.core_schema import CoreSchema, SerializerFunctionWrapHandler
+
+import sys
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
 
 
 class CommandWord(StrEnum):
@@ -315,15 +322,15 @@ class CommandSerializer:
     #: End of line to use while serializing a command.
     END_OF_LINE: ClassVar[str] = '\r\n'
 
+    # in order to retain speed with the function and backport 3.10
+    # we need to make 2 different functions
+
     def __init__(self, name: CommandWord) -> None:
         """
         Create a new command serializer.
-
         This is used internally by :meth:`.Command.serialize`.
-
         Args:
             name: The command name.
-
         """
         self._body = None  # type: str | None
         self._command = name
@@ -685,9 +692,27 @@ class CommandMapAddress(Command):
 
         for key, value in addresses.items():
             args.append(ArgumentKeyword(key, value, quotes=QuoteStyle.NEVER_ENSURE))
-
         ser.arguments.extend(args)
         return ser.serialize()
+
+    if sys.version_info < (3, 11):
+
+        @classmethod
+        def __get_pydantic_core_schema__(
+            cls,
+            source: type[Any],
+            handler: GetCoreSchemaHandler,
+        ) -> CoreSchema:
+            """Create a pydantic validator and serializer for this structure."""
+
+            # XXX: We need to override since unionschemas on older versions of python don't work.
+
+            return core_schema.any_schema(
+                serialization=core_schema.wrap_serializer_function_ser_schema(
+                    function=cls._pydantic_serializer,
+                    return_schema=core_schema.str_schema(),
+                ),
+            )
 
 
 @dataclass(kw_only=True)
@@ -808,6 +833,25 @@ class CommandSetCircuitPurpose(Command):
         ser.arguments.extend(args)
         return ser.serialize()
 
+    if sys.version_info < (3, 11):
+
+        @classmethod
+        def __get_pydantic_core_schema__(
+            cls,
+            source: type[Any],
+            handler: GetCoreSchemaHandler,
+        ) -> CoreSchema:
+            """Create a pydantic validator and serializer for this structure."""
+
+            # XXX: We need to override since unionschemas on older versions of python don't work.
+
+            return core_schema.any_schema(
+                serialization=core_schema.wrap_serializer_function_ser_schema(
+                    function=cls._pydantic_serializer,
+                    return_schema=core_schema.str_schema(),
+                ),
+            )
+
 
 @dataclass(kw_only=True)
 class CommandAttachStream(Command):
@@ -849,6 +893,25 @@ class CommandAttachStream(Command):
 
         ser.arguments.extend(args)
         return ser.serialize()
+
+    if sys.version_info < (3, 11):
+
+        @classmethod
+        def __get_pydantic_core_schema__(
+            cls,
+            source: type[Any],
+            handler: GetCoreSchemaHandler,
+        ) -> CoreSchema:
+            """Create a pydantic validator and serializer for this structure."""
+
+            # XXX: We need to override since unionschemas on older versions of python don't work.
+
+            return core_schema.any_schema(
+                serialization=core_schema.wrap_serializer_function_ser_schema(
+                    function=cls._pydantic_serializer,
+                    return_schema=core_schema.str_schema(),
+                ),
+            )
 
 
 @dataclass(kw_only=True)
@@ -928,6 +991,25 @@ class CommandRedirectStream(Command):
 
         ser.arguments.extend(args)
         return ser.serialize()
+
+    if sys.version_info < (3, 11):
+
+        @classmethod
+        def __get_pydantic_core_schema__(
+            cls,
+            source: type[Any],
+            handler: GetCoreSchemaHandler,
+        ) -> CoreSchema:
+            """Create a pydantic validator and serializer for this structure."""
+
+            # XXX: We need to override since unionschemas on older versions of python don't work.
+
+            return core_schema.any_schema(
+                serialization=core_schema.wrap_serializer_function_ser_schema(
+                    function=cls._pydantic_serializer,
+                    return_schema=core_schema.str_schema(),
+                ),
+            )
 
 
 @dataclass(kw_only=True)
@@ -1078,6 +1160,25 @@ class CommandResolve(Command):
 
         ser.arguments.extend(args)
         return ser.serialize()
+
+    if sys.version_info < (3, 11):
+
+        @classmethod
+        def __get_pydantic_core_schema__(
+            cls,
+            source: type[Any],
+            handler: GetCoreSchemaHandler,
+        ) -> CoreSchema:
+            """Create a pydantic validator and serializer for this structure."""
+
+            # XXX: We need to override since unionschemas on older versions of python don't work.
+
+            return core_schema.any_schema(
+                serialization=core_schema.wrap_serializer_function_ser_schema(
+                    function=cls._pydantic_serializer,
+                    return_schema=core_schema.str_schema(),
+                ),
+            )
 
 
 @dataclass(kw_only=True)

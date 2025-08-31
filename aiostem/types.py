@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from datetime import datetime, timedelta
 from ipaddress import IPv4Address, IPv6Address
 from typing import Annotated, Generic, TypeAlias, TypeVar, Union
@@ -23,8 +24,16 @@ from .utils import (
     TrX25519PublicKey,
 )
 
+if sys.version_info < (3, 10):
+    from typing_extensions import ParamSpec
+else:
+    from typing import ParamSpec
+
 #: Any boundary of a range structure (int, float, etc...).
 RangeVal = TypeVar('RangeVal')
+
+T = TypeVar('T')
+P = ParamSpec('P')
 
 
 # Generic models do not work well with dataclasses even on recent pydantic :(.
@@ -38,11 +47,13 @@ class GenericRange(BaseModel, Generic[RangeVal]):
 
 
 #: Any IP address, either IPv4 or IPv6.
-AnyAddress: TypeAlias = Union[IPv4Address | IPv6Address]  # noqa: UP007
+AnyAddress: TypeAlias = Union[IPv4Address, IPv6Address]  # noqa: UP007
 
 #: Any host, either by IP address or hostname.
 AnyHost: TypeAlias = Annotated[
-    IPv4Address | IPv6Address | str,
+    IPv4Address,
+    IPv6Address,
+    str,
     Field(union_mode='left_to_right'),
 ]
 #: Any TCP or UDP port.

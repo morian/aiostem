@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .controller import Controller
 from .monitor import ControllerStatus, Monitor
+from .process import launch_tor, launch_tor_with_config
 from .version import version
 
 __author__ = 'Romain Bezut'
@@ -15,5 +16,7 @@ __all__ = [
     'Controller',
     'ControllerStatus',
     'Monitor',
+    'launch_tor',
+    'launch_tor_with_config',
     'version',
 ]

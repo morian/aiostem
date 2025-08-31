@@ -3,15 +3,11 @@ from __future__ import annotations
 import hashlib
 import typing
 from abc import ABC, abstractmethod
-from collections.abc import (
-    Collection,
-    Mapping,
-    MutableSequence,  # noqa: F401
-    Sequence,
-    Set as AbstractSet,
-)
+from collections.abc import MutableSequence  # noqa: F401
+from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta, tzinfo
+from datetime import datetime, timedelta, tzinfo
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, TypeVar
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
@@ -31,6 +27,8 @@ from cryptography.hazmat.primitives.serialization import (
 from pydantic import ConfigDict
 from pydantic_core import core_schema
 from pydantic_core.core_schema import CoreSchema, WhenUsed
+
+from .backports import UTC
 
 if TYPE_CHECKING:
     from pydantic import GetCoreSchemaHandler

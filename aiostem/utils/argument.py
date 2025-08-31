@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from enum import IntEnum, StrEnum
+from enum import Enum, IntEnum
 from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Any, TypeAlias, Union, overload
 
+from .backports import StrEnum
+
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
-
 
 from ..exceptions import CommandError
 

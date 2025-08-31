@@ -1,16 +1,14 @@
 from __future__ import annotations
 
 import logging
+import sys
 from abc import ABC, abstractmethod
-from collections.abc import (
-    Mapping,
-    Sequence,
-    Set as AbstractSet,
-)
+from collections.abc import Mapping, Sequence
+from collections.abc import Set as AbstractSet
 from dataclasses import dataclass, field
-from enum import StrEnum
+from enum import Enum
 from functools import cached_property
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Self, TypeAlias, Union
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, TypeAlias, Union
 
 from pydantic import BeforeValidator, Discriminator, Field, NonNegativeInt, Tag, TypeAdapter
 
@@ -85,10 +83,17 @@ from .utils import (
     MessageData,
     ReplySyntax,
     ReplySyntaxFlag,
+    StrEnum,
     TrBeforeSetToNone,
     TrBeforeStringSplit,
     TrCast,
 )
+
+if sys.version_info >= (3, 11):
+    from typing import Self
+else:
+    from typing_extensions import Self
+
 
 if TYPE_CHECKING:
     # The following line is needed so sphinx can get EventConfChanged right.
@@ -1608,7 +1613,7 @@ class EventStatus(Event):
         LogSeverity,
     ]
     #: Status action reported by this event (sub-classed).
-    action: StrEnum
+    action: Enum
 
     @classmethod
     def from_message(cls, message: Message) -> Self:

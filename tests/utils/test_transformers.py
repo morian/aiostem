@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from base64 import b32decode, b64decode
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Annotated, Any
+
 
 import pytest
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
@@ -30,6 +31,7 @@ from aiostem.utils import (
     TrRSAPublicKey,
     TrX25519PrivateKey,
     TrX25519PublicKey,
+    UTC,  # Backported for 3.10
 )
 
 

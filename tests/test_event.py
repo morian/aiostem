@@ -5,13 +5,13 @@ import gc
 import hashlib
 import logging
 import weakref
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from ipaddress import IPv4Address, IPv6Address
-
 import pytest
 import pytest_asyncio
 from cryptography.hazmat.primitives.asymmetric.x25519 import X25519PrivateKey
 from pydantic import ValidationError
+
 
 from aiostem.event import (
     EventBandwidth,
@@ -53,6 +53,7 @@ from aiostem.structures import (
     StatusActionGeneral,
 )
 from aiostem.utils import MessageData, TrRSAPublicKey
+from aiostem.utils.backports import UTC
 
 from .test_reply import create_message
 

@@ -6,17 +6,14 @@ import hmac
 import logging
 import secrets
 import struct
+import sys
 from abc import ABC, abstractmethod
-from collections.abc import (
-    Iterator,
-    Mapping,
-    Sequence,
-    Set as AbstractSet,
-)
+from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Set as AbstractSet
 from contextlib import suppress
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
-from enum import IntEnum, IntFlag, StrEnum
+from datetime import datetime, timedelta, timezone
+from enum import IntEnum, IntFlag
 from functools import cache, cached_property, wraps
 from ipaddress import IPv4Address, IPv6Address
 from typing import (
@@ -26,11 +23,17 @@ from typing import (
     ClassVar,
     Literal,
     Optional,
-    Self,
     TypeAlias,
     Union,
     cast,
 )
+
+from .utils.backports import UTC, StrEnum
+
+if sys.version_info < (3, 11):
+    from typing_extensions import Self
+else:
+    from typing import Self
 
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
