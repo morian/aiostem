@@ -1,17 +1,20 @@
-"""
-asynchronous version of the stem library's version getter
-"""
+"""asynchronous version of the stem library's version getter."""
+
+from __future__ import annotations
 
 import asyncio
 import os
 import re
 from enum import Enum
 from functools import lru_cache, total_ordering
-from typing import Callable, Hashable
+from typing import TYPE_CHECKING
 
 from async_lru import alru_cache
 
 from .system import call
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Hashable
 
 VERSION_PATTERN = re.compile(r'^([0-9]+)\.([0-9]+)\.([0-9]+)(\.[0-9]+)?(-\S*)?(( \(\S*\))*)$')
 
@@ -23,7 +26,7 @@ version = '0.4.4'
 
 
 @alru_cache(typed=False)
-async def get_system_tor_version(tor_cmd='tor') -> 'Version':
+async def get_system_tor_version(tor_cmd='tor') -> Version:
     """
     Queries tor for its version. This is os dependent, only working on linux,
     osx, and bsd.
@@ -37,8 +40,7 @@ async def get_system_tor_version(tor_cmd='tor') -> 'Version':
     In `aiostem` this is now an `alru_cache` using the `async_lru` library.
     to help remain threadsafe
     """
-
-    version_cmd = '%s --version' % tor_cmd
+    version_cmd = f'{tor_cmd} --version'
 
     try:
         version_output = await call(version_cmd)
@@ -47,21 +49,22 @@ async def get_system_tor_version(tor_cmd='tor') -> 'Version':
         # make the error message nicer if this is due to tor being unavialable
         if 'No such file or directory' in str(exc):
             if await asyncio.to_thread(os.path.isabs, tor_cmd):
-                exc = "Unable to check tor's version. '%s' doesn't exist." % tor_cmd
+                exc = f"Unable to check tor's version. '{tor_cmd}' doesn't exist."
             else:
-                exc = "Unable to run '%s'. Maybe tor isn't in your PATH?" % version_cmd
-        raise IOError(exc)
+                exc = f"Unable to run '{version_cmd}'. Maybe tor isn't in your PATH?"
+        raise OSError(exc)
 
     for line in version_output:
         # output example:
-        # Oct 21 07:19:27.438 [notice] Tor v0.2.1.30. This is experimental software. Do not rely on it for strong anonymity. (Running on Linux i686)
+        # Oct 21 07:19:27.438 [notice] Tor v0.2.1.30. This is experimental software.
+        # Do not rely on it for strong anonymity. (Running on Linux i686)
         # Tor version 0.2.1.30.
         if line.startswith('Tor version ') and line.endswith('.'):
             try:
                 version_str = line[12:-1]
                 return Version(version_str)
             except ValueError as exc:
-                raise IOError(exc)
+                raise OSError(exc)
     return Version(version_str)
 
 
@@ -77,15 +80,10 @@ def _hash_value(val: Hashable):
         # is because test assertions often use strings, and normalizing this
         # would require wrapping most with to_unicode() calls.
         #
-        # This hack will go away when we drop Python 2.x support.
 
-        if isinstance(val, str):
-            my_hash = hash('str')
-        else:
-            # Hashing common builtins (ints, bools, etc) provide consistant values but many others vary their value on interpreter invokation.
-            my_hash = hash(str(type(val)))
+        my_hash = hash(val) if isinstance(val, str) else hash(str(type(val)))
 
-    if isinstance(val, (tuple, list)):
+    if isinstance(val, tuple | list):
         for v in val:
             my_hash = (my_hash * 1024) + hash(v)
     elif isinstance(val, dict):
@@ -106,9 +104,8 @@ def _hash_attr(obj: Hashable, *attributes, **kwargs):
     :param bool cache: persists hash in a '_cached_hash' object attribute
     :param class parent: include parent's hash value
     """
-
     is_cached = kwargs.get('cache', False)
-    parent_class = kwargs.get('parent', None)
+    parent_class = kwargs.get('parent')
     cached_hash = getattr(obj, '_cached_hash', None)
 
     if is_cached and cached_hash is not None:
@@ -122,19 +119,19 @@ def _hash_attr(obj: Hashable, *attributes, **kwargs):
         my_hash = my_hash * 1024 + _hash_value(val)
 
     if is_cached:
-        setattr(obj, '_cached_hash', my_hash)
+        obj._cached_hash = my_hash
 
     return my_hash
 
 
-@lru_cache()
+@lru_cache
 def get_version(version_str: str):
     return Version(version_str)
 
 
 # An advantage over stem python is the inclusion of total_ordering
 @total_ordering
-class Version(object):
+class Version:
     """
     Comparable tor version. These are constructed from strings that conform to
     the 'new' style in the `tor version-spec
@@ -160,16 +157,16 @@ class Version(object):
     """
 
     __slots__ = (
-        'version_str',
-        'major',
-        'minor',
-        'micro',
-        'status',
+        '_cached_hash',
         'all_extra',
         'extra',
         'git_commit',
+        'major',
+        'micro',
+        'minor',
         'patch',
-        '_cached_hash',
+        'status',
+        'version_str',
     )
 
     def __init__(self, version_str: str):
@@ -204,20 +201,14 @@ class Version(object):
                     self.git_commit = extra[4:]
                     break
         else:
-            raise ValueError("'%s' isn't a properly formatted tor version" % version_str)
+            raise ValueError(f"'{version_str}' isn't aproperly formatted tor version")
 
     def __str__(self):
-        """
-        Provides the string used to construct the version.
-        """
-
+        """Provides the string used to construct the version."""
         return self.version_str
 
-    def _compare(self, other: 'Version', method: Callable[[str, str], bool]):
-        """
-        Compares version ordering according to the spec.
-        """
-
+    def _compare(self, other: Version, method: Callable[[str, str], bool]):
+        """Compares version ordering according to the spec."""
         if not isinstance(other, Version):
             return False
 
@@ -259,28 +250,19 @@ class Version(object):
         be compared to either a :class:`~aiostem.version.Version` or
         :class:`~aiostem.version._VersionRequirements`.
         """
-
         if isinstance(other, _VersionRequirements):
-            for rule in other.rules:
-                if rule(self):
-                    return True
-
-            return False
+            return any(rule(self) for rule in other.rules)
 
         return self._compare(other, lambda s, o: s > o)
 
     def __ge__(self, other):
         if isinstance(other, _VersionRequirements):
-            for rule in other.rules:
-                if rule(self):
-                    return True
-
-            return False
+            return any(rule(self) for rule in other.rules)
 
         return self._compare(other, lambda s, o: s >= o)
 
 
-class _VersionRequirements(object):
+class _VersionRequirements:
     """
     Series of version constraints that can be compared to. For instance, this
     allows for comparisons like 'if I'm greater than version X in the 0.2.2
@@ -301,7 +283,6 @@ class _VersionRequirements(object):
         :param stem.version.Version version: version we're checking against
         :param bool inclusive: if comparison is inclusive or not
         """
-
         if inclusive:
             self.rules.append(lambda v: version <= v)
         else:
@@ -314,7 +295,6 @@ class _VersionRequirements(object):
         :param stem.version.Version version: version we're checking against
         :param bool inclusive: if comparison is inclusive or not
         """
-
         if inclusive:
             self.rules.append(lambda v: version >= v)
         else:
@@ -322,8 +302,8 @@ class _VersionRequirements(object):
 
     def in_range(
         self,
-        from_version: 'Version',
-        to_version: 'Version',
+        from_version: Version,
+        to_version: Version,
         from_inclusive: bool = True,
         to_inclusive: bool = False,
     ):
@@ -352,7 +332,10 @@ safecookie_req.greater_than(Version('0.2.3.13'))
 
 
 class Requirement(Enum):
-    """Versions Enums Reimplemented in aiohttp-tor and now uses a proper class which means it can all get typehinted correctly :)"""
+    """
+    Versions Enums Reimplemented in aiohttp-tor and
+    now uses a proper class which means it can all get typehinted correctly :).
+    """
 
     AUTH_SAFECOOKIE = safecookie_req
     DESCRIPTOR_COMPRESSION = Version('0.3.1.1-alpha')

@@ -3,9 +3,13 @@ from __future__ import annotations
 import hashlib
 import typing
 from abc import ABC, abstractmethod
-from collections.abc import MutableSequence  # noqa: F401
-from collections.abc import Collection, Mapping, Sequence
-from collections.abc import Set as AbstractSet
+from collections.abc import (
+    Collection,
+    Mapping,
+    MutableSequence,  # noqa: F401
+    Sequence,
+    Set as AbstractSet,
+)
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, tzinfo
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, TypeVar

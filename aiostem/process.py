@@ -1,8 +1,3 @@
-# Copyright 2011-2019, Damian Johnson and The Tor Project
-# See LICENSE for licensing information
-
-# Modified by Vizonex, 2025
-
 """
 Helper functions for working with tor as a process.
 
@@ -20,32 +15,44 @@ Helper functions for working with tor as a process.
   launch_tor_with_config - starts a tor process with a custom torrc
 """
 
+# Copyright 2011-2019, Damian Johnson and The Tor Project
+# See LICENSE for licensing information
+
+# Modified by Vizonex, 2025
+
+from __future__ import annotations
+
 import asyncio
 import os
 import re
-import sys
 import tempfile
 import typing as t  # Only reason for "t" prefix is due to the number of objects needed.
 from contextlib import suppress
 from functools import wraps
-from types import TracebackType
 
 import async_timeout
 from aiofiles import open as aopen
 from aiosignal import Signal
 
 from . import system, version
-from .types import P  # Import ParamSpec varaible for typehinting wrappers.
+
+if t.TYPE_CHECKING:
+    from types import TracebackType
+
+    from .types import P
 
 NO_TORRC = '<no torrc>'
 DEFAULT_INIT_TIMEOUT = 90
 
 
 class MessageHandler:
-    """A Special handler for aiosteam for handling callbacks
-    related to launching tor."""
+    """
+    A Special handler for aiosteam for
+    handling callbacks related to launching tor.
+    """
 
     def __init__(self) -> None:
+        """Initalizes MessageHandler."""
         self._on_message: Signal[str] = Signal(self)
 
     @property
@@ -68,15 +75,15 @@ class MessageHandler:
 
     @property
     def frozen(self) -> bool:
-        """Determines if events were already frozen"""
+        """Determines if events were already frozen."""
         return self._on_message.frozen
 
     def freeze(self) -> None:
-        """Freezes the events"""
+        """Freezes the events."""
         self.on_message.freeze()
 
     async def send(self, msg: str) -> None:
-        """Sends message to different events if provided"""
+        """Sends message to different events if provided."""
         return await self.on_message.send(msg)
 
 
@@ -84,7 +91,7 @@ Process = asyncio.subprocess.Process
 
 
 class _ProcessContextManager(t.Coroutine[t.Any, t.Any, Process]):
-    """Inspired by aiohttp's technqiues but for handling tor processes"""
+    """Inspired by aiohttp's technqiues but for handling tor processes."""
 
     __slots__ = ('_coro', '_resp')
 
@@ -101,8 +108,7 @@ class _ProcessContextManager(t.Coroutine[t.Any, t.Any, Process]):
         return self._coro.close()
 
     def __await__(self) -> t.Generator[t.Any, None, Process]:
-        ret = self._coro.__await__()
-        return ret
+        return self._coro.__await__()
 
     def __iter__(self) -> t.Generator[t.Any, None, Process]:
         return self.__await__()
@@ -113,9 +119,9 @@ class _ProcessContextManager(t.Coroutine[t.Any, t.Any, Process]):
 
     async def __aexit__(
         self,
-        exc_type: t.Optional[t.Type[BaseException]],
-        exc: t.Optional[BaseException],
-        tb: t.Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
     ) -> None:
         # Terminate even if process was already finished beforehand.
         with suppress(Exception):
@@ -125,7 +131,10 @@ class _ProcessContextManager(t.Coroutine[t.Any, t.Any, Process]):
 def _wrap_process(
     func: t.Callable[P, t.Coroutine[t.Any, t.Any, asyncio.subprocess.Process]],
 ):
-    """Wrap a process launching function to be used via await or asynchronous context manager"""
+    """
+    Wrap a process launching function to be used via await
+    or asynchronous context manager.
+    """
 
     @wraps(func)
     def wrapper(*args: P.args, **kwargs: P.kwargs) -> _ProcessContextManager:
@@ -137,14 +146,14 @@ def _wrap_process(
 @_wrap_process
 async def launch_tor(
     tor_cmd: str = 'tor',
-    args: list[str] = [],
-    torrc_path: t.Optional[str] = None,
+    args: list[str] | None = None,
+    torrc_path: str | None = None,
     completion_percent: int = 100,
-    init_msg_handler: t.Optional[MessageHandler] = None,
-    timeout: t.Optional[float] = DEFAULT_INIT_TIMEOUT,
+    init_msg_handler: MessageHandler | None = None,
+    timeout: float | None = DEFAULT_INIT_TIMEOUT,
     take_ownership: bool = False,
     close_output: bool = True,
-    stdin: t.Union[str, bytes, None] = None,
+    stdin: str | bytes | None = None,
 ) -> Process:
     """
     Initializes a tor process. This blocks until initialization completes or we
@@ -189,6 +198,8 @@ async def launch_tor(
     :raises: **OSError** if we either fail to create the tor process or reached a
       timeout without success
     """
+    if args is None:
+        args = []
     if init_msg_handler and not init_msg_handler.frozen:
         # Freeze now and not later...
         init_msg_handler.freeze()
@@ -198,18 +209,15 @@ async def launch_tor(
     if os.path.sep in tor_cmd:
         # got a path (either relative or absolute), check what it leads to
         if os.path.isdir(tor_cmd):
-            raise OSError("'%s' is a directory, not the tor executable" % tor_cmd)
-        elif not os.path.isfile(tor_cmd):
-            raise OSError("'%s' doesn't exist" % tor_cmd)
+            raise OSError(f"'{tor_cmd}' is a directory, not the tor executable")
+        if not os.path.isfile(tor_cmd):
+            raise OSError(f"'{tor_cmd}' doesn't exist")
     elif not system.is_available(tor_cmd):
-        raise OSError(
-            "'%s' Doesn't exit"  # Less vauge than what stem python has
-            % tor_cmd
-        )
+        raise OSError(f"'{tor_cmd}' Doesn't exit")
 
     # double check that we have a torrc to work with
     if torrc_path not in (None, NO_TORRC) and not os.path.exists(torrc_path):
-        raise OSError("torrc doesn't exist (%s)" % torrc_path)
+        raise OSError(f"torrc doesn't exist ({torrc_path})")
 
     # starts a tor subprocess, raising an OSError if it fails
     runtime_args, temp_file = [tor_cmd], None
@@ -264,7 +272,7 @@ async def launch_tor(
 
                 if not init_line:
                     tor_process.terminate()
-                    raise OSError('Process terminated: %s' % last_problem)
+                    raise OSError(f'Process terminated: {last_problem}')
 
                 # provide the caller with the initialization message if they want it
 
@@ -277,9 +285,8 @@ async def launch_tor(
                 problem_match = problem_line.search(init_line)
 
                 if bootstrap_match and int(bootstrap_match.group(1)) >= completion_percent:
-                    print('RETURN')
                     return tor_process
-                elif problem_match:
+                if problem_match:
                     runlevel, msg = problem_match.groups()
 
                     if 'see warnings above' not in msg:
@@ -287,33 +294,25 @@ async def launch_tor(
                             msg = msg.split(': ')[-1].strip()
 
                         last_problem = msg
-    except Exception as e:
+    except Exception:
         if tor_process:
             tor_process.kill()  # don't leave a lingering process
             await tor_process.wait()
-        raise e  # Raise exception from before
+        raise  # Raise exception from before
     finally:
-        # Do not kill process yet
-        # print("CLEANUP")
-        # if tor_process and close_output:
-        #     # needs killing since no returncode was issued
-        #     tor_process.kill()
-
         if temp_file:
-            try:
+            with suppress(Exception):
                 # protect from failing...
                 await asyncio.shield(asyncio.to_thread(os.remove, temp_file))
-            except Exception:
-                pass
 
 
 @_wrap_process
 async def launch_tor_with_config(
-    config: dict[str, t.Union[list[t.Union[str, int]], str, int]],
+    config: dict[str, list[str | int] | str | int],
     tor_cmd: str = 'tor',
     completion_percent=100,
-    init_msg_handler: t.Optional[MessageHandler] = None,
-    timeout: t.Optional[float] = DEFAULT_INIT_TIMEOUT,
+    init_msg_handler: MessageHandler | None = None,
+    timeout: float | None = DEFAULT_INIT_TIMEOUT,
     take_ownership: bool = False,
     close_output: bool = True,
 ) -> Process:
@@ -348,8 +347,9 @@ async def launch_tor_with_config(
         ) as tor_process: ...
 
 
-    :param dict config: configuration options, such as "{'ControlPort': '9051'}" or with a MultiDict,
-      values can either be a **str** or **list of str** if for multiple values
+    :param dict config: configuration options, such as
+      "{'ControlPort': '9051'}" values can either be a
+      **str** or **list of str** if for multiple values
     :param str tor_cmd: command for starting tor
     :param int completion_percent: percent of bootstrap completion at which
       this'll return
@@ -365,10 +365,9 @@ async def launch_tor_with_config(
 
     :returns: **asyncio.subprocess.Process** instance for the tor subprocess
 
-    :raises: **OSError | asyncio.TimeoutError** if we either fail to create the tor process or reached a
-      timeout without success
+    :raises: **OSError | asyncio.TimeoutError** if we either fail to create
+        the tor process or reached a timeout without success
     """
-
     # TODO: Drop this version check when tor 0.2.6.3 or higher is the only game
     # in town.
 
@@ -376,7 +375,7 @@ async def launch_tor_with_config(
         use_stdin = (
             await version.get_system_tor_version(tor_cmd)
         ) >= version.Requirement.TORRC_VIA_STDIN
-    except IOError:
+    except OSError:
         use_stdin = False
 
     # we need to be sure that we're logging to stdout to figure out when we're
@@ -404,16 +403,12 @@ async def launch_tor_with_config(
     config_str = ''
 
     for key, values in config.items():
-        if isinstance(values, str):
-            config_str += '%s %s\n' % (key, values)
-        elif isinstance(values, int):
-            config_str += '%s %i\n' % (key, values)
+        if isinstance(values, str | int):
+            config_str += f'{key} {values}\n'
         else:
             for value in values:
-                if isinstance(value, str):
-                    config_str += '%s %s\n' % (key, value)
-                elif isinstance(value, int):
-                    config_str += '%s %i\n' % (key, value)
+                if isinstance(value, str | int):
+                    config_str += f'{key} {value}\n'
                 else:
                     raise TypeError(f'{value!r} Is an unacceptable type')
 
@@ -429,27 +424,26 @@ async def launch_tor_with_config(
             close_output,
             stdin=config_str,
         )
-    else:
-        torrc_fd, torrc_path = await asyncio.to_thread(
-            tempfile.mkstemp, prefix='torrc-', text=True
+    torrc_fd, torrc_path = await asyncio.to_thread(
+        tempfile.mkstemp, prefix='torrc-', text=True
+    )
+
+    try:
+        # make async with aiofiles.open as 'aopen'
+        async with aopen(torrc_path, 'w') as torrc_file:
+            await torrc_file.write(config_str)
+
+        return await launch_tor(
+            tor_cmd,
+            # prevents tor from erroring out due to a missing torrc if it gets a sighup
+            ['__ReloadTorrcOnSIGHUP', '0'],
+            torrc_path,
+            completion_percent,
+            init_msg_handler,
+            timeout,
+            take_ownership,
         )
-
-        try:
-            # make async with aiofiles.open as 'aopen'
-            async with aopen(torrc_path, 'w') as torrc_file:
-                await torrc_file.write(config_str)
-
-            return await launch_tor(
-                tor_cmd,
-                # prevents tor from erroring out due to a missing torrc if it gets a sighup
-                ['__ReloadTorrcOnSIGHUP', '0'],
-                torrc_path,
-                completion_percent,
-                init_msg_handler,
-                timeout,
-                take_ownership,
-            )
-        finally:
-            with suppress(Exception):
-                await asyncio.shield(asyncio.to_thread(os.close, torrc_fd))
-                await asyncio.shield(asyncio.to_thread(os.remove, torrc_path))
+    finally:
+        with suppress(Exception):
+            await asyncio.shield(asyncio.to_thread(os.close, torrc_fd))
+            await asyncio.shield(asyncio.to_thread(os.remove, torrc_path))

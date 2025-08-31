@@ -1,4 +1,5 @@
 # Backports for version 3.10
+from __future__ import annotations
 
 import sys
 
@@ -21,7 +22,7 @@ else:
     from typing import Self
 
 __all__ = (
+    'UTC',
     'Self',
     'StrEnum',
-    'UTC',
 )

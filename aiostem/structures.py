@@ -6,13 +6,16 @@ import hmac
 import logging
 import secrets
 import struct
-import sys
 from abc import ABC, abstractmethod
-from collections.abc import Iterator, Mapping, Sequence
-from collections.abc import Set as AbstractSet
+from collections.abc import (
+    Iterator,
+    Mapping,
+    Sequence,
+    Set as AbstractSet,
+)
 from contextlib import suppress
 from dataclasses import dataclass, field
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 from enum import IntEnum, IntFlag
 from functools import cache, cached_property, wraps
 from ipaddress import IPv4Address, IPv6Address

@@ -94,9 +94,12 @@ class CommandWord(StrEnum):
     #: Send a signal to the server.
     #:
     #: See Also:
-    #:     - Controller method: :meth:`.Controller.signal`
-    #:     - Command implementation: :class:`CommandSignal`
-    #:     - Reply implementation: :class:`.ReplySignal`
+    #:     - Controller method:
+    #        :meth:`.Controller.signal`
+    #:     - Command implementation:
+    #        :class:`CommandSignal`
+    #:     - Reply implementation:
+    #        :class:`.ReplySignal`
     SIGNAL = 'SIGNAL'
 
     #: Tell the server to replace addresses on future SOCKS requests.
@@ -316,15 +319,14 @@ class CommandSerializer:
     #: End of line to use while serializing a command.
     END_OF_LINE: ClassVar[str] = '\r\n'
 
-    # in order to retain speed with the function and backport 3.10
-    # we need to make 2 different functions
-
     def __init__(self, name: CommandWord) -> None:
         """
         Create a new command serializer.
         This is used internally by :meth:`.Command.serialize`.
+
         Args:
             name: The command name.
+
         """
         self._body = None  # type: str | None
         self._command = name
@@ -698,9 +700,6 @@ class CommandMapAddress(Command):
             handler: GetCoreSchemaHandler,
         ) -> CoreSchema:
             """Create a pydantic validator and serializer for this structure."""
-
-            # XXX: We need to override since unionschemas on older versions of python don't work.
-
             return core_schema.any_schema(
                 serialization=core_schema.wrap_serializer_function_ser_schema(
                     function=cls._pydantic_serializer,
@@ -836,9 +835,6 @@ class CommandSetCircuitPurpose(Command):
             handler: GetCoreSchemaHandler,
         ) -> CoreSchema:
             """Create a pydantic validator and serializer for this structure."""
-
-            # XXX: We need to override since unionschemas on older versions of python don't work.
-
             return core_schema.any_schema(
                 serialization=core_schema.wrap_serializer_function_ser_schema(
                     function=cls._pydantic_serializer,
@@ -897,9 +893,6 @@ class CommandAttachStream(Command):
             handler: GetCoreSchemaHandler,
         ) -> CoreSchema:
             """Create a pydantic validator and serializer for this structure."""
-
-            # XXX: We need to override since unionschemas on older versions of python don't work.
-
             return core_schema.any_schema(
                 serialization=core_schema.wrap_serializer_function_ser_schema(
                     function=cls._pydantic_serializer,
@@ -995,9 +988,6 @@ class CommandRedirectStream(Command):
             handler: GetCoreSchemaHandler,
         ) -> CoreSchema:
             """Create a pydantic validator and serializer for this structure."""
-
-            # XXX: We need to override since unionschemas on older versions of python don't work.
-
             return core_schema.any_schema(
                 serialization=core_schema.wrap_serializer_function_ser_schema(
                     function=cls._pydantic_serializer,
@@ -1164,9 +1154,6 @@ class CommandResolve(Command):
             handler: GetCoreSchemaHandler,
         ) -> CoreSchema:
             """Create a pydantic validator and serializer for this structure."""
-
-            # XXX: We need to override since unionschemas on older versions of python don't work.
-
             return core_schema.any_schema(
                 serialization=core_schema.wrap_serializer_function_ser_schema(
                     function=cls._pydantic_serializer,

@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import sys
 from datetime import datetime, timedelta
 from ipaddress import IPv4Address, IPv6Address
-from typing import Annotated, Generic, TypeAlias, TypeVar, Union
+from typing import Annotated, Generic, ParamSpec, TypeAlias, TypeVar, Union
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
@@ -23,11 +22,6 @@ from .utils import (
     TrX25519PrivateKey,
     TrX25519PublicKey,
 )
-
-if sys.version_info < (3, 10):
-    from typing_extensions import ParamSpec
-else:
-    from typing import ParamSpec
 
 #: Any boundary of a range structure (int, float, etc...).
 RangeVal = TypeVar('RangeVal')

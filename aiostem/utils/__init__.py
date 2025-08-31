@@ -28,6 +28,7 @@ from .transformers import (
 )
 
 __all__ = [
+    'UTC',
     'ArgumentKeyword',
     'ArgumentString',
     'Base16Encoder',
@@ -57,6 +58,5 @@ __all__ = [
     'TrRSAPublicKey',
     'TrX25519PrivateKey',
     'TrX25519PublicKey',
-    'UTC',
     'messages_from_stream',
 ]

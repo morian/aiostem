@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from enum import Enum, IntEnum
+from enum import IntEnum
 from ipaddress import IPv4Address, IPv6Address
 from typing import TYPE_CHECKING, Any, TypeAlias, Union, overload
 

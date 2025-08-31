@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import asyncio
 import os
 import sys
 from shlex import split
-from typing import Any, Optional, Union
+from typing import Any
 
 import async_timeout
 
@@ -16,16 +18,16 @@ class CallError(Exception):
 
 
 async def call(
-    command: Union[str, list[str]],
+    command: str | list[str],
     # To remain asynchronous and threadsafe I just moved the whole string in here
     default='<Undefined_ >',
     ignore_exit_status=False,
-    timeout: Optional[int] = None,
-    cwd: Optional[Union[str, bytes]] = None,
-    env: Optional[dict[str, Any]] = None,
+    timeout: int | None = None,
+    cwd: str | bytes | None = None,
+    env: dict[str, Any] | None = None,
 ):
     """
-    call(command, default = UNDEFINED, ignore_exit_status = False)
+    call(command, default = UNDEFINED, ignore_exit_status = False).
 
     Issues a command in a subprocess, blocking until completion and returning the
     results. This is not actually ran in a shell so pipes and other shell syntax
@@ -55,7 +57,6 @@ async def call(
       * **CallError** if this fails and no default was provided
       * **TimeoutError** if the timeout is reached without a default via async_timeout
     """
-
     if isinstance(command, str):
         command_list = split(command, posix=False)
     else:
@@ -82,7 +83,7 @@ async def call(
 
         exit_status = await process.wait()
         if not ignore_exit_status and exit_status != 0:
-            raise OSError('%s returned exit status %i' % (command, exit_status))
+            raise OSError(f'{command} returned exit status {exit_status}')
 
         return stdout.decode('utf-8', 'replace').splitlines() if stdout else []
     except Exception as exc:
@@ -92,8 +93,7 @@ async def call(
 
         if default == '<Undefined_ >':
             raise CallError(str(exc), ' '.join(command_list), exit_status) from exc
-        else:
-            return default
+        return default
 
 
 CMD_AVAILABLE_CACHE = {}
@@ -115,15 +115,14 @@ def is_available(command: str, cached: bool = True):
     :returns: **True** if an executable we can use by that name exists in the
       PATH, **False** otherwise
     """
-
     if ' ' in command:
         command = command[: command.find(' ')]
 
     if command == 'ulimit':
         return True  # we can't actually look it up, so hope the shell really provides it...
-    elif cached and command in CMD_AVAILABLE_CACHE:
+    if cached and command in CMD_AVAILABLE_CACHE:
         return CMD_AVAILABLE_CACHE[command]
-    elif 'PATH' not in os.environ:
+    if 'PATH' not in os.environ:
         return False  # lacking a path will cause find_executable() to internally fail
 
     cmd_exists = False

@@ -107,8 +107,12 @@ from .structures import (
 from .utils import Message, messages_from_stream
 
 if TYPE_CHECKING:
-    from collections.abc import Mapping, MutableMapping, MutableSequence, Sequence
-    from collections.abc import Set as AbstractSet  # noqa: F401
+    from collections.abc import (
+        Mapping,
+        MutableSequence,
+        Sequence,
+        Set as AbstractSet,
+    )
     from types import TracebackType
 
     from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
@@ -145,7 +149,7 @@ class Controller:
             connector: the connector to the control socket.
 
         """
-        self._evt_callbacks = {}  # type: MutableMapping[str, list[EventCallbackType]]
+        self._evt_callbacks = {}  # type: Mapping[str, list[EventCallbackType]]
         self._events_lock = asyncio.Lock()
         self._request_lock = asyncio.Lock()
         self._authenticated = False
