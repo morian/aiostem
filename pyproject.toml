@@ -29,7 +29,7 @@ classifiers = [
 ]
 dependencies = [
 	'cryptography >= 44.0, < 46.0',
-	'pydantic >= 3.0',
+	'pydantic >= 2.9',
 	'aiofiles >= 24.1.0',
 	'aiosignal >= 0.1.4',
 	'frozenlist >= 1.7.0',
@@ -131,6 +131,7 @@ select = [
 ]
 ignore = [
 	'B019',   # Use of lru_cache or cache from functools can lead to memory leaks
+	'B904',   # Within an `except` clause
 	'COM812', # missing-trailing-comma
 	'D100',   # Missing docstring in public module
 	'D104',   # Missing docstring in public package
