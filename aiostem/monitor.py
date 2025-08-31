@@ -16,9 +16,9 @@ from .utils import Message
 
 if TYPE_CHECKING:
     from types import TracebackType
-    from typing import Self
 
     from .controller import Controller
+    from .utils.backports import Self
 
 logger = logging.getLogger(__package__)
 

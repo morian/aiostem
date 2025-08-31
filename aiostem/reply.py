@@ -29,11 +29,7 @@ from .structures import (
     ReplyDataProtocolInfo,
 )
 from .utils import BaseMessage, Message, ReplySyntax, ReplySyntaxFlag
-
-if sys.version_info < (3, 11):
-    from typing_extensions import Self
-else:
-    from typing import Self
+from .utils.backports import Self
 
 logger = logging.getLogger(__package__)
 

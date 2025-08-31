@@ -88,12 +88,7 @@ from .utils import (
     TrBeforeStringSplit,
     TrCast,
 )
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
-
+from .utils.backports import Self
 
 if TYPE_CHECKING:
     # The following line is needed so sphinx can get EventConfChanged right.

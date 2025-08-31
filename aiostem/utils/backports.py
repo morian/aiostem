@@ -5,6 +5,7 @@ import sys
 if sys.version_info < (3, 11):
     from datetime import timezone
     from enum import Enum
+
     from typing_extensions import Self
 
     UTC = timezone.utc

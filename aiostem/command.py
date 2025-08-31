@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import secrets
+import sys
 from collections.abc import Mapping, MutableMapping, MutableSequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Union
@@ -31,19 +32,12 @@ from .structures import (
 )
 from .types import AnyHost, AnyPort, Base16Bytes, BoolYesNo
 from .utils.argument import ArgumentKeyword, ArgumentString, QuoteStyle
-from .utils.backports import StrEnum
+from .utils.backports import Self, StrEnum
 from .utils.transformers import TrBeforeStringSplit
 
 if TYPE_CHECKING:
     from pydantic import GetCoreSchemaHandler
     from pydantic_core.core_schema import CoreSchema, SerializerFunctionWrapHandler
-
-import sys
-
-if sys.version_info >= (3, 11):
-    from typing import Self
-else:
-    from typing_extensions import Self
 
 
 class CommandWord(StrEnum):

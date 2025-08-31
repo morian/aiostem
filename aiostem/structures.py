@@ -28,13 +28,6 @@ from typing import (
     cast,
 )
 
-from .utils.backports import UTC, StrEnum
-
-if sys.version_info < (3, 11):
-    from typing_extensions import Self
-else:
-    from typing import Self
-
 from cryptography.exceptions import InvalidSignature
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
@@ -86,6 +79,7 @@ from .utils import (
     TrRSAPrivateKey,
     TrX25519PrivateKey,
 )
+from .utils.backports import UTC, Self, StrEnum
 
 if TYPE_CHECKING:
     import builtins
