@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from base64 import b32decode, b64decode
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Annotated, Any
 
 import pytest
@@ -38,7 +38,7 @@ class TestAsTimezone:
         ('raw', 'timezone', 'timestamp'),
         [
             ('2024-12-09T23:10:14+01:00', None, 1733782214),
-            ('2024-12-09T23:10:14', UTC, 1733785814),
+            ('2024-12-09T23:10:14', timezone.utc, 1733785814),
         ],
     )
     def test_astimezone(self, raw, timezone, timestamp):

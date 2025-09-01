@@ -5,7 +5,7 @@ import gc
 import hashlib
 import logging
 import weakref
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from ipaddress import IPv4Address, IPv6Address
 
 import pytest
@@ -600,7 +600,7 @@ class TestEvents:
         assert event.original == IPv6Address('2a04:fa87:fffd::c000:426c')
         assert event.replacement is None
         assert isinstance(event.expires, datetime)
-        assert event.expires.tzinfo == UTC
+        assert event.expires.tzinfo == timezone.utc
         assert event.stream == 110330
         assert event.cached is False
         assert event.error == 'yes'
