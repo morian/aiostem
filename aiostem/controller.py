@@ -104,7 +104,7 @@ from .structures import (
     StreamCloseReasonInt,
     VirtualPortTarget,
 )
-from .utils import Message, messages_from_stream
+from .utils import Message, Self, messages_from_stream
 
 if TYPE_CHECKING:
     from collections.abc import (  # noqa: F401
@@ -115,7 +115,6 @@ if TYPE_CHECKING:
         Set as AbstractSet,
     )
     from types import TracebackType
-    from typing import Self
 
     from cryptography.hazmat.primitives.asymmetric.rsa import RSAPrivateKey
     from cryptography.hazmat.primitives.asymmetric.x25519 import (

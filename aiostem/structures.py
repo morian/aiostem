@@ -15,8 +15,8 @@ from collections.abc import (
 )
 from contextlib import suppress
 from dataclasses import dataclass, field
-from datetime import UTC, datetime
-from enum import IntEnum, IntFlag, StrEnum
+from datetime import datetime, timezone
+from enum import IntEnum, IntFlag
 from functools import cache, cached_property, wraps
 from ipaddress import IPv4Address, IPv6Address
 from typing import (
@@ -26,7 +26,6 @@ from typing import (
     ClassVar,
     Literal,
     Optional,
-    Self,
     TypeAlias,
     Union,
     cast,
@@ -75,6 +74,8 @@ from .types import (
 from .utils import (
     Base64Encoder,
     EncodedBytes,
+    Self,
+    StrEnum,
     TrBeforeSetToNone,
     TrBeforeStringSplit,
     TrCast,
@@ -577,7 +578,7 @@ class Ed25519CertificateV1(Ed25519Certificate):
     @property
     def expired(self) -> bool:
         """Tell whether this certificate has expired."""
-        return bool(datetime.now(UTC) > self.expiration)
+        return bool(datetime.now(timezone.utc) > self.expiration)
 
     @cached_property
     def signing_key(self) -> Ed25519PublicKey | None:

@@ -3,8 +3,7 @@ from __future__ import annotations
 import secrets
 from collections.abc import Mapping, MutableMapping, MutableSequence
 from dataclasses import dataclass, field
-from enum import StrEnum
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Self, Union
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Union
 
 from pydantic import Discriminator, NonNegativeInt, Tag, TypeAdapter
 from pydantic_core import core_schema
@@ -31,8 +30,14 @@ from .structures import (
     VirtualPort,
 )
 from .types import AnyHost, AnyPort, Base16Bytes, BoolYesNo
-from .utils.argument import ArgumentKeyword, ArgumentString, QuoteStyle
-from .utils.transformers import TrBeforeStringSplit
+from .utils import (
+    ArgumentKeyword,
+    ArgumentString,
+    QuoteStyle,
+    Self,
+    StrEnum,
+    TrBeforeStringSplit,
+)
 
 if TYPE_CHECKING:
     from pydantic import GetCoreSchemaHandler

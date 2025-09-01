@@ -11,7 +11,7 @@ from collections.abc import (
     Set as AbstractSet,
 )
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta, tzinfo
+from datetime import datetime, timedelta, timezone, tzinfo
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, Literal, TypeVar
 
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
@@ -42,7 +42,7 @@ class TrAfterAsTimezone:
     """Post-validator that enforces a timezone."""
 
     #: Timezone to map this date to.
-    timezone: tzinfo = UTC
+    timezone: tzinfo = timezone.utc
 
     def __get_pydantic_core_schema__(
         self,

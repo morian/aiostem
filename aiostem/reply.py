@@ -14,7 +14,7 @@ from collections.abc import (
 )
 from dataclasses import dataclass, field
 from functools import partial
-from typing import Any, ClassVar, Self, TypeAlias, TypeVar
+from typing import Any, ClassVar, TypeAlias, TypeVar
 
 from pydantic import PositiveInt, TypeAdapter
 
@@ -27,7 +27,7 @@ from .structures import (
     ReplyDataOnionClientAuthView,
     ReplyDataProtocolInfo,
 )
-from .utils import BaseMessage, Message, ReplySyntax, ReplySyntaxFlag
+from .utils import BaseMessage, Message, ReplySyntax, ReplySyntaxFlag, Self
 
 logger = logging.getLogger(__package__)
 

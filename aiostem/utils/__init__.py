@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .argument import ArgumentKeyword, ArgumentString, QuoteStyle
+from .backports import Self, StrEnum
 from .encoding import (
     Base16Encoder,
     Base32Encoder,
@@ -42,6 +43,8 @@ __all__ = [
     'QuoteStyle',
     'ReplySyntax',
     'ReplySyntaxFlag',
+    'Self',
+    'StrEnum',
     'TrAfterAsTimezone',
     'TrBeforeSetToNone',
     'TrBeforeStringSplit',

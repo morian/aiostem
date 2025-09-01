@@ -12,11 +12,10 @@ from pydantic import NonNegativeInt
 from .event import Event, EventNetworkLiveness, EventStatusClient, EventWord
 from .exceptions import ControllerError, ReplyStatusError
 from .structures import Signal, StatusActionClient, StatusClientBootstrap
-from .utils import Message
+from .utils import Message, Self
 
 if TYPE_CHECKING:
     from types import TracebackType
-    from typing import Self
 
     from .controller import Controller
 

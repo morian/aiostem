@@ -2,9 +2,11 @@ from __future__ import annotations
 
 import re
 from abc import ABC, abstractmethod
-from enum import IntEnum, StrEnum
+from enum import IntEnum
 from ipaddress import IPv4Address, IPv6Address
-from typing import TYPE_CHECKING, Any, TypeAlias, Union, overload
+from typing import TYPE_CHECKING, Any, TypeAlias, Union, cast, overload
+
+from .backports import StrEnum
 
 if TYPE_CHECKING:
     from collections.abc import Set as AbstractSet
@@ -168,7 +170,7 @@ class ArgumentKeyword(BaseArgument):
         """Serialize the argument to a string."""
         if self._value is None:
             # This check was already performed during __init__.
-            return self._key  # type: ignore[return-value]
+            return cast('str', self._key)
 
         value = self._quotes.escape(self._value)
         if self._key is None:

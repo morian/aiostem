@@ -20,6 +20,7 @@ classifiers = [
 	'Programming Language :: Python',
 	'Programming Language :: Python :: 3',
 	'Programming Language :: Python :: 3 :: Only',
+	'Programming Language :: Python :: 3.10',
 	'Programming Language :: Python :: 3.11',
 	'Programming Language :: Python :: 3.12',
 	'Programming Language :: Python :: 3.13',
@@ -29,8 +30,9 @@ classifiers = [
 dependencies = [
 	'cryptography >= 44.0, < 46.0',
 	'pydantic >= 2.9, < 3.0',
+	'typing_extensions > 4.0; python_version < "3.11"',
 ]
-requires-python = '>=3.11'
+requires-python = '>=3.10'
 
 [project.urls]
 Changelog = 'https://github.com/morian/aiostem/blob/master/CHANGELOG.rst'
@@ -166,7 +168,7 @@ max-complexity = 12
 [tool.mypy]
 files = ['aiostem/**/*.py']
 plugins = ['pydantic.mypy']
-python_version = '3.11'
+python_version = '3.10'
 namespace_packages = true
 explicit_package_bases = true
 show_error_codes = true

@@ -8,9 +8,8 @@ from collections.abc import (
     Set as AbstractSet,
 )
 from dataclasses import dataclass, field
-from enum import StrEnum
 from functools import cached_property
-from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, Self, TypeAlias, Union
+from typing import TYPE_CHECKING, Annotated, Any, ClassVar, Literal, TypeAlias, Union
 
 from pydantic import BeforeValidator, Discriminator, Field, NonNegativeInt, Tag, TypeAdapter
 
@@ -85,6 +84,8 @@ from .utils import (
     MessageData,
     ReplySyntax,
     ReplySyntaxFlag,
+    Self,
+    StrEnum,
     TrBeforeSetToNone,
     TrBeforeStringSplit,
     TrCast,
