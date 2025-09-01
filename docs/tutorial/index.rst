@@ -4,7 +4,7 @@ Getting started
 Requirements
 ------------
 
-``aiostem`` requires Python ≥ 3.11.
+``aiostem`` requires Python ≥ 3.10.
 
 
 .. admonition:: Use the most recent Python release

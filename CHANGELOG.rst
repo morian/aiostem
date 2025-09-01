@@ -8,6 +8,14 @@ The format is based on `Keep a Changelog`_ and this project adheres to `Semantic
 .. _Semantic Versioning: https://semver.org/spec/v2.0.0.html
 
 
+0.4.5 (UNRELEASED)
+==================
+
+Added
+-----
+- Brought back support for Python 3.10 as suggested by @Vizonex
+
+
 0.4.4 (2025-05-04)
 ==================
 

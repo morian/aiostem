@@ -101,6 +101,9 @@ typehints_use_rtype = False
 napoleon_preprocess_types = True
 napoleon_use_admonition_for_notes = True
 
+# Pygment color scheme.
+pygments_style = 'github-dark'
+
 
 # InterSphinx
 intersphinx_mapping = {

@@ -45,7 +45,7 @@ know exactly what is performed under the hood. It has also become too complex an
 legacy code, both for a large range of Python versions and support for old versions of Tor.
 
 ``Tor v0.4.x`` has been released for many years now, therefore ``aiostem`` focuses the support
-for ``Tor v0.4.5`` and later, as well as Python 3.11 and later.
+for ``Tor v0.4.5`` and later, as well as Python 3.10 and later.
 
 Additionally, ``stem`` does not provide a low-level API around the control protocol, which
 means that there is time waster registering and unregistering events all around. ``aistem``
@@ -66,7 +66,7 @@ following features:
 Installation
 ------------
 
-This package requires Python ≥ 3.11 and pulls a few other packages as dependencies
+This package requires Python ≥ 3.10 and pulls a few other packages as dependencies
 such as pydantic_ for serialization, deserialization and validation of received data,
 and cryptography_ to deal with the various keys used by Tor.
 
