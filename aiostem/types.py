@@ -23,6 +23,9 @@ from .utils import (
     TrX25519PublicKey,
 )
 
+#: For defining Default Values VS No-Default Ones.
+_T = TypeVar("_T")
+
 #: Any boundary of a range structure (int, float, etc...).
 RangeVal = TypeVar('RangeVal')
 
