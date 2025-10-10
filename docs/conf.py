@@ -83,7 +83,6 @@ autodoc_type_aliases = {
     'Argument': '~aiostem.utils.argument.Argument',
     'KeyTypes': '~aiostem.utils.argument.KeyTypes',
     'ValueTypes': '~aiostem.utils.argument.ValueTypes',
-    'RangeVal': '~aiostem.types.RangeVal',
 }
 autodoc_typehints = 'signature'
 autoclass_content = 'class'
@@ -108,7 +107,7 @@ pygments_style = 'github-dark'
 # InterSphinx
 intersphinx_mapping = {
     'cryptography': ('https://cryptography.io/en/stable', None),
-    'pydantic': ('https://docs.pydantic.dev/2.10', None),
+    'pydantic': ('https://docs.pydantic.dev/2.12', None),
     'python': ('https://docs.python.org/3', None),
 }
 # Map of references known to be broken by default.
@@ -123,8 +122,6 @@ _reftarget_fixmap = {
     'asyncio.streams.StreamWriter': 'asyncio.StreamWriter',
     # Fixes for aiostem.structures.
     'OnionClientAuthKey': 'aiostem.structures.OnionClientAuthKey',
-    # Fixes for aiostem.types.
-    'RangeVal': 'aiostem.types.RangeVal',
     # Fixes for aiostem.utils.argument.
     'KeyTypes': 'aiostem.utils.argument.KeyTypes',
     'ValueTypes': 'aiostem.utils.argument.ValueTypes',
@@ -141,11 +138,11 @@ _reftype_fixmap = {
     'aiostem.utils.argument.ValueTypes': 'data',
     'aiostem.utils.encoding.T': 'data',
     'aiostem.structures.OnionClientAuthKey': 'data',
-    'aiostem.types.RangeVal': 'RangeVal',
     # Sometimes these are looked up as classes.
     'typing.Annotated': 'obj',
     'typing.Final': 'obj',
     'typing.Self': 'obj',
+    'typing.Union': 'obj',
 }
 
 # OpenGraph URL and image.
