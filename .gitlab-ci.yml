@@ -72,7 +72,7 @@ linting:
   allow_failure: true
 
 typing:
-  image: ${CI_REGISTRY}/dockers/ci/python-build:3.l4-alpine
+  image: ${CI_REGISTRY}/dockers/ci/python-build:3.14-alpine
   stage: tests
   cache:
     <<: *pip_cache
