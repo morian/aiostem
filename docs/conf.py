@@ -40,7 +40,7 @@ original_stringify_annotation = sphinx_typing.stringify_annotation
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 author = 'Romain Bezut'
 project = 'aiostem'
-copyright = f'2021-2025, {author}'  # noqa: A001
+copyright = f'2021-2026, {author}'  # noqa: A001
 
 extensions = [
     'sphinx.ext.autodoc',
