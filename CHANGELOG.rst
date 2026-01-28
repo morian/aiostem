@@ -13,7 +13,7 @@ The format is based on `Keep a Changelog`_ and this project adheres to `Semantic
 
 Added
 -----
-- Bring support for Python 3.14 released on october 7th, 2025.
+- Bring support for Python 3.14 released on October 7th, 2025.
 
 
 0.4.5 (2025-09-02)

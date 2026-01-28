@@ -30,7 +30,7 @@ from Tor, and then provided back to the caller.
    :emphasize-lines: 18
    :linenos:
 
-Now we can execute the provided code as follow:
+Now we can execute the provided code as follows:
 
 .. code-block:: console
 
@@ -65,7 +65,7 @@ you can also use :meth:`~.Controller.get_info` with the argument ``info/names``.
    :emphasize-lines: 18
    :linenos:
 
-Now we can execute the provided code as follow:
+Now we can execute the provided code as follows:
 
 .. code-block:: console
 
@@ -92,7 +92,7 @@ Now we can execute the provided code as follow:
    -----END RSA PUBLIC KEY-----
    ntor-onion-key C33fH78uZcMwWu9TrOa4WjhQXdqD0ScmjsAxL1kBjVo
    id ed25519 qpL/LxLYVEXghU76iG3LsSI/UW7MBpIROZK0AB18560
-   
+
    version=0.4.8.12
 
 Note that all gathered values are provided as strings and are never interpreted.
@@ -188,4 +188,3 @@ to set the list of redirections for the new onion we are building:
                ),
            ]
            reply = await ctrl.add_onion(key, targets)
-

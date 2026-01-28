@@ -51,5 +51,5 @@ Its intended use is as follow:
 
 The callback method provided here can be either synchronous or asynchronous, but you need
 to take extra care here since the callback methods run directly from the stream reader task.
-If you need extract time, consider putting items in an :class:`asyncio.Queue` and handle
+If you need extra time, consider putting items in an :class:`asyncio.Queue` and handle
 events in a separate task.

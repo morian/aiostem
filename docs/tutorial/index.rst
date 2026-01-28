@@ -26,7 +26,7 @@ From PyPi
 
 ``aiostem`` can be installed from PyPi::
 
-   ptyhon -m pip install aiostem
+   python -m pip install aiostem
 
 The wheel package is generic and should work on most platforms.
 
@@ -51,4 +51,3 @@ Tutorial
    commands
    events
    monitor
-

@@ -9,7 +9,7 @@ Code of Conduct
 This project and everyone participating in it is governed by the `Code of Conduct`_.
 By participating in any way, you are expected to uphold this code.
 
-.. _Code of conduct: https://github.com/morian/aiostem/blob/master/CODE_OF_CONDUCT.md
+.. _Code of Conduct: https://github.com/morian/aiostem/blob/master/CODE_OF_CONDUCT.md
 
 
 Contributions
@@ -43,7 +43,7 @@ If if fixes a non trivial issue with the code, an additional test-case would be 
 
    $ make test
 
-I am especially interested in feedbacks on parsing errors from messages coming from Tor, which
+I am especially interested in feedback on parsing errors from messages coming from Tor, which
 may either not be tested beyond what was read on the tests, or on different versions of Tor.
 
 Also, writing documentation is not my favorite cup of tea, all improvements are valuable!

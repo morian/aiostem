@@ -33,7 +33,7 @@ What about Stem?
 ``Stem`` was not meant to be used with asynchronous python and despite `an attempt`_
 to support this framework, it has `never really worked`_ well and was never merged.
 Additionally it does not use a true asynchronous connection but instead uses
-worker threads in order not to break existing codes.
+worker threads in order not to break existing code.
 
 .. _an attempt: https://gitlab.torproject.org/legacy/trac/-/issues/22627
 .. _never really worked: https://github.com/torproject/stem/issues/77
@@ -48,7 +48,7 @@ legacy code, both for a large range of Python versions and support for old versi
 for ``Tor v0.4.5`` and later, as well as Python 3.10 and later.
 
 Additionally, ``stem`` does not provide a low-level API around the control protocol, which
-means that there is time waster registering and unregistering events all around. ``aistem``
+means that there is time wasted registering and unregistering events all around. ``aiostem``
 focuses on a clean implementation of the low level protocol, providing far better performances
 when dealing with a higher number of events.
 
@@ -144,15 +144,15 @@ For further details, please refer to the documentation_.
 Contributing
 ------------
 
-Contributions, bug reports and feedbacks are very welcome, feel free to open
+Contributions, bug reports and feedback are very welcome, feel free to open
 an issue_, send a `pull request`_. or `start a discussion`_.
 
-Participants must uphold the `code of conduct`_.
+Participants must uphold the `Code of Conduct`_.
 
 .. _issue: https://github.com/morian/aiostem/issues/new
 .. _pull request: https://github.com/morian/aiostem/compare/
 .. _start a discussion: https://github.com/morian/aiostem/discussions
-.. _code of conduct: https://github.com/morian/aiostem/blob/master/CODE_OF_CONDUCT.md
+.. _Code of Conduct: https://github.com/morian/aiostem/blob/master/CODE_OF_CONDUCT.md
 
 ``aiostem`` is released under the `MIT license`_.
 

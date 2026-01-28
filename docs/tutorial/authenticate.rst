@@ -42,7 +42,7 @@ The full list of known authentication methods is documented on :class:`.AuthMeth
 Note here that we use :meth:`~.BaseReply.raise_for_status` here to ensure that the
 command was successful before we go on with :attr:`.ReplyProtocolInfo.data`.
 
-This code, when executed provide an output such as follow:
+This code, when executed provides an output such as follows:
 
 .. code-block:: console
 
