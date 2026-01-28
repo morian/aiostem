@@ -52,9 +52,6 @@ include = [
 [tool.setuptools.dynamic]
 version = {attr = 'aiostem.version.version'}
 
-[tool.setuptools.package-data]
-aiostem = ['py.typed']
-
 [tool.coverage.run]
 source = ['aiostem']
 branch = true
@@ -176,6 +173,7 @@ show_error_codes = true
 follow_imports = 'silent'
 strict_optional = true
 warn_redundant_casts = true
+warn_return_any = true
 warn_unused_ignores = true
 disallow_any_generics = true
 check_untyped_defs = true

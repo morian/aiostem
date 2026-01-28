@@ -456,7 +456,7 @@ class Command:
 
     def serialize(self) -> str:
         """Serialize this command to a string."""
-        return self.adapter().dump_python(self)
+        return self.adapter().dump_python(self)  # type: ignore[no-any-return]
 
 
 @dataclass(kw_only=True)

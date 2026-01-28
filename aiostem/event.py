@@ -1579,11 +1579,11 @@ def _discriminate_status_by_action(v: Any) -> str:
     """
     match v:
         case Mapping():
-            return v['action']
+            return v['action']  # type: ignore[no-any-return]
         case None:
             return '__NONE__'
         case _:  # pragma: no cover
-            return v.action
+            return v.action  # type: ignore[no-any-return]
 
 
 @dataclass(kw_only=True, slots=True)
