@@ -427,7 +427,7 @@ class Command:
 
         This method is the one used by pydantic during serialization.
         Here ``to_dict`` is a function used to call the inner (original) serializer,
-        which provides a nice dictionary with all of our fields already serializer.
+        which provides a nice dictionary with all of our fields already serialized.
 
         """
         return item.serialize_from_struct(to_dict(item))

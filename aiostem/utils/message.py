@@ -106,7 +106,7 @@ class Message(BaseMessage):
         Extract the first word from the header.
 
         Note:
-            An event always provide its keyword in the fist item.
+            An event always provides its keyword in the first item.
 
         """
         if self.is_event and len(self.items) > 0:

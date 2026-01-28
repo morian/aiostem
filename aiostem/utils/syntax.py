@@ -23,7 +23,7 @@ logger = logging.getLogger(__package__)
 
 def _string_indexof(string: str, separators: str) -> int:
     """
-    Find the index of any of the provided separator.
+    Find the index of any of the provided separators.
 
     Args:
         string: A string to look into.
