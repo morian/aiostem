@@ -19,10 +19,10 @@ if TYPE_CHECKING:
         Set as AbstractSet,
     )
 
+    from aiostem.command import Command
     from aiostem.controller import EventCallbackType
-    from aiostem.utils import (
-        Command,
-        EventWord,
+    from aiostem.event import EventWord
+    from aiostem.reply import (
         ReplyAuthChallenge,
         ReplyProtocolInfo,
         ReplySetEvents,

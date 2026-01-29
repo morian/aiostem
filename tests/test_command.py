@@ -51,6 +51,7 @@ from aiostem.exceptions import CommandError
 from aiostem.structures import (
     CircuitPurpose,
     DescriptorPurpose,
+    HiddenServiceAddressV2,
     HsDescAuthCookie,
     HsDescAuthTypeInt,
     HsDescClientAuthV2,
@@ -294,11 +295,11 @@ class TestCommands:
         assert cmd.serialize() == 'DROPGUARDS\r\n'
 
     def test_hs_fetch(self):
-        cmd = CommandHsFetch(address='facebookcorewwwi')
+        cmd = CommandHsFetch(address=HiddenServiceAddressV2('facebookcorewwwi'))
         assert cmd.serialize() == 'HSFETCH facebookcorewwwi\r\n'
 
     def test_hs_fetch_with_servers(self):
-        address = 'facebookcorewwwi'
+        address = HiddenServiceAddressV2('facebookcorewwwi')
         server1 = '$b34a4ac3892e41c58709d9c51b3648620a7d5bfe~Test1'
         server2 = '$7b70bf914770f022e71a26cbf3d9519dc89f2a9a~Test2'
         cmd = CommandHsFetch(
