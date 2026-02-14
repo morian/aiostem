@@ -1306,6 +1306,24 @@ class CommandAddOnion(Command):
     #: String syntax is a base32-encoded ``x25519`` public key with only the key part.
     client_auth_v3: MutableSequence[HsDescClientAuthV3] = field(default_factory=list)
 
+    #: Enable proof-of-work based service DoS mitigation.
+    #:
+    #: Note:
+    #:    Available starting from Tor v0.4.9.x
+    pow_defenses_enabled: bool | None = None
+
+    #: The sustained rate of rendezvous requests to dispatch from the priority queue.
+    #:
+    #: Note:
+    #:    Available starting from Tor v0.4.9.x
+    pow_queue_rate: NonNegativeInt | None = None
+
+    #: The maximum burst size for rendezvous requests handled from the priority queue.
+    #:
+    #: Note:
+    #:    Available starting from Tor v0.4.9.x
+    pow_queue_burst: NonNegativeInt | None = None
+
     def serialize_from_struct(self, struct: Mapping[str, Any]) -> str:
         """Append ``ADD_ONION`` specific arguments."""
         ports = struct['ports']
@@ -1335,6 +1353,25 @@ class CommandAddOnion(Command):
 
         for auth in struct['client_auth_v3']:
             args.append(ArgumentKeyword('ClientAuthV3', auth, quotes=QuoteStyle.NEVER))
+
+        pow_enabled = struct['pow_defenses_enabled']
+        if pow_enabled is not None:
+            kwarg = ArgumentKeyword(
+                'PoWDefensesEnabled',
+                int(pow_enabled),
+                quotes=QuoteStyle.NEVER,
+            )
+            args.append(kwarg)
+
+            if pow_enabled:
+                for field_name, kwarg_name in (
+                    ('pow_queue_burst', 'PoWQueueRate'),
+                    ('pow_queue_rate', 'PoWQueueBurst'),
+                ):
+                    value = struct[field_name]
+                    if value is not None:
+                        kwarg = ArgumentKeyword(kwarg_name, value, quotes=QuoteStyle.NEVER)
+                        args.append(kwarg)
 
         ser.arguments.extend(args)
         return ser.serialize()

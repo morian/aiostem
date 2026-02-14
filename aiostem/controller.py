@@ -525,6 +525,9 @@ class Controller:
         flags: AbstractSet[OnionServiceFlags] = frozenset(),
         generate_locally: bool = True,
         max_streams: int | None = None,
+        pow_defenses_enabled: bool | None = None,
+        pow_queue_rate: int | None = None,
+        pow_queue_burst: int | None = None,
     ) -> ReplyAddOnion:
         """
         Create a new onion service.
@@ -542,6 +545,9 @@ class Controller:
             flags: Set of additional flags attached to this service.
             generate_locally: Generate onion keys locally instead (default).
             max_streams: Optional max number of streams attached to the rendezvous circuit.
+            pow_defenses_enabled: Enable PoW defenses for this onion service.
+            pow_queue_rate: Optional rate of rendezvous requests from the priority queue.
+            pow_queue_burst: Optional maximum burst size for rendezvous requests.
 
         Returns:
             The reply from the Tor server.
@@ -556,6 +562,9 @@ class Controller:
                 'client_auth_v3': client_auth_v3,
                 'flags': flags,
                 'max_streams': max_streams,
+                'pow_defenses_enabled': pow_defenses_enabled,
+                'pow_queue_rate': pow_queue_rate,
+                'pow_queue_burst': pow_queue_burst,
             },
         )
         # Make sure the V3AUTH flag is set when necessary.
@@ -569,7 +578,7 @@ class Controller:
                     # These are/were the common parameters for Onion V2.
                     generated = rsa.generate_private_key(65537, key_size=1024)  # noqa: S505
                     command.key = generated
-                case _:
+                case OnionServiceKeyType.ED25519_V3 | 'BEST':  # pragma: no branch
                     generated = Ed25519PrivateKey.generate()
                     command.key = generated
 
