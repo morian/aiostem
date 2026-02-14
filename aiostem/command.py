@@ -1365,8 +1365,8 @@ class CommandAddOnion(Command):
 
             if pow_enabled:
                 for field_name, kwarg_name in (
-                    ('pow_queue_burst', 'PoWQueueRate'),
-                    ('pow_queue_rate', 'PoWQueueBurst'),
+                    ('pow_queue_burst', 'PoWQueueBurst'),
+                    ('pow_queue_rate', 'PoWQueueRate'),
                 ):
                     value = struct[field_name]
                     if value is not None:

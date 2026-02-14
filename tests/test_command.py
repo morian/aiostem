@@ -328,7 +328,7 @@ class TestCommands:
 
         port = VirtualPortAdapter.validate_python('80,127.0.0.1:80')
         cmd = CommandAddOnion(key=key, ports=[port])
-        assert cmd.serialize() == (f'ADD_ONION ED25519-V3:{expected} Port=80,127.0.0.1:80\r\n')
+        assert cmd.serialize() == f'ADD_ONION ED25519-V3:{expected} Port=80,127.0.0.1:80\r\n'
 
     @pytest.mark.parametrize(
         ('value', 'type_'),
@@ -391,6 +391,42 @@ class TestCommands:
             'ADD_ONION NEW:BEST Flags=V3Auth Port=80,127.0.0.1:80 '
             'ClientAuthV3=5BPBXQOAZWPSSXFKOIXHZDRDA2AJT2SWS2GIQTISCFKGVBFWBBDQ '
             'ClientAuthV3=RC3BHJ6WTBQPRRSMV65XGCZVSYJQZNWBQI3LLFS73VP6NHSIAD2Q\r\n'
+        )
+
+    def test_add_onion_no_pow(self):
+        """
+        Test adding an onion service with no proof-of-work.
+
+        Note:
+            This test will fail with Tor before 0.9.5.
+        """
+        port = VirtualPortAdapter.validate_python('80,127.0.0.1:80')
+        cmd = CommandAddOnion(
+            key=OnionServiceNewKeyStruct('BEST'),
+            ports=[port],
+            pow_defenses_enabled=False,
+        )
+        serial = cmd.adapter().dump_python(cmd)
+        assert serial == 'ADD_ONION NEW:BEST Port=80,127.0.0.1:80 PoWDefensesEnabled=0\r\n'
+
+    def test_add_onion_pow_with_rate(self):
+        """
+        Test adding an onion service with no proof-of-work.
+
+        Note:
+            This test will fail with Tor before 0.9.5.
+        """
+        port = VirtualPortAdapter.validate_python('80,127.0.0.1:80')
+        cmd = CommandAddOnion(
+            key=OnionServiceNewKeyStruct('BEST'),
+            ports=[port],
+            pow_defenses_enabled=True,
+            pow_queue_rate=300,
+        )
+        serial = cmd.adapter().dump_python(cmd)
+        assert serial == (
+            'ADD_ONION NEW:BEST Port=80,127.0.0.1:80 '
+            'PoWDefensesEnabled=1 PoWQueueRate=300\r\n'
         )
 
     def test_add_onion_key_no_port(self):
