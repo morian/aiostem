@@ -8,6 +8,14 @@ The format is based on `Keep a Changelog`_ and this project adheres to `Semantic
 .. _Semantic Versioning: https://semver.org/spec/v2.0.0.html
 
 
+0.4.7 (UNRELEASED)
+==================
+
+Added
+-----
+- Enhance support for Tor v0.4.9, with new parameters for `ADD_ONION`.
+
+
 0.4.6 (2025-10-13)
 ==================
 
