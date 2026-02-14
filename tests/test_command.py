@@ -425,8 +425,7 @@ class TestCommands:
         )
         serial = cmd.adapter().dump_python(cmd)
         assert serial == (
-            'ADD_ONION NEW:BEST Port=80,127.0.0.1:80 '
-            'PoWDefensesEnabled=1 PoWQueueRate=300\r\n'
+            'ADD_ONION NEW:BEST Port=80,127.0.0.1:80 PoWDefensesEnabled=1 PoWQueueRate=300\r\n'
         )
 
     def test_add_onion_key_no_port(self):
