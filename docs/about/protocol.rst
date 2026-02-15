@@ -14,7 +14,7 @@ were never implemented.
 
 This hopefully ensures a better match between our implementation and the real protocol in Tor.
 
-.. _Control Spec: https://github.com/torproject/torspec/blob/main/control-spec.txt
+.. _Control Spec: https://gitlab.torproject.org/tpo/core/torspec/-/tree/main/spec/control-spec
 .. _HTML version: https://spec.torproject.org/control-spec/index.html
 .. _source code of Tor: https://gitlab.torproject.org/tpo/core/tor
 .. _Tor project: https://www.torproject.org

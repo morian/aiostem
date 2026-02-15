@@ -326,7 +326,7 @@ class Ed25519CertificateStruct:
     Tor's representation of an ed25519 certificate.
 
     See Also:
-        https://github.com/torproject/torspec/blob/main/cert-spec.txt
+        https://spec.torproject.org/cert-spec.html#ed-certs
 
     """
 
@@ -342,7 +342,7 @@ class Ed25519Certificate(ABC, BaseModel):
     Tor's representation of an ed25519 certificate.
 
     See Also:
-        https://github.com/torproject/torspec/blob/main/cert-spec.txt
+        https://spec.torproject.org/cert-spec.html#ed-certs
 
     """
 
