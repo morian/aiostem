@@ -8,6 +8,8 @@ dynamic = ['version']
 authors = [
 	{name = 'Romain Bezut', email = 'morian@xdec.net'},
 ]
+license = 'MIT'
+license-files = ['LICENSE']
 description = 'Asynchronous Tor controller library for asyncio and Python'
 readme = 'README.rst'
 classifiers = [
@@ -15,7 +17,6 @@ classifiers = [
 	'Framework :: Pydantic :: 2',
 	'Intended Audience :: Developers',
 	'Intended Audience :: Information Technology',
-	'License :: OSI Approved :: MIT License',
 	'Operating System :: POSIX :: Linux',
 	'Programming Language :: Python',
 	'Programming Language :: Python :: 3',
