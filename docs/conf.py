@@ -107,7 +107,7 @@ pygments_style = 'github-dark'
 # InterSphinx
 intersphinx_mapping = {
     'cryptography': ('https://cryptography.io/en/stable', None),
-    'pydantic': ('https://docs.pydantic.dev/2.12', None),
+    'pydantic': ('https://docs.pydantic.dev/latest', None),
     'python': ('https://docs.python.org/3', None),
 }
 # Map of references known to be broken by default.
