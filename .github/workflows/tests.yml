@@ -39,7 +39,7 @@ jobs:
 
     steps:
       - name: Repository checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Run the Tor service
         run: docker compose -f tests/compose.yml up --detach --wait
@@ -56,19 +56,19 @@ jobs:
         run: pytest --cov=aiostem -v -s --junit-xml=pytest.xml --cov-report=term --cov-report=xml
 
       - name: Upload pytest test results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Test results (Python ${{ matrix.python-version }})
           path: pytest.xml
 
       - name: Upload coverage results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Coverage results (Python ${{ matrix.python-version }})
           path: coverage.xml
 
       - name: Publish coverage results to Codecov
-        uses: codecov/codecov-action@v5
+        uses: codecov/codecov-action@v7
         with:
           name: Coverage with Python ${{ matrix.python-version }}
           token: ${{ secrets.CODECOV_TOKEN }}
@@ -91,7 +91,7 @@ jobs:
 
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: artifacts
 
@@ -110,7 +110,7 @@ jobs:
 
     steps:
       - name: Repository checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
@@ -124,7 +124,7 @@ jobs:
         run: mypy --junit-xml=mypy.xml
 
       - name: Upload type check results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Type check results (Python ${{ matrix.python-version }})
           path: mypy.xml
@@ -139,7 +139,7 @@ jobs:
 
     steps:
       - name: Repository checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Setup Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
